@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TypedDict
 from typing_extensions import TypeAlias
 from sublime import CompletionItem, KindId
 
@@ -13,5 +13,29 @@ Point: TypeAlias = int
 Value: TypeAlias = bool | str | int | float | list[Value] | dict[str, Value] | None
 CommandArgs: TypeAlias = dict[str, Value] | None
 Kind: TypeAlias = tuple[KindId, str, str]
-Event: TypeAlias = dict[str, Any]
+
+class ModifierKeys(TypedDict, total=False):
+    """
+    The ``modifier_keys`` entry of an `Event`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ModifierKeys`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    primary: bool
+    ctrl: bool
+    alt: bool
+    altgr: bool
+    shift: bool
+    super: bool
+
+class Event(TypedDict, total=False):
+    """
+    Contains information about a user's interaction with a menu, command palette
+    selection, quick panel selection or HTML document.
+    """
+    x: float
+    y: float
+    modifier_keys: ModifierKeys
+
 CompletionValue: TypeAlias = str | tuple[str, str] | CompletionItem

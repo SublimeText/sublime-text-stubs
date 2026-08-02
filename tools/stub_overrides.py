@@ -135,14 +135,45 @@ ATTRIBUTES = {
 
 # `sublime_types` aliases the generator cannot take verbatim.
 TYPE_ALIASES = {
-    # The reference says `dict`; an untyped dict is rejected under strict mode.
-    # An event is a mapping of `x`/`y`/`modifier_keys` style entries.
-    "Event": "dict[str, Any]",
     # JSON is recursive: the reference spells the containers as `List[Any]` /
     # `Dict[str, Any]`, which loses the element types. The self-reference needs no
     # quoting -- in a `.pyi` nothing is evaluated, so a forward reference resolves
     # regardless of where it appears; all four checkers accept it.
     "Value": "bool | str | int | float | list[Value] | dict[str, Value] | None",
+}
+
+# `sublime_types` aliases the generator replaces with a class declaration instead of a
+# plain `X: TypeAlias = ...` line. The reference spells `Event` as a bare `dict`; the
+# "Event Objects" section of the API docs documents its `x`/`y`/`modifier_keys` keys,
+# which narrow cleanly to a `TypedDict`. `Event` itself is a real name upstream (bound
+# to plain `dict`, so importing it unconditionally still works at runtime), but
+# `ModifierKeys` is a stub-only addition with no upstream counterpart at all, hence the
+# docstring telling plugin authors to import it under `if TYPE_CHECKING:`.
+TYPE_ALIAS_CLASSES = {
+    "Event": '''\
+class ModifierKeys(TypedDict, total=False):
+    """
+    The ``modifier_keys`` entry of an `Event`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ModifierKeys`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    primary: bool
+    ctrl: bool
+    alt: bool
+    altgr: bool
+    shift: bool
+    super: bool
+
+class Event(TypedDict, total=False):
+    """
+    Contains information about a user's interaction with a menu, command palette
+    selection, quick panel selection or HTML document.
+    """
+    x: float
+    y: float
+    modifier_keys: ModifierKeys''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

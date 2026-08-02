@@ -104,9 +104,9 @@ reportUnusedCallResult = "error"
 reportUnusedParameter = "error"  # basedpyright only
 
 # The two rules from "all" that are not reachable here: the API genuinely traffics
-# in `Any`. `sublime_types.Event` is a `dict[str, Any]`, `ListInputItem.value` is an
-# arbitrary value handed back to the command, and `set_timeout` ignores whatever its
-# callback returns. Narrowing any of them would misdescribe the runtime.
+# in `Any`. `ListInputItem.value` is an arbitrary value handed back to the command,
+# and `set_timeout` ignores whatever its callback returns. Narrowing either of them
+# would misdescribe the runtime.
 reportAny = false  # basedpyright only
 reportExplicitAny = false  # basedpyright only
 

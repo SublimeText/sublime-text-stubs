@@ -70,7 +70,7 @@ SHADOWABLE_BUILTINS = {
 }
 
 # Names still worth importing from `typing`: they have no builtin equivalent.
-TYPING_NAMES = ["Any", "Literal"]
+TYPING_NAMES = ["Any", "Literal", "TypedDict"]
 
 # The modern home of the abstract collection types; `typing.Callable` and friends
 # are deprecated aliases of these.
@@ -95,6 +95,7 @@ VALUE_TABLES: dict[str, dict[str, str]] = {
     "PARAMS": ov.PARAMS,
     "ATTRIBUTES": ov.ATTRIBUTES,
     "TYPE_ALIASES": ov.TYPE_ALIASES,
+    "TYPE_ALIAS_CLASSES": ov.TYPE_ALIAS_CLASSES,
     "EVENT_HANDLER_RETURNS": ov.EVENT_HANDLER_RETURNS,
 }
 MEMBER_TABLES: dict[str, list[str]] = {
@@ -801,20 +802,36 @@ class ModuleGenerator:
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
                 if allowlisted:
                     continue
-                self.separate(previous, "assignment")
                 if self.module == "sublime_types":
+                    current = "class" if self.aliases_to_class(node) else "assignment"
+                    self.separate(previous, current)
                     self.emit_type_alias(node)
+                    previous = current
                 else:
+                    self.separate(previous, "assignment")
                     _ = self.emit_assignment(node, "", None)
-                previous = "assignment"
+                    previous = "assignment"
 
         body = "\n".join(self.lines).rstrip() + "\n"
         return self.render_header() + body
+
+    def aliases_to_class(self, node: ast.stmt) -> bool:
+        """Whether `node` is a module-level alias replaced by a `TYPE_ALIAS_CLASSES` entry."""
+        return (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id in ov.TYPE_ALIAS_CLASSES
+        )
 
     def emit_type_alias(self, node: ast.stmt) -> None:
         if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
             return
         name = node.target.id
+        class_override = self.override("TYPE_ALIAS_CLASSES", name)
+        if class_override is not None:
+            self.note(class_override)
+            self.lines.append(class_override)
+            return
         override = self.override("TYPE_ALIASES", name)
         if override is not None:
             value = modernize(override)
