@@ -71,8 +71,11 @@ OBJECT_METHODS = {
 # nothing it did not know, and the reference gives them no docstring worth keeping.
 REDUNDANT_OBJECT_METHODS = {"__repr__", "__str__"}
 
-# Modules imported plainly when the generated body refers to them.
-MODULE_IMPORTS = ["builtins", "enum", "sublime"]
+# Modules imported plainly when the generated body refers to them, split by the
+# isort section they belong to. `sublime` is a third-party module here: the stubs
+# describe it, they are not part of it.
+STDLIB_MODULE_IMPORTS = ["builtins", "enum"]
+THIRD_PARTY_MODULE_IMPORTS = ["sublime"]
 
 # Builtins that an attribute name can shadow inside a class body, in which case
 # annotations in that class have to spell them `builtins.x` (`TextChange.str`).
@@ -928,36 +931,42 @@ class ModuleGenerator:
                 f" (Sublime Text build {ST_BUILD})."
             ),
             "",
-            # A no-op in a stub file, where annotations are never evaluated, but it
-            # documents that the modern syntax below is deliberate.
-            "from __future__ import annotations",
-            "",
         ]
-        lines.extend(
-            f"import {module_name}"
-            for module_name in MODULE_IMPORTS
-            if module_name in self.referenced and module_name != self.module
-        )
-
+        # No `from __future__ import annotations`: it is a no-op in a stub, which a
+        # type checker always reads with postponed annotations, so the PEP 604 / 585
+        # syntax below needs nothing to enable it.
+        stdlib = self.plain_imports(STDLIB_MODULE_IMPORTS)
         abc_used = [n for n in COLLECTIONS_ABC_NAMES if n in self.referenced]
         if abc_used:
-            lines.append(f"from collections.abc import {', '.join(abc_used)}")
+            stdlib.append(f"from collections.abc import {', '.join(abc_used)}")
         typing_used = [n for n in TYPING_NAMES if n in self.referenced]
         if typing_used:
-            lines.append(f"from typing import {', '.join(typing_used)}")
+            stdlib.append(f"from typing import {', '.join(typing_used)}")
+
+        third_party = self.plain_imports(THIRD_PARTY_MODULE_IMPORTS)
+        if self.module == "sublime_types":
+            third_party.append("from sublime import CompletionItem, KindId")
+        reexports = ov.SUBLIME_TYPES_REEXPORTS.get(self.module)
+        # One name per line: that is how isort spells `X as X` re-exports, and the
+        # single line they used to share ran well past the stub line width.
+        third_party.extend(f"from sublime_types import {n} as {n}" for n in sorted(reexports or []))
         extensions_used = [n for n in TYPING_EXTENSIONS_NAMES if n in self.referenced]
         if extensions_used:
-            lines.append(f"from typing_extensions import {', '.join(extensions_used)}")
+            third_party.append(f"from typing_extensions import {', '.join(extensions_used)}")
 
-        reexports = ov.SUBLIME_TYPES_REEXPORTS.get(self.module)
-        if reexports:
-            names = ", ".join(f"{n} as {n}" for n in sorted(reexports))
-            lines.append(f"from sublime_types import {names}")
-        if self.module == "sublime_types":
-            lines.append("from sublime import CompletionItem, KindId")
-
-        lines.append("")
+        for section in (stdlib, third_party):
+            if section:
+                lines.extend(section)
+                lines.append("")
         return "\n".join(lines) + "\n"
+
+    def plain_imports(self, modules: Sequence[str]) -> list[str]:
+        """`import x` for each of `modules` the generated body refers to."""
+        return [
+            f"import {module}"
+            for module in modules
+            if module in self.referenced and module != self.module
+        ]
 
 
 # --- `.. method::` directives ------------------------------------------------
