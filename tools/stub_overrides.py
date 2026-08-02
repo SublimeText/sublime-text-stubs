@@ -171,3 +171,18 @@ COMMAND_RUN_NOTE = """\
 # invokes it dynamically with command-specific keyword arguments, so a base signature
 # would reject every subclass that declares arguments of its own. Write it as
 # `def run(self, **kwargs)` -- or, for a TextCommand, `def run(self, edit, **kwargs)`."""
+
+# `Command.is_enabled`, `is_visible`, `is_checked` and `description` receive command
+# arguments the same dynamic way as `run`: the host-facing `is_enabled_` and friends call
+# `self.is_enabled(**self.filter_args(args))` and fall back to a no-argument call on
+# `TypeError` (reference `sublime_plugin.py` lines 1414-1493). Unlike `run` they do have a
+# meaningful default implementation, so they are kept -- and emitted exactly as the
+# reference declares them, without parameters. sublimelsp/LSP's hand-written stub instead
+# adds `**kwargs: dict[str, Any]` to all four; we deliberately do not, because
+#  1. it contradicts the reference declaration;
+#  2. it does not solve what it looks like it solves: a subclass narrowing to
+#     `def is_enabled(self, my_arg: str) -> bool` is an incompatible override under Liskov
+#     rules either way, and pyright and mypy both report it whether the base declares
+#     `**kwargs` or nothing at all; and
+#  3. the spelling is wrong regardless: an annotation on `**kwargs` describes each value,
+#     not the dict, so it would have to be `**kwargs: Any`.

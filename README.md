@@ -113,6 +113,16 @@ and it has nowhere to record the strict-mode type corrections.
 - **`run` is not declared** on any of the command classes.
   Sublime Text invokes it with command-specific keyword arguments,
   so a base signature would reject every subclass that declares arguments of its own.
+  `is_enabled`, `is_visible`, `is_checked` and `description` receive their arguments
+  the very same way,
+  but they do have a default implementation,
+  so they are emitted exactly as the reference declares them: without parameters.
+  Adding `**kwargs` to them, as sublimelsp/LSP's stub does,
+  would contradict the reference
+  and would not buy anything,
+  because an override narrowing to named parameters
+  stays an incompatible override under Liskov rules
+  and both pyright and mypy report it either way.
 - **Internal members are dropped**:
   anything underscore-prefixed,
   the trailing-underscore methods the plugin host calls into (`run_`, `is_enabled_`),
