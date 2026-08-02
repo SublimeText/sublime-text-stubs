@@ -22,6 +22,10 @@ not semantic versioning; see the README.
 - `sublime_types.Value` is defined recursively,
   so the elements of a list or dict `Value` are `Value`s themselves
   instead of `Any`.
+- The `buffer` parameter of `EventListener.on_associate_buffer`
+  and `on_associate_buffer_async` is typed as `sublime.Buffer`,
+  which is what the plugin host passes,
+  and not as `sublime.View` as the reference documentation claims.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.

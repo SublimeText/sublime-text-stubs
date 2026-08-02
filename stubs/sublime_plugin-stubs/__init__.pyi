@@ -553,7 +553,7 @@ class EventListener:
         not block the application.
         """
         ...
-    def on_associate_buffer(self, buffer: sublime.View) -> None:
+    def on_associate_buffer(self, buffer: sublime.Buffer) -> None:
         """
         Called when a buffer is associated with a file. buffer will be a Buffer
         object.
@@ -561,7 +561,7 @@ class EventListener:
         .. since:: 4084
         """
         ...
-    def on_associate_buffer_async(self, buffer: sublime.View) -> None:
+    def on_associate_buffer_async(self, buffer: sublime.Buffer) -> None:
         """
         Called when a buffer is associated with file. Runs in a separate thread,
         and does not block the application. buffer will be a Buffer object.

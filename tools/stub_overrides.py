@@ -113,6 +113,12 @@ PARAMS = {
     "sublime_plugin.ListInputHandler.description.value": "Value",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
+    # The `.. method::` directives for these two spell `buffer: View`, but their
+    # own prose says "buffer will be a Buffer object" and the dispatcher does
+    # `buf = sublime.Buffer(buffer_id)` before invoking the callbacks
+    # (`references/python38/sublime_plugin.py:829` and `:838`).
+    "sublime_plugin.EventListener.on_associate_buffer.buffer": "sublime.Buffer",
+    "sublime_plugin.EventListener.on_associate_buffer_async.buffer": "sublime.Buffer",
 }
 
 # Types for instance attributes assigned without an annotation in `__init__`.

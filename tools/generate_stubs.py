@@ -550,7 +550,8 @@ class ModuleGenerator:
         emitted = False
         for name, params, body in parse_method_directives(doc):
             returns = ov.EVENT_HANDLER_RETURNS.get(name, ov.EVENT_HANDLER_DEFAULT_RETURN)
-            signature = ", ".join(["self"] + [self.qualify(p) for p in params])
+            qualname = self.key(cls.name, name)
+            signature = ", ".join(["self"] + [self.qualify(qualname, p) for p in params])
             self.note(signature)
             self.note(returns)
             header = f"{indent}def {name}({signature}) -> {returns}:"
@@ -564,14 +565,21 @@ class ModuleGenerator:
             emitted = True
         return emitted
 
-    def qualify(self, parameter: str) -> str:
-        """Qualify bare `sublime` names in a parameter lifted from a docstring."""
+    def qualify(self, qualname: str, parameter: str) -> str:
+        """Qualify bare `sublime` names in a parameter lifted from a docstring.
+
+        A `PARAMS` entry takes precedence, so that a wrong type in the directive
+        can be corrected the same way as one in a real signature.
+        """
 
         def replace(match: re.Match[str]) -> str:
             name = match.group(0)
             return f"sublime.{name}" if name in self.ref.sublime_names else name
 
         name, _, annotation = parameter.partition(":")
+        override = self.override(ov.PARAMS, f"{qualname}.{name.strip()}")
+        if override is not None:
+            return f"{name.strip()}: {override}"
         if not annotation:
             return name.strip()
         annotation = re.sub(r"\b[A-Za-z_][A-Za-z_0-9]*\b", replace, annotation.strip())
