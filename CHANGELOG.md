@@ -10,7 +10,7 @@ not semantic versioning; see the README.
 
 ### Changed
 
-- `sublime.HTML` is annotated as `int` rather than left to inference.
+- `sublime.HTML` is annotated as `Literal[1]` rather than left to inference.
 - Signatures longer than 100 characters are wrapped one parameter per line.
 - Annotations no longer carry the quotes the reference needs at runtime,
   so `CompletionItem.snippet_completion` returns `CompletionItem`, not `'CompletionItem'`.

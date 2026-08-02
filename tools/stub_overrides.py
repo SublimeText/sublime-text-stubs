@@ -59,8 +59,9 @@ SKIP_MEMBERS = [
 # would otherwise leave their type to inference.
 CONSTANTS = {
     # A popup flag predating `PopupFlags`, and the only one with no member of that
-    # enum to alias; references/python38/sublime.py:260.
-    "sublime.HTML": "int",
+    # enum to alias; references/python38/sublime.py:260. `Literal` keeps the value in
+    # the type, which is what the enum members it sits among carry too.
+    "sublime.HTML": "Literal[1]",
 }
 
 # Return type overrides, taking precedence over the annotation in the reference.

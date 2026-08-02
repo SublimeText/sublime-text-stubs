@@ -212,7 +212,7 @@ class PopupFlags(enum.IntFlag):
     .. since:: 4057
     """
 
-HTML: int = 1
+HTML: Literal[1] = 1
 COOPERATE_WITH_AUTO_COMPLETE = PopupFlags.COOPERATE_WITH_AUTO_COMPLETE
 HIDE_ON_MOUSE_MOVE = PopupFlags.HIDE_ON_MOUSE_MOVE
 HIDE_ON_MOUSE_MOVE_AWAY = PopupFlags.HIDE_ON_MOUSE_MOVE_AWAY
