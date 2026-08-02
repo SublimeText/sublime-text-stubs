@@ -212,9 +212,36 @@ COMMAND_RUN_NOTE = """\
 # reference declares them, without parameters. sublimelsp/LSP's hand-written stub instead
 # adds `**kwargs: dict[str, Any]` to all four; we deliberately do not, because
 #  1. it contradicts the reference declaration;
-#  2. it does not solve what it looks like it solves: a subclass narrowing to
-#     `def is_enabled(self, my_arg: str) -> bool` is an incompatible override under Liskov
-#     rules either way, and pyright and mypy both report it whether the base declares
-#     `**kwargs` or nothing at all; and
+#  2. it makes *every* override an error, not just the one it looks like it fixes. An
+#     override may not accept less than its base, and dropping `**kwargs` does exactly
+#     that, so with `**kwargs` in the base pyright and mypy both reject all of
+#     `def is_enabled(self)` (what the reference itself declares, and what almost every
+#     plugin writes), `def is_enabled(self, my_arg: str)` and
+#     `def is_enabled(self, my_arg: str = "")`; and
 #  3. the spelling is wrong regardless: an annotation on `**kwargs` describes each value,
 #     not the dict, so it would have to be `**kwargs: Any`.
+#
+# With the parameterless declaration, only a *required* parameter is rejected, and that
+# rejection is correct: `is_enabled_` catches the `TypeError` from `is_enabled(**args)`
+# and retries as `is_enabled()`, which raises `TypeError` again -- from inside the
+# `except` block, so it propagates. Any of
+#     def is_enabled(self) -> bool
+#     def is_enabled(self, my_arg: str = "") -> bool
+#     def is_enabled(self, **kwargs: Any) -> bool
+# type-checks clean under pyright, mypy and ty, and all three are safe at runtime.
+#
+# Two spellings would silence the diagnostic outright: `def is_enabled(self, *args: Any,
+# **kwargs: Any) -> bool` and `is_enabled: Callable[..., bool]`. Both are the gradual
+# `...` signature, which is assignable from anything, so the override check is skipped
+# and only the return type stays checked. Neither is used here: they buy the ability to
+# write the one spelling that crashes, and cost the signature on hover. Note that the
+# escape hatch is specifically `Any` -- `*args: object, **kwargs: object` is an ordinary
+# signature and rejects everything. Overloading the base (a parameterless overload
+# alongside a `**kwargs` one) does not work either: an override must satisfy every
+# overload at once, so that combination rejects both spellings above.
+#
+# `**kwargs: Value` would describe the call more accurately than `Any` -- command
+# arguments come from JSON in a keymap, menu or palette entry -- but only almost:
+# `filter_args` keeps the `event` argument when `want_event()` is true, and `Event` is a
+# `TypedDict`, which is not assignable to `Value`. It would have to be `Value | Event`,
+# and it inherits problem 2 above regardless.

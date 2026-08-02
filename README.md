@@ -145,10 +145,20 @@ and it has nowhere to record the strict-mode type corrections.
   so they are emitted exactly as the reference declares them: without parameters.
   Adding `**kwargs` to them, as sublimelsp/LSP's stub does,
   would contradict the reference
-  and would not buy anything,
-  because an override narrowing to named parameters
-  stays an incompatible override under Liskov rules
-  and both pyright and mypy report it either way.
+  and would make *every* override an error,
+  including the parameterless one that the reference itself declares:
+  an override may not accept less than its base,
+  and dropping `**kwargs` does exactly that.
+  With the parameterless declaration,
+  only a *required* parameter is rejected,
+  and that rejection is correct,
+  because such an override also raises `TypeError` at runtime
+  when the command is invoked without that argument.
+  Write the override as `def is_enabled(self)`,
+  `def is_enabled(self, my_arg="")` or `def is_enabled(self, **kwargs)`;
+  all three type-check and all three are safe.
+  See `tools/stub_overrides.py` for the spellings that would silence the check
+  and why they are not used.
 - **Internal members are dropped**:
   anything underscore-prefixed,
   the trailing-underscore methods the plugin host calls into (`run_`, `is_enabled_`),
