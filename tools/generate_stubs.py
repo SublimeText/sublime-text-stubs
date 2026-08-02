@@ -29,6 +29,7 @@ import re
 import sys
 from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
+from typing import cast, override
 
 import stub_overrides as ov
 
@@ -68,12 +69,20 @@ SHADOWABLE_BUILTINS = {
     "object", "property", "range", "set", "slice", "str", "tuple", "type",
 }
 
-TYPING_NAMES = [
-    "Any", "Callable", "Dict", "Iterable", "Iterator", "List", "Literal",
-    "Optional", "Sequence", "Set", "Tuple", "Union",
-]
+# Names still worth importing from `typing`: they have no builtin equivalent.
+TYPING_NAMES = ["Any", "Literal"]
+
+# The modern home of the abstract collection types; `typing.Callable` and friends
+# are deprecated aliases of these.
+COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
 
 TYPING_EXTENSIONS_NAMES = ["TypeAlias", "deprecated", "override"]
+
+# PEP 585: the `typing` aliases superseded by the builtin generics.
+BUILTIN_GENERICS = {
+    "Dict": "dict", "FrozenSet": "frozenset", "List": "list",
+    "Set": "set", "Tuple": "tuple", "Type": "type",
+}
 
 
 class Unresolved(Exception):
@@ -268,6 +277,57 @@ def accepts_none(annotation: str) -> bool:
     return check(node)
 
 
+class _Modernizer(ast.NodeTransformer):
+    """Rewrites the `typing` aliases to PEP 604 / PEP 585 spelling."""
+
+    @override
+    def visit_Subscript(self, node: ast.Subscript) -> ast.expr:
+        visited = self.generic_visit(node)
+        assert isinstance(visited, ast.Subscript)
+        node = visited
+        base = ast.unparse(node.value).rsplit(".", 1)[-1]
+        if base == "Optional":
+            return union([node.slice, ast.Constant(value=None)])
+        if base == "Union":
+            elements = node.slice.elts if isinstance(node.slice, ast.Tuple) else [node.slice]
+            return union(list(elements))
+        if base in BUILTIN_GENERICS and isinstance(node.value, ast.Name):
+            return ast.Subscript(
+                value=ast.Name(id=BUILTIN_GENERICS[base]), slice=node.slice, ctx=node.ctx
+            )
+        return node
+
+
+def union(elements: Sequence[ast.expr]) -> ast.expr:
+    """Fold the elements into a single `A | B | ...` expression."""
+    result = elements[0]
+    for element in elements[1:]:
+        result = ast.BinOp(left=result, op=ast.BitOr(), right=element)
+    return result
+
+
+def modernize(annotation: str) -> str:
+    """`Optional[X]` -> `X | None`, `List[X]` -> `list[X]`, and so on.
+
+    Stub files are never executed, so they may use PEP 604 and PEP 585 syntax
+    regardless of the Python version the stubs describe. All four checkers accept
+    it in a `.pyi`; this is what typeshed and the hand-written third-party stub
+    sets do as well.
+
+    The original text is returned unchanged when nothing needs rewriting, so that
+    annotations taken verbatim from the reference keep their own formatting.
+    """
+    try:
+        tree: ast.expr = ast.parse(annotation, mode="eval").body
+    except SyntaxError:
+        return annotation
+    original = ast.unparse(tree)  # before the transformer mutates the tree in place
+    # `NodeTransformer.visit` is typed as returning `Any`.
+    transformed = cast("ast.expr", _Modernizer().visit(tree))
+    rewritten = ast.unparse(ast.fix_missing_locations(transformed))
+    return annotation if rewritten == original else rewritten
+
+
 def is_enum(node: ast.ClassDef) -> bool:
     return any("enum." in ast.unparse(base) for base in node.bases)
 
@@ -332,6 +392,7 @@ class ModuleGenerator:
         return None
 
     def check_annotation(self, annotation: str, where: str) -> str:
+        annotation = modernize(annotation)
         for name in self.shadowed:
             annotation = re.sub(rf"(?<!\.)\b{name}\b", f"builtins.{name}", annotation)
         self.note(annotation)
@@ -630,7 +691,9 @@ class ModuleGenerator:
         doc = ast.get_docstring(cls, clean=True) or ""
         emitted = False
         for name, params, body in parse_method_directives(doc):
-            returns = ov.EVENT_HANDLER_RETURNS.get(name, ov.EVENT_HANDLER_DEFAULT_RETURN)
+            returns = modernize(
+                ov.EVENT_HANDLER_RETURNS.get(name, ov.EVENT_HANDLER_DEFAULT_RETURN)
+            )
             qualname = self.key(cls.name, name)
             signature = ", ".join(["self"] + [self.qualify(qualname, p) for p in params])
             self.note(signature)
@@ -660,11 +723,11 @@ class ModuleGenerator:
         name, _, annotation = parameter.partition(":")
         override = self.override(ov.PARAMS, f"{qualname}.{name.strip()}")
         if override is not None:
-            return f"{name.strip()}: {override}"
+            return f"{name.strip()}: {modernize(override)}"
         if not annotation:
             return name.strip()
         annotation = re.sub(r"\b[A-Za-z_][A-Za-z_0-9]*\b", replace, annotation.strip())
-        return f"{name.strip()}: {annotation}"
+        return f"{name.strip()}: {modernize(annotation)}"
 
     # -- module
 
@@ -716,14 +779,14 @@ class ModuleGenerator:
         name = node.target.id
         override = self.override(ov.TYPE_ALIASES, name)
         if override is not None:
-            value = override
+            value = modernize(override)
         else:
             assert node.value is not None
             value = ast.unparse(node.value)
             if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                 # The reference quotes every alias to keep it lazily evaluated.
                 value = node.value.value
-            _ = self.check_annotation(value, self.key(name))
+            value = self.check_annotation(value, self.key(name))
         self.note(value)
         self.note("TypeAlias")
         self.lines.append(f"{name}: TypeAlias = {value}")
@@ -734,11 +797,18 @@ class ModuleGenerator:
             f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py"
             + f" (Sublime Text build {ST_BUILD}).",
             "",
+            # A no-op in a stub file, where annotations are never evaluated, but it
+            # documents that the modern syntax below is deliberate.
+            "from __future__ import annotations",
+            "",
         ]
         for module_name in MODULE_IMPORTS:
             if module_name in self.referenced and module_name != self.module:
                 lines.append(f"import {module_name}")
 
+        abc_used = [n for n in COLLECTIONS_ABC_NAMES if n in self.referenced]
+        if abc_used:
+            lines.append(f"from collections.abc import {', '.join(abc_used)}")
         typing_used = [n for n in TYPING_NAMES if n in self.referenced]
         if typing_used:
             lines.append(f"from typing import {', '.join(typing_used)}")

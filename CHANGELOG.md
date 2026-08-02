@@ -38,3 +38,22 @@ not semantic versioning; see the README.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.
+
+### Changed
+
+- The stubs are written in modern typing syntax:
+  PEP 604 unions (`str | None`)
+  and PEP 585 builtin generics (`list[str]`, `dict[str, Value]`)
+  instead of `typing.Optional`, `typing.Union`, `typing.List` and friends,
+  with `Callable`, `Iterable` and `Iterator` taken from `collections.abc`.
+  Stub files are never executed,
+  so this is independent of the Python 3.8 runtime they describe;
+  no type changed meaning.
+  Each file now also opens with `from __future__ import annotations`.
+- pyright and basedpyright run every rule
+  basedpyright's `typeCheckingMode = "all"` enables,
+  spelled out individually
+  because plain pyright does not accept that mode name.
+  Only `reportAny` and `reportExplicitAny` remain off,
+  the API genuinely traffics in `Any`;
+  `reportDeprecated`, previously disabled for the sake of the `typing` aliases, is on.

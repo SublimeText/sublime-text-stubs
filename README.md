@@ -85,6 +85,24 @@ a bare `dict` that strict mode rejects, an unused override entry --
 is reported with the exact `stub_overrides` key to add,
 and nothing is written until every one is resolved.
 
+The emitted stubs use modern typing syntax --
+PEP 604 unions (`str | None`)
+and PEP 585 builtin generics (`list[str]`, `dict[str, Value]`) --
+even though this branch describes a Python 3.8 API.
+That is safe because a `.pyi` is never executed:
+its annotations are read by type checkers, not evaluated by an interpreter,
+so the syntax available in the targeted runtime does not constrain them.
+All four checkers accept it under `pythonVersion = "3.8"`,
+which is what typeshed relies on
+and what both hand-written third-party stub sets
+(sublimelsp/LSP and SublimeText/sublime_lib) do as well.
+The abstract collection types come from `collections.abc` for the same reason,
+and each file opens with `from __future__ import annotations`,
+which is a no-op in a stub
+but records the intent.
+The reference sources spell all of this the 3.8 way,
+so `generate_stubs.modernize` rewrites every annotation on the way out.
+
 `mypy stubgen --include-docstrings` is not used
 because it drops attribute docstrings
 (every enum member and every documented `self.x`),
@@ -201,21 +219,40 @@ so running them from the repo root never reaches it.
 
 Configuration notes:
 
-- basedpyright's `typeCheckingMode = "all"` is not usable for the stubs
-  because it enables `reportDeprecated`,
-  which flags `typing.List` and `typing.Optional`
-  even though the Python 3.8 target requires them.
-  The `tools/` sub-project has no such constraint.
+- `typeCheckingMode` is `"strict"`, not basedpyright's `"all"`,
+  because the two checkers share one section (see the next bullet)
+  and plain pyright rejects the value:
+  it logs
+  `Config "typeCheckingMode" entry must contain "off", "basic", "standard", or "strict"`
+  and then silently falls back to `"standard"`,
+  which is weaker than what it manages today.
+  Every rule `"all"` adds on top of `"strict"` is therefore listed individually,
+  so basedpyright still runs the full set.
+  Only `reportAny` and `reportExplicitAny` stay off:
+  the API genuinely traffics in `Any`
+  -- `sublime_types.Event` is a `dict[str, Any]`,
+  `ListInputItem.value` is an arbitrary value handed back to the command,
+  and `set_timeout` ignores whatever its callback returns --
+  and narrowing any of them would misdescribe the runtime.
+  `reportDeprecated` is on and stays quiet.
+  It was previously turned off on the assumption
+  that it flags `typing.List` and `typing.Optional`,
+  which the stubs used to emit;
+  it does not,
+  neither at `pythonVersion = "3.8"` nor above,
+  because typeshed does not carry `@deprecated` on those aliases.
 - pyright and basedpyright share the single `[tool.pyright]` section.
   A second `[tool.basedpyright]` section is not an option:
   basedpyright rejects a `pyproject.toml` carrying both
   (`Config file could not be parsed`)
   and then silently falls back to its defaults.
   basedpyright does honour its own extra rules from `[tool.pyright]`,
-  so the two settings plain pyright does not know
-  -- `reportPrivateLocalImportUsage` and `reportImplicitRelativeImport` --
+  so the settings plain pyright does not know
+  -- `reportAny`, `reportUnannotatedClassAttribute`
+  and the rest, marked `# basedpyright only` --
   live there too.
-  pyright logs `Config contains unrecognized setting` for them and carries on.
+  pyright logs `Config contains unrecognized setting` for each of them
+  and carries on.
   There is no `basedpyrightconfig.json`;
   basedpyright never reads such a file,
   so settings placed in one are silently ignored.
@@ -224,7 +261,12 @@ Configuration notes:
 - mypy 2.x refuses to target anything below Python 3.10,
   so `python_version` is set to `3.10` there.
   pyright, basedpyright and ty still enforce 3.8,
-  which is what actually guards against newer syntax entering the stubs.
+  which is what actually guards the sample consumer code under `tests/typing/`
+  against constructs a plugin author on build 4200 could not use.
+  The stub files themselves are exempt from that,
+  as described under [Regenerating the stubs](#regenerating-the-stubs):
+  their syntax is not the runtime's,
+  but the API surface they describe still is.
 
 ## License
 

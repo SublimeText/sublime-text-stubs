@@ -56,8 +56,15 @@ include = ["stubs", "tests", "tools", "README.md", "CHANGELOG.md", "LICENSE"]
 # its own extra rules from it; a separate `[tool.basedpyright]` section is not an
 # option, because basedpyright rejects a pyproject.toml that carries both sections
 # ("Config file could not be parsed") and silently falls back to its defaults.
-# The two basedpyright-only settings below therefore make plain pyright log
+# The basedpyright-only settings below therefore make plain pyright log
 # "Config contains unrecognized setting"; it ignores them and carries on.
+#
+# `typeCheckingMode` stays at "strict" rather than basedpyright's "all", because
+# plain pyright rejects the value ('Config "typeCheckingMode" entry must contain
+# "off", "basic", "standard", or "strict"') and then silently falls back to
+# "standard", which is weaker than what it manages today. Every rule "all" adds on
+# top of "strict" is therefore listed individually below instead, so basedpyright
+# still runs the full set.
 [tool.pyright]
 include = ["stubs", "tests"]
 extraPaths = ["stubs"]
@@ -67,21 +74,48 @@ extraPaths = ["stubs"]
 exclude = ["references", "tools", "**/__pycache__", ".venv"]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"
+# These stubs are stub-only by nature: the modules they describe exist only inside
+# Sublime Text, so `import sublime` can never resolve to a source file.
 reportMissingModuleSource = false
+
+# The "all" rules, spelled out. Rules plain pyright does not know are marked; it
+# logs them as unrecognized and carries on.
+reportCallInDefaultInitializer = "error"
+reportEmptyAbstractUsage = "error"  # basedpyright only
+reportIgnoreCommentWithoutRule = "error"  # basedpyright only
+reportImplicitAbstractClass = "error"  # basedpyright only
 reportImplicitOverride = "error"
-reportImplicitStringConcatenation = "error"
-reportUnnecessaryTypeIgnoreComment = "error"
-reportPrivateLocalImportUsage = "error"  # basedpyright only
 reportImplicitRelativeImport = "error"  # basedpyright only
-# basedpyright's `typeCheckingMode = "all"` is unusable on this branch precisely
-# because it turns this on: the 3.8 target requires `typing.List` / `typing.Optional`,
-# which typeshed marks deprecated.
-reportDeprecated = false
+reportImplicitStringConcatenation = "error"
+reportImportCycles = "error"
+reportIncompatibleUnannotatedOverride = "error"  # basedpyright only
+reportInvalidAbstractMethod = "error"  # basedpyright only
+reportInvalidCast = "error"  # basedpyright only
+reportMissingSuperCall = "error"
+reportPrivateLocalImportUsage = "error"  # basedpyright only
+reportPropertyTypeMismatch = "error"
+reportSelfClsDefault = "error"  # basedpyright only
+reportUnannotatedClassAttribute = "error"  # basedpyright only
+reportUninitializedInstanceVariable = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportUnreachable = "error"
+reportUnsafeMultipleInheritance = "error"  # basedpyright only
+reportUnusedCallResult = "error"
+reportUnusedParameter = "error"  # basedpyright only
+
+# The two rules from "all" that are not reachable here: the API genuinely traffics
+# in `Any`. `sublime_types.Event` is a `dict[str, Any]`, `ListInputItem.value` is an
+# arbitrary value handed back to the command, and `set_timeout` ignores whatever its
+# callback returns. Narrowing any of them would misdescribe the runtime.
+reportAny = false  # basedpyright only
+reportExplicitAny = false  # basedpyright only
 
 [tool.mypy]
 # mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target
 # cannot be expressed here. pyright/basedpyright/ty still enforce 3.8, which is what
-# actually guards against 3.9+ syntax slipping into the stubs.
+# keeps the sample consumer code under `tests/typing/` to what a plugin author on
+# build 4200 can actually write. The stubs themselves are exempt: a `.pyi` is never
+# executed, so it may use PEP 604 / PEP 585 syntax regardless of the target.
 python_version = "3.10"
 strict = true
 mypy_path = "stubs"

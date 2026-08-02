@@ -100,7 +100,7 @@ PARAMS = {
     "sublime.Sheet.close.on_close": "Callable[[bool], None]",
     "sublime.View.close.on_close": "Callable[[bool], None]",
     "sublime.View.show_popup_menu.flags": "int",
-    "sublime.Settings.update.other": "Union[Settings, Dict[str, Value], Iterable[Tuple[str, Value]]]",
+    "sublime.Settings.update.other": "Settings | dict[str, Value] | Iterable[tuple[str, Value]]",
     "sublime.Settings.update.kwargs": "Value",
     "sublime.CompletionItem.__init__.kind": "Kind",
     "sublime.CompletionItem.snippet_completion.kind": "Kind",
@@ -112,10 +112,10 @@ PARAMS = {
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
     # tuples with "\x1f" (`references/python38/sublime.py:1838`). The attribute wins.
-    "sublime.QuickPanelItem.__init__.details": "Union[str, List[str], Tuple[str]]",
-    "sublime.ListInputItem.__init__.details": "Union[str, List[str], Tuple[str]]",
-    "sublime_plugin.CommandInputHandler.next_input.args": "Dict[str, Value]",
-    "sublime_plugin.Command.input.args": "Dict[str, Value]",
+    "sublime.QuickPanelItem.__init__.details": "str | list[str] | tuple[str]",
+    "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str]",
+    "sublime_plugin.CommandInputHandler.next_input.args": "dict[str, Value]",
+    "sublime_plugin.Command.input.args": "dict[str, Value]",
     "sublime_plugin.ListInputHandler.description.value": "Value",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
@@ -129,19 +129,20 @@ PARAMS = {
 
 # Types for instance attributes assigned without an annotation in `__init__`.
 ATTRIBUTES = {
-    "sublime.View.settings_object": "Optional[Settings]",
-    "sublime.CompletionList.target": "Optional[int]",
+    "sublime.View.settings_object": "Settings | None",
+    "sublime.CompletionList.target": "int | None",
 }
 
 # `sublime_types` aliases the generator cannot take verbatim.
 TYPE_ALIASES = {
     # The reference says `dict`; an untyped dict is rejected under strict mode.
     # An event is a mapping of `x`/`y`/`modifier_keys` style entries.
-    "Event": "Dict[str, Any]",
+    "Event": "dict[str, Any]",
     # JSON is recursive: the reference spells the containers as `List[Any]` /
-    # `Dict[str, Any]`, which loses the element types. Quoting the self-reference
-    # is what makes the recursive alias legal.
-    "Value": 'Union[bool, str, int, float, List["Value"], Dict[str, "Value"], None]',
+    # `Dict[str, Any]`, which loses the element types. The self-reference needs no
+    # quoting -- in a `.pyi` nothing is evaluated, so a forward reference resolves
+    # regardless of where it appears; all four checkers accept it.
+    "Value": "bool | str | int | float | list[Value] | dict[str, Value] | None",
 }
 
 # --- docstring-only event handlers -------------------------------------------
@@ -156,14 +157,14 @@ EVENT_HANDLER_CLASSES = ["EventListener", "ViewEventListener", "TextChangeListen
 EVENT_HANDLER_DEFAULT_RETURN = "None"
 
 EVENT_HANDLER_RETURNS = {
-    "on_query_context": "Optional[bool]",
+    "on_query_context": "bool | None",
     "on_query_completions": (
-        "Union[None, List[sublime.CompletionValue],"
-        " Tuple[List[sublime.CompletionValue], sublime.AutoCompleteFlags],"
-        " sublime.CompletionList]"
+        "list[sublime.CompletionValue]"
+        " | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags]"
+        " | sublime.CompletionList | None"
     ),
-    "on_text_command": "Optional[Tuple[str, sublime.CommandArgs]]",
-    "on_window_command": "Optional[Tuple[str, sublime.CommandArgs]]",
+    "on_text_command": "tuple[str, sublime.CommandArgs] | None",
+    "on_window_command": "tuple[str, sublime.CommandArgs] | None",
 }
 
 COMMAND_RUN_NOTE = """\
