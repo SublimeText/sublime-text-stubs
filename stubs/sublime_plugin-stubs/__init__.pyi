@@ -13,16 +13,16 @@ class CommandInputHandler:
         The command argument name this input handler is editing. Defaults to
         ``foo_bar`` for an input handler named ``FooBarInputHandler``.
         """
-        ...
+
     def placeholder(self) -> str:
         """
         Placeholder text is shown in the text entry box before the user has
         entered anything. Empty by default.
         """
-        ...
+
     def initial_text(self) -> str:
         """ Initial text shown in the text entry box. Empty by default. """
-        ...
+
     def initial_selection(self) -> list[tuple[int, int]]:
         """
         A list of 2-element tuples, defining the initially selected parts of the
@@ -30,14 +30,14 @@ class CommandInputHandler:
 
         .. since:: 4081
         """
-        ...
+
     def preview(self, text: str) -> str | sublime.Html:
         """
         Called whenever the user changes the text in the entry box. The returned
         value (either plain text or HTML) will be shown in the preview area of
         the *Command Palette*.
         """
-        ...
+
     def validate(self, text: str, event: Event | None = ...) -> bool:
         """
         Called whenever the user presses enter in the text entry box.
@@ -45,13 +45,13 @@ class CommandInputHandler:
 
         :param event: Only passed when `want_event` returns ``True``.
         """
-        ...
+
     def cancel(self) -> None:
         """
         Called when the input handler is canceled, either by the user pressing
         backspace or escape.
         """
-        ...
+
     def confirm(self, text: str, event: Event | None = ...) -> None:
         """
         Called when the input is accepted, after the user has pressed enter and
@@ -59,7 +59,7 @@ class CommandInputHandler:
 
         :param event: Only passed when `want_event` returns ``True``.
         """
-        ...
+
     def next_input(self, args: dict[str, Value]) -> CommandInputHandler | None:
         """
         Return the next input after the user has completed this one. May return
@@ -67,7 +67,7 @@ class CommandInputHandler:
         `sublime_plugin.BackInputHandler()` to indicate that the input handler
         should be popped off the stack instead.
         """
-        ...
+
     def want_event(self) -> bool:
         """
         Whether the `validate()` and `confirm()` methods should received a
@@ -75,7 +75,6 @@ class CommandInputHandler:
 
         .. since:: 4096
         """
-        ...
 
 class BackInputHandler(CommandInputHandler):
     @override
@@ -96,7 +95,6 @@ class TextInputHandler(CommandInputHandler):
         at the top of the input handler stack. Defaults to the text the user
         entered.
         """
-        ...
 
 class ListInputHandler(CommandInputHandler):
     """
@@ -124,14 +122,13 @@ class ListInputHandler(CommandInputHandler):
         * .. since:: 4095
             A `sublime.ListInputItem` object
         """
-        ...
+
     def description(self, value: Value, text: str) -> str:
         """
         The text to show in the *Command Palette* when this input handler is not
         at the top of the input handler stack. Defaults to the text of the list
         item the user selected.
         """
-        ...
 
 # `run` is deliberately not declared on any of the command classes below. Sublime Text
 # invokes it dynamically with command-specific keyword arguments, so a base signature
@@ -143,21 +140,21 @@ class Command:
         Return the name of the command. By default this is derived from the name
         of the class.
         """
-        ...
+
     def is_enabled(self) -> bool:
         """
         Return whether the command is able to be run at this time. Command
         arguments are passed as keyword arguments. The default implementation
         simply always returns :py:`True`.
         """
-        ...
+
     def is_visible(self) -> bool:
         """
         Return whether the command should be shown in the menu at this time.
         Command arguments are passed as keyword arguments. The default
         implementation always returns :py:`True`.
         """
-        ...
+
     def is_checked(self) -> bool:
         """
         Return whether a checkbox should be shown next to the menu item. Command
@@ -165,14 +162,14 @@ class Command:
         file must have the ``"checkbox"`` key set to :json:`true` for this to
         be used.
         """
-        ...
+
     def description(self) -> str | None:
         """
         Return a description of the command with the given arguments. Command
         arguments are passed as keyword arguments. Used in the menu, if no
         caption is provided. Return :py:`None` to get the default description.
         """
-        ...
+
     def want_event(self) -> bool:
         """
         Return whether to receive an `Event` argument when the command is
@@ -180,7 +177,7 @@ class Command:
         determine which portion of the view was clicked on. The default
         implementation returns :py:`False`.
         """
-        ...
+
     def input(self, args: dict[str, Value]) -> CommandInputHandler | None:
         """
         If this returns something other than :py:`None`, the user will be
@@ -189,7 +186,7 @@ class Command:
 
         .. since:: 3154
         """
-        ...
+
     def input_description(self) -> str:
         """
         Allows a custom name to be show to the left of the cursor in the input
@@ -197,11 +194,9 @@ class Command:
 
         .. since:: 3154
         """
-        ...
 
 class ApplicationCommand(Command):
     """ A `Command` instantiated just once. """
-    ...
 
 class WindowCommand(Command):
     """
@@ -212,7 +207,6 @@ class WindowCommand(Command):
     """ The `Window` this command is attached to. """
     def __init__(self, window: sublime.Window) -> None:
         """ :meta private: """
-        ...
 
 class TextCommand(Command):
     """
@@ -223,7 +217,6 @@ class TextCommand(Command):
     """ The `View` this command is attached to. """
     def __init__(self, view: sublime.View) -> None:
         """ :meta private: """
-        ...
 
 class EventListener:
     """
@@ -536,7 +529,7 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_exit(self) -> None:
         """
         Called once after the API has shut down, immediately before the
@@ -544,16 +537,16 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_new(self, view: sublime.View) -> None:
         """ Called when a new file is created. """
-        ...
+
     def on_new_async(self, view: sublime.View) -> None:
         """
         Called when a new buffer is created. Runs in a separate thread, and does
         not block the application.
         """
-        ...
+
     def on_associate_buffer(self, buffer: sublime.Buffer) -> None:
         """
         Called when a buffer is associated with a file. buffer will be a Buffer
@@ -561,7 +554,7 @@ class EventListener:
 
         .. since:: 4084
         """
-        ...
+
     def on_associate_buffer_async(self, buffer: sublime.Buffer) -> None:
         """
         Called when a buffer is associated with file. Runs in a separate thread,
@@ -569,32 +562,32 @@ class EventListener:
 
         .. since:: 4084
         """
-        ...
+
     def on_clone(self, view: sublime.View) -> None:
         """ Called when a view is cloned from an existing one. """
-        ...
+
     def on_clone_async(self, view: sublime.View) -> None:
         """
         Called when a view is cloned from an existing one. Runs in a separate
         thread, and does not block the application.
         """
-        ...
+
     def on_load(self, view: sublime.View) -> None:
         """ Called when the file is finished loading. """
-        ...
+
     def on_load_async(self, view: sublime.View) -> None:
         """
         Called when the file is finished loading. Runs in a separate thread, and
         does not block the application.
         """
-        ...
+
     def on_reload(self, view: sublime.View) -> None:
         """
         Called when the View is reloaded.
 
         .. since:: 4050
         """
-        ...
+
     def on_reload_async(self, view: sublime.View) -> None:
         """
         Called when the View is reloaded. Runs in a separate thread, and does
@@ -602,14 +595,14 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_revert(self, view: sublime.View) -> None:
         """
         Called when the View is reverted.
 
         .. since:: 4050
         """
-        ...
+
     def on_revert_async(self, view: sublime.View) -> None:
         """
         Called when the View is reverted. Runs in a separate thread, and does
@@ -617,7 +610,7 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_move(self, view: sublime.View) -> None:
         """
         Called right before a view is moved between two windows or within a
@@ -625,7 +618,7 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_post_move(self, view: sublime.View) -> None:
         """
         Called right after a view is moved between two windows or within a
@@ -633,7 +626,7 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_post_move_async(self, view: sublime.View) -> None:
         """
         Called right after a view is moved between two windows or within a
@@ -642,73 +635,73 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_close(self, view: sublime.View) -> None:
         """
         Called when a view is about to be closed. The view will still be in the
         window at this point.
         """
-        ...
+
     def on_close(self, view: sublime.View) -> None:
         """
         Called when a view is closed (note, there may still be other views into
         the same buffer).
         """
-        ...
+
     def on_pre_save(self, view: sublime.View) -> None:
         """ Called just before a view is saved. """
-        ...
+
     def on_pre_save_async(self, view: sublime.View) -> None:
         """
         Called just before a view is saved. Runs in a separate thread, and does
         not block the application.
         """
-        ...
+
     def on_post_save(self, view: sublime.View) -> None:
         """ Called after a view has been saved. """
-        ...
+
     def on_post_save_async(self, view: sublime.View) -> None:
         """
         Called after a view has been saved. Runs in a separate thread, and does
         not block the application.
         """
-        ...
+
     def on_modified(self, view: sublime.View) -> None:
         """ Called after changes have been made to a view. """
-        ...
+
     def on_modified_async(self, view: sublime.View) -> None:
         """
         Called after changes have been made to a view. Runs in a separate
         thread, and does not block the application.
         """
-        ...
+
     def on_selection_modified(self, view: sublime.View) -> None:
         """ Called after the selection has been modified in a view. """
-        ...
+
     def on_selection_modified_async(self, view: sublime.View) -> None:
         """
         Called after the selection has been modified in a view. Runs in a
         separate thread, and does not block the application.
         """
-        ...
+
     def on_activated(self, view: sublime.View) -> None:
         """ Called when a view gains input focus. """
-        ...
+
     def on_activated_async(self, view: sublime.View) -> None:
         """
         Called when a view gains input focus. Runs in a separate thread, and
         does not block the application.
         """
-        ...
+
     def on_deactivated(self, view: sublime.View) -> None:
         """ Called when a view loses input focus. """
-        ...
+
     def on_deactivated_async(self, view: sublime.View) -> None:
         """
         Called when a view loses input focus. Runs in a separate thread, and
         does not block the application.
         """
-        ...
+
     def on_hover(self, view: sublime.View, point: sublime.Point, hover_zone: sublime.HoverZone) -> None:
         """
         Called when the user's mouse hovers over the view for a short period.
@@ -721,7 +714,7 @@ class EventListener:
         :param hover_zone:
             Which element in Sublime Text the mouse has hovered over.
         """
-        ...
+
     def on_query_context(self, view: sublime.View, key: str, operator: sublime.QueryOperator, operand: str, match_all: bool) -> bool | None:
         """
         Called when determining to trigger a key binding with the given context
@@ -745,7 +738,7 @@ class EventListener:
             either does or doesn't match. If the context is unknown return
             ``None``.
         """
-        ...
+
     def on_query_completions(self, view: sublime.View, prefix: str, locations: list[sublime.Point]) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
         """
         Called whenever completions are to be presented to the user.
@@ -758,34 +751,34 @@ class EventListener:
                           relevant.
         :returns: A list of completions in one of the valid formats or ``None`` if no completions are provided.
         """
-        ...
+
     def on_text_command(self, view: sublime.View, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a text command is issued. The listener may return a
         (command, arguments) tuple to rewrite the command, or ``None`` to run
         the command unmodified.
         """
-        ...
+
     def on_window_command(self, window: sublime.Window, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a window command is issued. The listener may return a
         (command, arguments) tuple to rewrite the command, or ``None`` to run
         the command unmodified.
         """
-        ...
+
     def on_post_text_command(self, view: sublime.View, command_name: str, args: sublime.CommandArgs) -> None:
         """ Called after a text command has been executed. """
-        ...
+
     def on_post_window_command(self, window: sublime.Window, command_name: str, args: sublime.CommandArgs) -> None:
         """ Called after a window command has been executed. """
-        ...
+
     def on_new_window(self, window: sublime.Window) -> None:
         """
         Called when a window is created, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_new_window_async(self, window: sublime.Window) -> None:
         """
         Called when a window is created, passed the Window object. Runs in a
@@ -793,21 +786,21 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_close_window(self, window: sublime.Window) -> None:
         """
         Called right before a window is closed, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_new_project(self, window: sublime.Window) -> None:
         """
         Called right after a new project is created, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_new_project_async(self, window: sublime.Window) -> None:
         """
         Called right after a new project is created, passed the Window object.
@@ -815,14 +808,14 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_load_project(self, window: sublime.Window) -> None:
         """
         Called right after a project is loaded, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_load_project_async(self, window: sublime.Window) -> None:
         """
         Called right after a project is loaded, passed the Window object. Runs
@@ -830,21 +823,21 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_save_project(self, window: sublime.Window) -> None:
         """
         Called right before a project is saved, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_post_save_project(self, window: sublime.Window) -> None:
         """
         Called right after a project is saved, passed the Window object.
 
         .. since:: 4050
         """
-        ...
+
     def on_post_save_project_async(self, window: sublime.Window) -> None:
         """
         Called right after a project is saved, passed the Window object. Runs in
@@ -852,10 +845,9 @@ class EventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_close_project(self, window: sublime.Window) -> None:
         """ Called right before a project is closed, passed the Window object. """
-        ...
 
 class ViewEventListener:
     """
@@ -1061,7 +1053,7 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_load_async(self) -> None:
         """
         Same as `on_load` but runs in a separate thread, not blocking the
@@ -1069,14 +1061,14 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_reload(self) -> None:
         """
         Called when the file is reloaded.
 
         .. since:: 4050
         """
-        ...
+
     def on_reload_async(self) -> None:
         """
         Same as `on_reload` but runs in a separate thread, not blocking the
@@ -1084,14 +1076,14 @@ class ViewEventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_revert(self) -> None:
         """
         Called when the file is reverted.
 
         .. since:: 4050
         """
-        ...
+
     def on_revert_async(self) -> None:
         """
         Same as `on_revert` but runs in a separate thread, not blocking the
@@ -1099,7 +1091,7 @@ class ViewEventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_move(self) -> None:
         """
         Called right before a view is moved between two windows or within a
@@ -1107,7 +1099,7 @@ class ViewEventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_post_move(self) -> None:
         """
         Called right after a view is moved between two windows or within a
@@ -1115,7 +1107,7 @@ class ViewEventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_post_move_async(self) -> None:
         """
         Same as `on_post_move` but runs in a separate thread, not blocking the
@@ -1123,7 +1115,7 @@ class ViewEventListener:
 
         .. since:: 4050
         """
-        ...
+
     def on_pre_close(self) -> None:
         """
         Called when a view is about to be closed. The view will still be in the
@@ -1131,7 +1123,7 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_close(self) -> None:
         """
         Called when a view is closed (note, there may still be other views into
@@ -1139,14 +1131,14 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_pre_save(self) -> None:
         """
         Called just before a view is saved.
 
         .. since:: 3155
         """
-        ...
+
     def on_pre_save_async(self) -> None:
         """
         Same as `on_pre_save` but runs in a separate thread, not blocking the
@@ -1154,14 +1146,14 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_post_save(self) -> None:
         """
         Called after a view has been saved.
 
         .. since:: 3155
         """
-        ...
+
     def on_post_save_async(self) -> None:
         """
         Same as `on_post_save` but runs in a separate thread, not blocking the
@@ -1169,43 +1161,43 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_modified(self) -> None:
         """ Called after changes have been made to the view. """
-        ...
+
     def on_modified_async(self) -> None:
         """
         Same as `on_modified` but runs in a separate thread, not blocking the
         application.
         """
-        ...
+
     def on_selection_modified(self) -> None:
         """ Called after the selection has been modified in the view. """
-        ...
+
     def on_selection_modified_async(self) -> None:
         """
         Called after the selection has been modified in the view. Runs in a
         separate thread, and does not block the application.
         """
-        ...
+
     def on_activated(self) -> None:
         """ Called when a view gains input focus. """
-        ...
+
     def on_activated_async(self) -> None:
         """
         Called when the view gains input focus. Runs in a separate thread, and
         does not block the application.
         """
-        ...
+
     def on_deactivated(self) -> None:
         """ Called when the view loses input focus. """
-        ...
+
     def on_deactivated_async(self) -> None:
         """
         Called when the view loses input focus. Runs in a separate thread, and
         does not block the application.
         """
-        ...
+
     def on_hover(self, point: sublime.Point, hover_zone: sublime.HoverZone) -> None:
         """
         Called when the user's mouse hovers over the view for a short period.
@@ -1217,7 +1209,7 @@ class ViewEventListener:
         :param hover_zone:
             Which element in Sublime Text the mouse has hovered over.
         """
-        ...
+
     def on_query_context(self, key: str, operator: sublime.QueryOperator, operand: str, match_all: bool) -> bool | None:
         """
         Called when determining to trigger a key binding with the given context
@@ -1238,7 +1230,7 @@ class ViewEventListener:
                   and it either does or doesn't match. If the context is unknown
                   return ``None``.
         """
-        ...
+
     def on_query_completions(self, prefix: str, locations: list[sublime.Point]) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
         """
         Called whenever completions are to be presented to the user.
@@ -1251,7 +1243,7 @@ class ViewEventListener:
                           relevant.
         :returns: A list of completions in one of the valid formats or ``None`` if no completions are provided.
         """
-        ...
+
     def on_text_command(self, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a text command is issued. The listener may return a
@@ -1260,21 +1252,21 @@ class ViewEventListener:
 
         .. since:: 3155
         """
-        ...
+
     def on_post_text_command(self, command_name: str, args: sublime.CommandArgs) -> None:
         """ Called after a text command has been executed. """
-        ...
+
     @classmethod
     def is_applicable(cls, settings: sublime.Settings) -> bool:
         """ :returns: Whether this listener should apply to a view with the given `Settings`. """
-        ...
+
     @classmethod
     def applies_to_primary_view_only(cls) -> bool:
         """
         :returns: Whether this listener should apply only to the primary view
                   for a file or all of its clones as well.
         """
-        ...
+
     def __init__(self, view: sublime.View) -> None: ...
 
 class TextChangeListener:
@@ -1325,13 +1317,13 @@ class TextChangeListener:
         Called once after changes has been made to a buffer, with detailed
         information about what has changed.
         """
-        ...
+
     def on_text_changed_async(self, changes: list[sublime.TextChange]) -> None:
         """
         Same as `on_text_changed` but runs in a separate thread, not blocking
         the application.
         """
-        ...
+
     def on_revert(self) -> None:
         """
         Called when the buffer is reverted.
@@ -1339,13 +1331,13 @@ class TextChangeListener:
         A revert does not trigger text changes. If the contents of the buffer
         are required here use `View.substr`.
         """
-        ...
+
     def on_revert_async(self) -> None:
         """
         Same as `on_revert` but runs in a separate thread, not blocking the
         application.
         """
-        ...
+
     def on_reload(self) -> None:
         """
         Called when the buffer is reloaded.
@@ -1353,17 +1345,17 @@ class TextChangeListener:
         A reload does not trigger text changes. If the contents of the buffer
         are required here use `View.substr`.
         """
-        ...
+
     def on_reload_async(self) -> None:
         """
         Same as `on_reload` but runs in a separate thread, not blocking the
         application.
         """
-        ...
+
     @classmethod
     def is_applicable(cls, buffer: sublime.Buffer) -> bool:
         """ :returns: Whether this listener should apply to the provided buffer. """
-        ...
+
     def __init__(self) -> None: ...
     def detach(self) -> None:
         """
@@ -1374,18 +1366,17 @@ class TextChangeListener:
 
         :raises ValueError: if the listener is not attached.
         """
-        ...
+
     def attach(self, buffer: sublime.Buffer) -> None:
         """
         Attach this listener to a buffer.
 
         :raises ValueError: if the listener is already attached.
         """
-        ...
+
     def is_attached(self) -> bool:
         """
         :returns:
             whether the listener is receiving events from a buffer. May not be
             called from ``__init__``.
         """
-        ...

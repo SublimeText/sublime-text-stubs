@@ -10,7 +10,6 @@ from typing import Any, Literal
 from typing_extensions import deprecated, override
 from sublime_types import CommandArgs as CommandArgs, CompletionValue as CompletionValue, DIP as DIP, Kind as Kind, Point as Point, Value as Value, Vector as Vector
 
-
 class HoverZone(enum.IntEnum):
     """
     A zone in an open text sheet where the mouse may hover.
@@ -583,19 +582,15 @@ COMPLETION_FORMAT_COMMAND = CompletionFormat.COMMAND
 
 def version() -> str:
     """ :returns: The version number. """
-    ...
 
 def platform() -> Literal['osx', 'linux', 'windows']:
     """ :returns: The platform which the plugin is being run on. """
-    ...
 
 def arch() -> Literal['x32', 'x64', 'arm64']:
     """ :returns: The CPU architecture. """
-    ...
 
 def channel() -> Literal['dev', 'stable']:
     """ :returns: The release channel of this build of Sublime Text. """
-    ...
 
 def executable_path() -> str:
     """
@@ -604,7 +599,6 @@ def executable_path() -> str:
 
     :returns: The path to the main Sublime Text executable.
     """
-    ...
 
 def executable_hash() -> tuple[str, str, str]:
     """
@@ -613,7 +607,6 @@ def executable_hash() -> tuple[str, str, str]:
 
     :returns: A tuple uniquely identifying the installation of Sublime Text.
     """
-    ...
 
 def packages_path() -> str:
     """
@@ -622,7 +615,6 @@ def packages_path() -> str:
 
     :returns: The path to the "Packages" folder.
     """
-    ...
 
 def installed_packages_path() -> str:
     """
@@ -631,7 +623,6 @@ def installed_packages_path() -> str:
 
     :returns: The path to the "Installed Packages" folder.
     """
-    ...
 
 def cache_path() -> str:
     """
@@ -640,19 +631,15 @@ def cache_path() -> str:
 
     :returns: The path where Sublime Text stores cache files.
     """
-    ...
 
 def status_message(msg: str) -> None:
     """ Show a message in the status bar. """
-    ...
 
 def error_message(msg: str) -> None:
     """ Display an error dialog. """
-    ...
 
 def message_dialog(msg: str) -> None:
     """ Display a message dialog. """
-    ...
 
 def ok_cancel_dialog(msg: str, ok_title: str = ..., title: str = ...) -> bool:
     """
@@ -664,7 +651,6 @@ def ok_cancel_dialog(msg: str, ok_title: str = ..., title: str = ...) -> bool:
 
     :returns: Whether the user pressed the *ok* button.
     """
-    ...
 
 def yes_no_cancel_dialog(msg: str, yes_title: str = ..., no_title: str = ..., title: str = ...) -> DialogResult:
     """
@@ -675,7 +661,6 @@ def yes_no_cancel_dialog(msg: str, yes_title: str = ..., no_title: str = ..., ti
     :param no_title: Text to display on the *no* button.
     :param title: Title for the dialog. Windows only. :since:`4099`
     """
-    ...
 
 def open_dialog(callback: Callable[[str | list[str] | None], None], file_types: list[tuple[str, list[str]]] = ..., directory: str | None = ..., multi_select: bool = ..., allow_folders: bool = ...) -> None:
     """
@@ -694,7 +679,6 @@ def open_dialog(callback: Callable[[str | list[str] | None], None], file_types: 
                           macOS. If you only want to select folders use
                           `select_folder_dialog`.
     """
-    ...
 
 def save_dialog(callback: Callable[[str | None], None], file_types: list[tuple[str, list[str]]] = ..., directory: str | None = ..., name: str | None = ..., extension: str | None = ...) -> None:
     """
@@ -710,7 +694,6 @@ def save_dialog(callback: Callable[[str | None], None], file_types: list[tuple[s
     :param name: The default name of the file in the save dialog.
     :param extension: The default extension used in the save dialog.
     """
-    ...
 
 def select_folder_dialog(callback: Callable[[str | list[str] | None], None], directory: str | None = ..., multi_select: bool = ...) -> None:
     """
@@ -724,7 +707,6 @@ def select_folder_dialog(callback: Callable[[str | list[str] | None], None], dir
     :param multi_select: Whether to allow selecting multiple files. When ``True``
                          the callback will be called with a list.
     """
-    ...
 
 def choose_font_dialog(callback: Callable[[Value], None], default: dict[str, Value] | None = ...) -> None:
     """
@@ -739,11 +721,9 @@ def choose_font_dialog(callback: Callable[[Value], None], default: dict[str, Val
     :param default: The default values to select/return. Same format as the
                     argument passed to `callback`.
     """
-    ...
 
 def run_command(cmd: str, args: CommandArgs | None = ...) -> None:
     """ Run the named `ApplicationCommand`. """
-    ...
 
 def format_command(cmd: str, args: CommandArgs | None = ...) -> str:
     """
@@ -752,7 +732,6 @@ def format_command(cmd: str, args: CommandArgs | None = ...) -> str:
 
     .. since:: 4075
     """
-    ...
 
 def html_format_command(cmd: str, args: CommandArgs | None = ...) -> str:
     """
@@ -760,7 +739,6 @@ def html_format_command(cmd: str, args: CommandArgs | None = ...) -> str:
 
     .. since:: 4075
     """
-    ...
 
 def command_url(cmd: str, args: CommandArgs | None = ...) -> str:
     """
@@ -768,7 +746,6 @@ def command_url(cmd: str, args: CommandArgs | None = ...) -> str:
 
     .. since:: 4075
     """
-    ...
 
 def get_clipboard_async(callback: Callable[[str], None], size_limit: int = ...) -> None:
     """
@@ -779,7 +756,6 @@ def get_clipboard_async(callback: Callable[[str], None], size_limit: int = ...) 
 
     .. since:: 4075
     """
-    ...
 
 @deprecated("Use get_clipboard_async() instead")
 def get_clipboard(size_limit: int = ...) -> str:
@@ -791,11 +767,9 @@ def get_clipboard(size_limit: int = ...) -> str:
 
     :deprecated: Use `get_clipboard_async` instead. :since:`4075`
     """
-    ...
 
 def set_clipboard(text: str) -> None:
     """ Set the contents of the clipboard. """
-    ...
 
 def log_commands(flag: bool | None = ...) -> None:
     """
@@ -803,7 +777,6 @@ def log_commands(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_commands() -> bool:
     """
@@ -811,7 +784,6 @@ def get_log_commands() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_input(flag: bool | None = ...) -> None:
     """
@@ -820,7 +792,6 @@ def log_input(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_input() -> bool:
     """
@@ -828,7 +799,6 @@ def get_log_input() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_fps(flag: bool | None = ...) -> None:
     """
@@ -838,7 +808,6 @@ def log_fps(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. Pass ``None`` to toggle logging.
     """
-    ...
 
 def get_log_fps() -> bool:
     """
@@ -846,7 +815,6 @@ def get_log_fps() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_result_regex(flag: bool | None = ...) -> None:
     """
@@ -855,7 +823,6 @@ def log_result_regex(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_result_regex() -> bool:
     """
@@ -863,7 +830,6 @@ def get_log_result_regex() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_indexing(flag: bool | None = ...) -> None:
     """
@@ -871,7 +837,6 @@ def log_indexing(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_indexing() -> bool:
     """
@@ -879,7 +844,6 @@ def get_log_indexing() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_build_systems(flag: bool | None = ...) -> None:
     """
@@ -887,7 +851,6 @@ def log_build_systems(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_build_systems() -> bool:
     """
@@ -895,7 +858,6 @@ def get_log_build_systems() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def log_control_tree(flag: bool | None = ...) -> None:
     """
@@ -906,7 +868,6 @@ def log_control_tree(flag: bool | None = ...) -> None:
 
     :param flag: Whether to log. :since:`Passing None toggles logging. <4099>`
     """
-    ...
 
 def get_log_control_tree() -> bool:
     """
@@ -914,7 +875,6 @@ def get_log_control_tree() -> bool:
 
     .. since:: 4099
     """
-    ...
 
 def ui_info() -> dict[str, Value]:
     """
@@ -923,7 +883,6 @@ def ui_info() -> dict[str, Value]:
     :returns: Information about the user interface including top-level keys
               ``system``, ``theme`` and ``color_scheme``.
     """
-    ...
 
 def score_selector(scope_name: str, selector: str) -> int:
     """
@@ -933,7 +892,6 @@ def score_selector(scope_name: str, selector: str) -> int:
     selectors may be compared against the same scope: a higher score means the
     selector is a better match for the scope.
     """
-    ...
 
 def load_resource(name: str) -> str:
     """
@@ -941,7 +899,6 @@ def load_resource(name: str) -> str:
 
     :raises FileNotFoundError: if resource is not found
     """
-    ...
 
 def load_binary_resource(name: str) -> bytes:
     """
@@ -949,11 +906,9 @@ def load_binary_resource(name: str) -> bytes:
 
     :raises FileNotFoundError: if resource is not found
     """
-    ...
 
 def find_resources(pattern: str) -> list[str]:
     """ Finds resources whose file name matches the given glob pattern. """
-    ...
 
 def encode_value(value: Value, pretty: bool = ..., update_text: str | None = ...) -> str:
     """
@@ -968,7 +923,6 @@ def encode_value(value: Value, pretty: bool = ..., update_text: str | None = ...
 
         .. since:: 4156
     """
-    ...
 
 def decode_value(data: str) -> Value:
     """
@@ -977,7 +931,6 @@ def decode_value(data: str) -> Value:
 
     :raises ValueError: If the string is not valid JSON.
     """
-    ...
 
 def expand_variables(value: Value, variables: dict[str, str]) -> Value:
     """
@@ -986,7 +939,6 @@ def expand_variables(value: Value, variables: dict[str, str]) -> Value:
     structure will be recursively expanded. Strings should use snippet syntax,
     for example: ``expand_variables("Hello, ${name}", {"name": "Foo"})``.
     """
-    ...
 
 def load_settings(base_name: str) -> Settings:
     """
@@ -997,11 +949,9 @@ def load_settings(base_name: str) -> Settings:
     Subsequent calls to load_settings() with the base_name will return the same
     object, and not load the settings from disk again.
     """
-    ...
 
 def save_settings(base_name: str) -> None:
     """ Flush any in-memory changes to the named settings object to disk. """
-    ...
 
 def set_timeout(callback: Callable[[], Any], delay: int = ...) -> None:
     """
@@ -1009,22 +959,18 @@ def set_timeout(callback: Callable[[], Any], delay: int = ...) -> None:
     (in milliseconds). Callbacks with an equal delay will be run in the order
     they were added.
     """
-    ...
 
 def set_timeout_async(callback: Callable[[], Any], delay: int = ...) -> None:
     """
     Runs the callback on an alternate thread after the given delay
     (in milliseconds).
     """
-    ...
 
 def active_window() -> Window:
     """ :returns: The most recently used `Window`. """
-    ...
 
 def windows() -> list[Window]:
     """ :returns: A list of all the open windows. """
-    ...
 
 def get_macro() -> list[dict[str, Value]]:
     """
@@ -1032,7 +978,6 @@ def get_macro() -> list[dict[str, Value]]:
               recorded macro. Each ``dict`` will contain the keys ``"command"``
               and ``"args"``.
     """
-    ...
 
 def project_history() -> list[str]:
     """
@@ -1042,7 +987,6 @@ def project_history() -> list[str]:
 
     .. since:: 4144
     """
-    ...
 
 def folder_history() -> list[str]:
     """
@@ -1050,7 +994,6 @@ def folder_history() -> list[str]:
 
     .. since:: 4144
     """
-    ...
 
 class Window:
     window_id: int
@@ -1064,22 +1007,22 @@ class Window:
     def __bool__(self) -> bool: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this window. """
-        ...
+
     def is_valid(self) -> bool:
         """
         Check whether this window is still valid. Will return ``False`` for a
         closed window, for example.
         """
-        ...
+
     def hwnd(self) -> int:
         """ :returns: A platform specific window handle. Windows only. """
-        ...
+
     def active_sheet(self) -> Sheet | None:
         """ :returns: The currently focused `Sheet`. """
-        ...
+
     def active_view(self) -> View | None:
         """ :returns: The currently edited `View`. """
-        ...
+
     def new_html_sheet(self, name: str, contents: str, flags: NewFileFlags = ..., group: int = ...) -> Sheet:
         """
         Construct a sheet with HTML contents rendered using `minihtml`.
@@ -1092,14 +1035,14 @@ class Window:
                       `NewFileFlags.ADD_TO_SELECTION` are allowed.
         :param group: The group to add the sheet to. ``-1`` for the active group.
         """
-        ...
+
     def run_command(self, cmd: str, args: CommandArgs | None = ...) -> None:
         """
         Run the named `WindowCommand` with the (optional) given args. This
         method is able to run any sort of command, dispatching the command via
         input focus.
         """
-        ...
+
     def new_file(self, flags: NewFileFlags = ..., syntax: str = ...) -> View:
         """
         Create a new empty file.
@@ -1108,7 +1051,7 @@ class Window:
         :param syntax: The name of the syntax to apply to the file.
         :returns: The view for the file.
         """
-        ...
+
     def open_file(self, fname: str, flags: NewFileFlags = ..., group: int = ...) -> View:
         """
         Open the named file. If the file is already opened, it will be brought
@@ -1120,7 +1063,7 @@ class Window:
         :param flags: `NewFileFlags`
         :param group: The group to add the sheet to. ``-1`` for the active group.
         """
-        ...
+
     def find_open_file(self, fname: str, group: int = ...) -> View | None:
         """
         Find a opened file by file name.
@@ -1130,56 +1073,56 @@ class Window:
 
         :returns: The `View` to the file or ``None`` if the file isn't open.
         """
-        ...
+
     def file_history(self) -> list[str]:
         """
         Get the list of previously opened files. This is the same list
         as *File > Open Recent*.
         """
-        ...
+
     def num_groups(self) -> int:
         """ :returns: The number of view groups in the window. """
-        ...
+
     def active_group(self) -> int:
         """ :returns: The index of the currently selected group. """
-        ...
+
     def focus_group(self, idx: int) -> None:
         """ Focus the specified group, making it active. """
-        ...
+
     def focus_sheet(self, sheet: Sheet) -> None:
         """ Switches to the given `Sheet`. """
-        ...
+
     def focus_view(self, view: View) -> None:
         """ Switches to the given `View`. """
-        ...
+
     def select_sheets(self, sheets: list[Sheet]) -> None:
         """
         Change the selected sheets for the entire window.
 
         .. since:: 4083
         """
-        ...
+
     def bring_to_front(self) -> None:
         """ Bring the window in front of any other windows. """
-        ...
+
     def get_sheet_index(self, sheet: Sheet) -> tuple[int, int]:
         """
         :returns: The a tuple of the group and index within the group of the
                   given `Sheet`.
         """
-        ...
+
     def get_view_index(self, view: View) -> tuple[int, int]:
         """
         :returns: The a tuple of the group and index within the group of the
                   given `View`.
         """
-        ...
+
     def set_sheet_index(self, sheet: Sheet, group: int, index: int) -> None:
         """ Move the given `Sheet` to the given ``group`` at the given ``index``. """
-        ...
+
     def set_view_index(self, view: View, group: int, index: int) -> None:
         """ Move the given `View` to the given ``group`` at the given ``index``. """
-        ...
+
     def move_sheets_to_group(self, sheets: list[Sheet], group: int, insertion_idx: int = ..., select: bool = ...) -> None:
         """
         Moves all provided sheets to specified group at insertion index
@@ -1193,10 +1136,10 @@ class Window:
         :param insertion_idx: The point inside the group at which to insert the sheets.
         :param select: Whether the sheets should be selected after moving them.
         """
-        ...
+
     def sheets(self) -> list[Sheet]:
         """ :returns: All open sheets in the window. """
-        ...
+
     def views(self, *, include_transient: bool = ...) -> list[View]:
         """
         :param include_transient: Whether the transient sheet should be included.
@@ -1204,62 +1147,62 @@ class Window:
             .. since:: 4081
         :returns: All open sheets in the window.
         """
-        ...
+
     def selected_sheets(self) -> list[Sheet]:
         """
         .. since:: 4083
 
         :returns: All selected sheets in the window's currently selected group.
         """
-        ...
+
     def selected_sheets_in_group(self, group: int) -> list[Sheet]:
         """
         .. since:: 4083
 
         :returns: All selected sheets in the specified group.
         """
-        ...
+
     def active_sheet_in_group(self, group: int) -> Sheet | None:
         """ :returns: The currently focused `Sheet` in the given group. """
-        ...
+
     def active_view_in_group(self, group: int) -> View | None:
         """ :returns: The currently focused `View` in the given group. """
-        ...
+
     def sheets_in_group(self, group: int) -> list[Sheet]:
         """ :returns: A list of all sheets in the specified group. """
-        ...
+
     def views_in_group(self, group: int) -> list[View]:
         """ :returns: A list of all views in the specified group. """
-        ...
+
     def num_sheets_in_group(self, group: int) -> int:
         """ :returns: The number of sheets in the specified group. """
-        ...
+
     def num_views_in_group(self, group: int) -> int:
         """ :returns: The number of views in the specified group. """
-        ...
+
     def transient_sheet_in_group(self, group: int) -> Sheet | None:
         """ :returns: The transient sheet in the specified group. """
-        ...
+
     def transient_view_in_group(self, group: int) -> View | None:
         """ :returns: The transient view in the specified group. """
-        ...
+
     def promote_sheet(self, sheet: Sheet) -> None:
         """
         Promote the 'Sheet' parameter if semi-transient or transient.
 
         :since: 4135
         """
-        ...
+
     def layout(self) -> dict[str, Value]:
         """ Get the group layout of the window. """
-        ...
+
     @deprecated("Use layout() instead")
     def get_layout(self) -> dict[str, Value]:
         """ :deprecated: Use `layout()` instead """
-        ...
+
     def set_layout(self, layout: dict[str, Value]) -> None:
         """ Set the group layout of the window. """
-        ...
+
     def create_output_panel(self, name: str, unlisted: bool = ...) -> View:
         """
         Find the `View` associated with the named output panel, creating it if
@@ -1270,17 +1213,17 @@ class Window:
         :param name: The name of the output panel.
         :param unlisted: Control if the output panel should be listed in the panel switcher.
         """
-        ...
+
     def find_output_panel(self, name: str) -> View | None:
         """
         :returns:
             The `View` associated with the named output panel, or ``None`` if
             the output panel does not exist.
         """
-        ...
+
     def destroy_output_panel(self, name: str) -> None:
         """ Destroy the named output panel, hiding it if currently open. """
-        ...
+
     def create_io_panel(self, name: str, on_input: Callable[[str], None], unlisted: bool = ...) -> tuple[View, View]:
         """
         Just like `create_output_panel`, find the view(s) associated with the
@@ -1298,7 +1241,7 @@ class Window:
             A ``tuple`` containing the `View` for the output and another `View`
             for the input.
         """
-        ...
+
     def find_io_panel(self, name: str) -> tuple[View | None, View | None]:
         """
         :returns:
@@ -1306,25 +1249,25 @@ class Window:
             output panel has an input box it also returns its `View`; or ``
             (None, None)`` if the output panel does not exist.
         """
-        ...
+
     def active_panel(self) -> str | None:
         """
         Returns the name of the currently open panel, or None if no panel is
         open. Will return built-in panel names (e.g. ``"console"``, ``"find"``,
         etc) in addition to output panels.
         """
-        ...
+
     def panels(self) -> list[str]:
         """
         Returns a list of the names of all panels that have not been marked as
         unlisted. Includes certain built-in panels in addition to output
         panels.
         """
-        ...
+
     @deprecated("Use create_output_panel() instead")
     def get_output_panel(self, name: str) -> View:
         """ :deprecated: Use `create_output_panel` instead. """
-        ...
+
     def show_input_panel(self, caption: str, initial_text: str, on_done: Callable[[str], None] | None, on_change: Callable[[str], None] | None, on_cancel: Callable[[], None] | None) -> View:
         """
         Shows the input panel, to collect a line of input from the user.
@@ -1336,7 +1279,7 @@ class Window:
         :param on_cancel: Called when the user cancels input using ``esc``
         :returns: The `View` used for the input widget.
         """
-        ...
+
     def show_quick_panel(self, items: list[str] | list[list[str]] | list[QuickPanelItem], on_select: Callable[[int], None], flags: QuickPanelFlags = ..., selected_index: int = ..., on_highlight: Callable[[int], None] | None = ..., placeholder: str | None = ...) -> None:
         """
         Show a quick panel to select an item in a list. on_select will be called
@@ -1365,57 +1308,57 @@ class Window:
             Text displayed in the filter input field before any query is typed.
             :since:`4081`
         """
-        ...
+
     def is_sidebar_visible(self) -> bool:
         """ :returns: Whether the sidebar is visible. """
-        ...
+
     def set_sidebar_visible(self, flag: bool, animate: bool = ...) -> None:
         """ Hides or shows the sidebar. """
-        ...
+
     def is_minimap_visible(self) -> bool:
         """ :returns: Whether the minimap is visible. """
-        ...
+
     def set_minimap_visible(self, flag: bool) -> None:
         """ Hides or shows the minimap. """
-        ...
+
     def is_status_bar_visible(self) -> bool:
         """ :returns: Whether the status bar is visible. """
-        ...
+
     def set_status_bar_visible(self, flag: bool) -> None:
         """ Hides or shows the status bar. """
-        ...
+
     def get_tabs_visible(self) -> bool:
         """ :returns: Whether the tabs are visible. """
-        ...
+
     def set_tabs_visible(self, flag: bool) -> None:
         """ Hides or shows the tabs. """
-        ...
+
     def is_menu_visible(self) -> bool:
         """ :returns: Whether the menu is visible. """
-        ...
+
     def set_menu_visible(self, flag: bool) -> None:
         """ Hides or shows the menu. """
-        ...
+
     def folders(self) -> list[str]:
         """ :returns: A list of the currently open folders in this `Window`. """
-        ...
+
     def project_file_name(self) -> str | None:
         """ :returns: The name of the currently opened project file, if any. """
-        ...
+
     def workspace_file_name(self) -> str | None:
         """
         .. since:: 4050
 
         :returns: The name of the currently opened workspace file, if any.
         """
-        ...
+
     def project_data(self) -> Value:
         """
         :returns: The project data associated with the current window. The data
                   is in the same format as the contents of a
                   :path:`.sublime-project` file.
         """
-        ...
+
     def set_project_data(self, data: Value) -> None:
         """
         Updates the project data associated with the current window. If the
@@ -1423,19 +1366,19 @@ class Window:
         file will be updated on disk, otherwise the window will store the data
         internally.
         """
-        ...
+
     def settings(self) -> Settings:
         """
         :returns: The `Settings` object for this `Window`. Any changes to this
                   settings object will be specific to this window.
         """
-        ...
+
     def template_settings(self) -> Settings:
         """
         :returns: Per-window settings that are persisted in the session, and
                   duplicated into new windows.
         """
-        ...
+
     def symbol_locations(self, sym: str, source: SymbolSource = ..., type: SymbolType = ..., kind_id: KindId = ..., kind_letter: str = ...) -> list[SymbolLocation]:
         """
         Find all locations where the symbol ``sym`` is located.
@@ -1449,35 +1392,35 @@ class Window:
         :param kind_letter: The letter representing the kind of the symbol. See `Kind`.
         :return: the found symbol locations.
         """
-        ...
+
     @deprecated("Use symbol_locations() instead")
     def lookup_symbol_in_index(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is defined across files in the current project.
         :deprecated: Use `symbol_locations()` instead.
         """
-        ...
+
     @deprecated("Use symbol_locations() instead")
     def lookup_symbol_in_open_files(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is defined across open files.
         :deprecated: Use `symbol_locations()` instead.
         """
-        ...
+
     @deprecated("Use symbol_locations() instead")
     def lookup_references_in_index(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is referenced across files in the current project.
         :deprecated: Use `symbol_locations()` instead.
         """
-        ...
+
     @deprecated("Use symbol_locations() instead")
     def lookup_references_in_open_files(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is referenced across open files.
         :deprecated: Use `symbol_locations()` instead.
         """
-        ...
+
     def extract_variables(self) -> dict[str, str]:
         """
         Get the ``dict`` of contextual keys of the window.
@@ -1499,10 +1442,9 @@ class Window:
 
         This ``dict`` is suitable for use with `expand_variables()`.
         """
-        ...
+
     def status_message(self, msg: str) -> None:
         """ Show a message in the status bar. """
-        ...
 
 class Edit:
     r"""
@@ -1543,20 +1485,20 @@ class Region:
 
         .. since:: 4023 3.8
         """
-        ...
+
     def __len__(self) -> int:
         """ :returns: The size of the region. """
-        ...
+
     @override
     def __eq__(self, rhs: object) -> bool:
         """ :returns: Whether the two regions are identical. Ignores ``xpos``. """
-        ...
+
     def __lt__(self, rhs: Region) -> bool:
         """
         :returns: Whether this region starts before the rhs. The end of the
                   region is used to resolve ties.
         """
-        ...
+
     def __contains__(self, v: Region | Point) -> bool:
         """
         :returns: Whether the provided `Region` or `Point` is entirely contained
@@ -1564,38 +1506,37 @@ class Region:
 
         .. since:: 4023 3.8
         """
-        ...
+
     def to_tuple(self) -> tuple[Point, Point]:
         """
         .. since:: 4075
 
         :returns: This region as a tuple ``(a, b)``.
         """
-        ...
+
     def empty(self) -> bool:
         """ :returns: Whether the region is empty, ie. ``a == b``. """
-        ...
+
     def begin(self) -> Point:
         """ :returns: The smaller of ``a`` and ``b``. """
-        ...
+
     def end(self) -> Point:
         """ :returns: The larger of ``a`` and ``b``. """
-        ...
+
     def size(self) -> int:
         """ Equivalent to `__len__`. """
-        ...
+
     def contains(self, x: Point) -> bool:
         """ Equivalent to `__contains__`. """
-        ...
+
     def cover(self, region: Region) -> Region:
         """ :returns: A `Region` spanning both regions. """
-        ...
+
     def intersection(self, region: Region) -> Region:
         """ :returns: A `Region` covered by both regions. """
-        ...
+
     def intersects(self, region: Region) -> bool:
         """ :returns: Whether the provided region intersects this region. """
-        ...
 
 class HistoricPosition:
     """
@@ -1673,69 +1614,68 @@ class Selection:
 
         .. since:: 4023 3.8
         """
-        ...
+
     def __len__(self) -> int:
         """ :returns: The number of regions in the selection. """
-        ...
+
     def __getitem__(self, index: int) -> Region:
         """ :returns: The region at the given ``index``. """
-        ...
+
     def __delitem__(self, index: int) -> None:
         """ Delete the region at the given ``index``. """
-        ...
+
     @override
     def __eq__(self, rhs: object) -> bool:
         """ :returns: Whether the selections are identical. """
-        ...
+
     def __lt__(self, rhs: Selection | None) -> bool: ...
     def __bool__(self) -> bool:
         """ The selection is ``True`` when not empty. """
-        ...
+
     def is_valid(self) -> bool:
         """ :returns: Whether this selection is for a valid view. """
-        ...
+
     def clear(self) -> None:
         """ Remove all regions from the selection. """
-        ...
+
     def add(self, x: Region | Point) -> None:
         """
         Add a `Region` or `Point` to the selection. It will be merged with the
         existing regions if intersecting.
         """
-        ...
+
     def add_all(self, regions: Iterable[Region | Point]) -> None:
         """ Add all the regions from the given iterable. """
-        ...
+
     def subtract(self, region: Region) -> None:
         """
         Subtract a region from the selection, such that the whole region is no
         longer contained within the selection.
         """
-        ...
+
     def contains(self, region: Region) -> bool:
         """ :returns: Whether the provided region is contained within the selection. """
-        ...
+
     def has_empty_region(self) -> bool:
         """
         :returns: Whether the selection has an empty region
 
         .. since:: 4193
         """
-        ...
+
     def has_non_empty_region(self) -> bool:
         """
         :returns: Whether the selection has an non-empty region
 
         .. since:: 4193
         """
-        ...
+
     def has_multiple_non_empty_regions(self) -> bool:
         """
         :returns: Whether the selection has more than one non-empty region
 
         .. since:: 4193
         """
-        ...
 
 class Sheet:
     """
@@ -1750,16 +1690,16 @@ class Sheet:
     def __eq__(self, other: object) -> bool: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this sheet. """
-        ...
+
     def window(self) -> Window | None:
         """
         :returns: The `Window` containing this sheet. May be ``None`` if the
                   sheet has been closed.
         """
-        ...
+
     def view(self) -> View | None:
         """ :returns: The `View` contained within the sheet if any. """
-        ...
+
     def file_name(self) -> str | None:
         """
         :returns:
@@ -1768,14 +1708,14 @@ class Sheet:
 
         .. since:: 4088
         """
-        ...
+
     def is_semi_transient(self) -> bool:
         """
         :returns: Whether this sheet is semi-transient.
 
         .. since:: 4080
         """
-        ...
+
     def is_transient(self) -> bool:
         """
         :returns:
@@ -1786,21 +1726,21 @@ class Sheet:
 
         .. since:: 4080
         """
-        ...
+
     def is_selected(self) -> bool:
         """
         :returns: Whether this sheet is currently selected.
 
         :since: 4135
         """
-        ...
+
     def group(self) -> int | None:
         """
         :returns: The (layout) group that the sheet is contained within.
 
         .. since:: 4100
         """
-        ...
+
     def close(self, on_close: Callable[[bool], None] = ...) -> None:
         """
         Closes the sheet.
@@ -1809,7 +1749,6 @@ class Sheet:
 
         .. since:: 4088
         """
-        ...
 
 class TextSheet(Sheet):
     """
@@ -1819,7 +1758,6 @@ class TextSheet(Sheet):
     """
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. Only affects unsaved files. """
-        ...
 
 class ImageSheet(Sheet):
     """
@@ -1827,7 +1765,6 @@ class ImageSheet(Sheet):
 
     .. since:: 4065
     """
-    ...
 
 class HtmlSheet(Sheet):
     """
@@ -1837,10 +1774,9 @@ class HtmlSheet(Sheet):
     """
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. """
-        ...
+
     def set_contents(self, contents: str) -> None:
         """ Set the HTML content of the sheet. """
-        ...
 
 class ContextStackFrame:
     """
@@ -1881,13 +1817,13 @@ class View:
     def __bool__(self) -> bool: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this view. """
-        ...
+
     def buffer_id(self) -> int:
         """ :returns: A number that uniquely identifies this view's `Buffer`. """
-        ...
+
     def buffer(self) -> Buffer:
         """ :returns: The `Buffer` for which this is a view. """
-        ...
+
     def sheet_id(self) -> int:
         """
         .. since:: 4083
@@ -1896,14 +1832,14 @@ class View:
             The ID of the `Sheet` for this `View`, or ``0`` if not part of any
             sheet.
         """
-        ...
+
     def sheet(self) -> Sheet | None:
         """
         .. since:: 4083
 
         :returns: The `Sheet` for this view, if displayed in a sheet.
         """
-        ...
+
     def element(self) -> str | None:
         """
         .. since:: 4050
@@ -1931,98 +1867,98 @@ class View:
             The console output, indexer status output and license input controls
             are not accessible via the API.
         """
-        ...
+
     def is_valid(self) -> bool:
         """
         Check whether this view is still valid. Will return ``False`` for a
         closed view, for example.
         """
-        ...
+
     def is_primary(self) -> bool:
         """
         :returns: Whether view is the primary view into a `Buffer`. Will only be
                   ``False`` if the user has opened multiple views into a file.
         """
-        ...
+
     def window(self) -> Window | None:
         """ :returns: A reference to the window containing the view, if any. """
-        ...
+
     def clones(self) -> list[View]:
         """ :returns: All the other views into the same `Buffer`. See `View`. """
-        ...
+
     def file_name(self) -> str | None:
         """
         :returns: The full name of the file associated with the sheet, or
                   ``None`` if it doesn't exist on disk.
         """
-        ...
+
     def close(self, on_close: Callable[[bool], None] = ...) -> bool:
         """ Closes the view. """
-        ...
+
     def retarget(self, new_fname: str) -> None:
         """ Change the file path the buffer will save to. """
-        ...
+
     def name(self) -> str:
         """ :returns: The name assigned to the buffer, if any. """
-        ...
+
     def set_name(self, name: str) -> None:
         """ Assign a name to the buffer. Displayed as in the tab for unsaved files. """
-        ...
+
     def reset_reference_document(self) -> None:
         """
         Clears the state of the `incremental diff <incremental_diff>` for the
         view.
         """
-        ...
+
     def set_reference_document(self, reference: str) -> None:
         """
         Uses the string reference to calculate the initial diff for the
         `incremental diff <incremental_diff>`.
         """
-        ...
+
     def is_loading(self) -> bool:
         """
         :returns: Whether the buffer is still loading from disk, and not ready
                   for use.
         """
-        ...
+
     def is_dirty(self) -> bool:
         """ :returns: Whether there are any unsaved modifications to the buffer. """
-        ...
+
     def is_read_only(self) -> bool:
         """ :returns: Whether the buffer may not be modified. """
-        ...
+
     def set_read_only(self, read_only: bool) -> None:
         """ Set the read only property on the buffer. """
-        ...
+
     def is_scratch(self) -> bool:
         """ :returns: Whether the buffer is a scratch buffer. See `set_scratch()`. """
-        ...
+
     def set_scratch(self, scratch: bool) -> None:
         """
         Sets the scratch property on the buffer. When a modified scratch buffer
         is closed, it will be closed without prompting to save. Scratch buffers
         never report as being dirty.
         """
-        ...
+
     def encoding(self) -> str:
         """ :returns: The encoding currently associated with the buffer. """
-        ...
+
     def set_encoding(self, encoding_name: str) -> None:
         """
         Applies a new encoding to the file. This will be used when the file is
         saved.
         """
-        ...
+
     def line_endings(self) -> str:
         """ :returns: The encoding currently associated with the file. """
-        ...
+
     def set_line_endings(self, line_ending_name: str) -> None:
         """ Sets the line endings that will be applied when next saving. """
-        ...
+
     def size(self) -> int:
         """ :returns: The number of character in the file. """
-        ...
+
     def begin_edit(self, edit_token: int, cmd: str, args: CommandArgs | None = ...) -> Edit: ...
     def end_edit(self, edit: Edit) -> None: ...
     def is_in_edit(self) -> bool: ...
@@ -2037,13 +1973,13 @@ class View:
                   from the provided text due to tab translation.
         :raises ValueError: If the `Edit` object is in an invalid state, ie. outside of a `TextCommand`.
         """
-        ...
+
     def erase(self, edit: Edit, region: Region) -> None:
         """ Erases the contents of the provided `Region` from the buffer. """
-        ...
+
     def replace(self, edit: Edit, region: Region, text: str) -> None:
         """ Replaces the contents of the `Region` in the buffer with the provided string. """
-        ...
+
     def change_count(self) -> int:
         """
         Each time the buffer is modified, the change count is incremented. The
@@ -2052,7 +1988,7 @@ class View:
 
         :returns: The current change count.
         """
-        ...
+
     def change_id(self) -> tuple[int, int, int]:
         """
         Get a 3-element tuple that can be passed to `transform_region_from()` to
@@ -2061,7 +1997,7 @@ class View:
         operate in an asynchronous fashion and must be able to handle the view
         contents changing between the request and response.
         """
-        ...
+
     def transform_region_from(self, region: Region, change_id: tuple[int, int, int]) -> Region:
         """
         Transforms a region from a previous point in time to an equivalent
@@ -2069,16 +2005,16 @@ class View:
         been obtained from `change_id()` at the point in time the region is
         from.
         """
-        ...
+
     def run_command(self, cmd: str, args: CommandArgs | None = ...) -> None:
         """ Run the named `TextCommand` with the (optional) given ``args``. """
-        ...
+
     def sel(self) -> Selection:
         """ :returns: The views `Selection`. """
-        ...
+
     def substr(self, x: Region | Point) -> str:
         """ :returns: The string at the `Point` or within the `Region` provided. """
-        ...
+
     def find(self, pattern: str, start_pt: Point, flags: FindFlags = ...) -> Region:
         """
         :param pattern: The regex or literal pattern to search by.
@@ -2086,7 +2022,7 @@ class View:
         :param flags: Controls various behaviors of find. See `FindFlags`.
         :returns: The first `Region` matching the provided pattern.
         """
-        ...
+
     def find_all(self, pattern: str, flags: FindFlags = ..., fmt: str | None = ..., extractions: list[str] | None = ..., within: Region | list[Region] | None = ...) -> list[Region]:
         """
         :param pattern: The regex or literal pattern to search by.
@@ -2100,13 +2036,13 @@ class View:
             region(s). :since:`4181`
         :returns: All (non-overlapping) regions matching the pattern.
         """
-        ...
+
     def settings(self) -> Settings:
         """
         :returns: The view's `Settings` object. Any changes to it will be
                   private to this view.
         """
-        ...
+
     def meta_info(self, key: str, pt: Point) -> Value:
         """
         Look up the preference ``key`` for the scope at the provided `Point`
@@ -2114,7 +2050,7 @@ class View:
 
         Examples of keys are ``TM_COMMENT_START`` and ``showInSymbolList``.
         """
-        ...
+
     def extract_tokens_with_scopes(self, region: Region) -> list[tuple[Region, str]]:
         """
         :param region: The region from which to extract tokens and scopes.
@@ -2122,13 +2058,13 @@ class View:
 
         .. since: 3172
         """
-        ...
+
     def extract_scope(self, pt: Point) -> Region:
         """
         :returns: The extent of the syntax scope name assigned to the character
                   at the given `Point`, narrower syntax scope names included.
         """
-        ...
+
     def expand_to_scope(self, pt: Point, selector: str) -> Region | None:
         """
         Expand by the provided scope selector from the `Point`.
@@ -2139,10 +2075,10 @@ class View:
 
         .. since: 4130
         """
-        ...
+
     def scope_name(self, pt: Point) -> str:
         """ :returns: The syntax scope name assigned to the character at the given point. """
-        ...
+
     def context_backtrace(self, pt: Point) -> list[ContextStackFrame]:
         r"""
         Get a backtrace of `ContextStackFrame`\ s at the provided `Point`.
@@ -2151,10 +2087,10 @@ class View:
 
         .. since:: 4127
         """
-        ...
+
     def match_selector(self, pt: Point, selector: str) -> bool:
         """ :returns: Whether the provided scope selector matches the `Point`. """
-        ...
+
     def score_selector(self, pt: Point, selector: str) -> int:
         """
         Equivalent to::
@@ -2163,14 +2099,14 @@ class View:
 
         See `sublime.score_selector`.
         """
-        ...
+
     def find_by_selector(self, selector: str) -> list[Region]:
         """
         Find all regions in the file matching the given selector.
 
         :returns: The list of matched regions.
         """
-        ...
+
     def style(self) -> dict[str, str]:
         """
         See `style_for_scope`.
@@ -2182,7 +2118,7 @@ class View:
 
         .. since:: 3150
         """
-        ...
+
     def style_for_scope(self, scope: str) -> dict[str, Value]:
         """
         Accepts a string scope name and returns a ``dict`` of style information
@@ -2208,43 +2144,43 @@ class View:
         The foreground and background colors are normalized to the six character
         hex form with a leading hash, e.g. ``#ff0000``.
         """
-        ...
+
     def indented_region(self, pt: Point) -> Region: ...
     def indentation_level(self, pt: Point) -> int: ...
     def has_non_empty_selection_region(self) -> bool: ...
     def lines(self, region: Region) -> list[Region]:
         """ :returns: A list of lines (in sorted order) intersecting the provided `Region`. """
-        ...
+
     def split_by_newlines(self, region: Region) -> list[Region]:
         """
         Splits the region up such that each `Region` returned exists on exactly
         one line.
         """
-        ...
+
     def line(self, x: Region | Point) -> Region:
         """
         :returns:
             The line that contains the `Point` or an expanded `Region` to the
             beginning/end of lines, excluding the newline character.
         """
-        ...
+
     def full_line(self, x: Region | Point) -> Region:
         """
         :returns:
             The line that contains the `Point` or an expanded `Region` to the
             beginning/end of lines, including the newline character.
         """
-        ...
+
     def word(self, x: Region | Point) -> Region:
         """
         :returns:
             The word that contains the provided `Point`. If a `Region` is
             provided it's beginning/end are expanded to word boundaries.
         """
-        ...
+
     def classify(self, pt: Point) -> PointClassification:
         """ Classify the provided `Point`. See `PointClassification`. """
-        ...
+
     def find_by_class(self, pt: Point, forward: bool, classes: PointClassification, separators: str = ..., sub_word_separators: str = ...) -> Point:
         """
         Find the next location that matches the provided `PointClassification`.
@@ -2257,7 +2193,7 @@ class View:
             The sub-word separators to use when classifying. :since:`4130`
         :returns: The found point.
         """
-        ...
+
     def expand_by_class(self, x: Region | Point, classes: PointClassification, separators: str = ..., sub_word_separators: str = ...) -> Region:
         """
         Expand the provided `Point` or `Region` to the left and right until each
@@ -2269,13 +2205,13 @@ class View:
         :param sub_word_separators:
             The sub-word separators to use when classifying. :since:`4130`
         """
-        ...
+
     def rowcol(self, tp: Point) -> tuple[int, int]:
         """
         Calculates the 0-based line and column numbers of the point. Column
         numbers are returned as number of Unicode characters.
         """
-        ...
+
     def rowcol_utf8(self, tp: Point) -> tuple[int, int]:
         """
         Calculates the 0-based line and column numbers of the point. Column
@@ -2283,7 +2219,7 @@ class View:
 
         .. since:: 4069
         """
-        ...
+
     def rowcol_utf16(self, tp: Point) -> tuple[int, int]:
         """
         Calculates the 0-based line and column numbers of the point. Column
@@ -2291,7 +2227,7 @@ class View:
 
         .. since:: 4069
         """
-        ...
+
     def text_point(self, row: int, col: int, *, clamp_column: bool = ...) -> Point:
         """
         Calculates the character offset of the given, 0-based, ``row`` and
@@ -2302,7 +2238,7 @@ class View:
             Whether ``col`` should be restricted to valid values for the given
             ``row``. :since:`4075`
         """
-        ...
+
     def text_point_utf8(self, row: int, col: int, *, clamp_column: bool = ...) -> Point:
         """
         Calculates the character offset of the given, 0-based, ``row`` and
@@ -2313,7 +2249,7 @@ class View:
             whether ``col`` should be restricted to valid values for the given
             ``row``. :since:`4075`
         """
-        ...
+
     def text_point_utf16(self, row: int, col: int, *, clamp_column: bool = ...) -> Point:
         """
         Calculates the character offset of the given, 0-based, ``row`` and
@@ -2324,7 +2260,7 @@ class View:
             whether ``col`` should be restricted to valid values for the given
             ``row``. :since:`4075`
         """
-        ...
+
     def utf8_code_units(self, tp: Point | None = ...) -> int:
         """
         Calculates the utf8 code unit offset at the given text point.
@@ -2335,7 +2271,7 @@ class View:
             The text point up to which code units should be counted. If not
             provided the total is returned.
         """
-        ...
+
     def utf16_code_units(self, tp: Point | None = ...) -> int:
         """
         Calculates the utf16 code unit offset at the given text point.
@@ -2346,10 +2282,10 @@ class View:
             The text point up to which code units should be counted. If not
             provided the total is returned.
         """
-        ...
+
     def visible_region(self) -> Region:
         """ :returns: The currently visible area of the view. """
-        ...
+
     def show(self, location: Region | Selection | Point, show_surrounds: bool = ..., keep_to_left: bool = ..., animate: bool = ...) -> None:
         """
         Scroll the view to show the given location.
@@ -2365,7 +2301,7 @@ class View:
         :param animate:
             Whether the scrolling should be animated. :since:`4075`
         """
-        ...
+
     def show_at_center(self, location: Region | Point, animate: bool = ...) -> None:
         """
         Scroll the view to center on the location.
@@ -2373,63 +2309,63 @@ class View:
         :param location: Which `Point` or `Region` to scroll to.
         :param animate: Whether the scrolling should be animated. :since:`4075`
         """
-        ...
+
     def viewport_position(self) -> Vector:
         """ :returns: The offset of the viewport in layout coordinates. """
-        ...
+
     def set_viewport_position(self, xy: Vector, animate: bool = ...) -> None:
         """ Scrolls the viewport to the given layout position. """
-        ...
+
     def viewport_extent(self) -> Vector:
         """ :returns: The width and height of the viewport. """
-        ...
+
     def layout_extent(self) -> Vector:
         """ :returns: The width and height of the layout. """
-        ...
+
     def text_to_layout(self, tp: Point) -> Vector:
         """ Convert a text point to a layout position. """
-        ...
+
     def text_to_window(self, tp: Point) -> Vector:
         """ Convert a text point to a window position. """
-        ...
+
     def layout_to_text(self, xy: Vector) -> Point:
         """ Convert a layout position to a text point. """
-        ...
+
     def layout_to_window(self, xy: Vector) -> Vector:
         """ Convert a layout position to a window position. """
-        ...
+
     def window_to_layout(self, xy: Vector) -> Vector:
         """ Convert a window position to a layout position. """
-        ...
+
     def window_to_text(self, xy: Vector) -> Point:
         """ Convert a window position to a text point. """
-        ...
+
     def line_height(self) -> DIP:
         """ :returns: The light height used in the layout. """
-        ...
+
     def em_width(self) -> DIP:
         """ :returns: The typical character width used in the layout. """
-        ...
+
     def is_folded(self, region: Region) -> bool:
         """ :returns: Whether the provided `Region` is folded. """
-        ...
+
     def folded_regions(self) -> list[Region]:
         """ :returns: The list of folded regions. """
-        ...
+
     def fold(self, x: Region | list[Region]) -> bool:
         """
         Fold the provided `Region` (s).
 
         :returns: ``False`` if the regions were already folded.
         """
-        ...
+
     def unfold(self, x: Region | list[Region]) -> list[Region]:
         """
         Unfold all text in the provided `Region` (s).
 
         :returns: The unfolded regions.
         """
-        ...
+
     def add_regions(self, key: str, regions: list[Region], scope: str = ..., icon: str = ..., flags: RegionFlags = ..., annotations: list[str] = ..., annotation_color: str = ..., on_navigate: Callable[[str], None] | None = ..., on_close: Callable[[], None] | None = ...) -> None:
         """
         Adds visual indicators to regions of text in the view. Indicators
@@ -2485,13 +2421,13 @@ class View:
         :param on_close:
             Called when the annotations are closed. :since:`4050`
         """
-        ...
+
     def get_regions(self, key: str) -> list[Region]:
         """ :returns: The regions associated with the given ``key``, if any. """
-        ...
+
     def erase_regions(self, key: str) -> None:
         """ Remove the regions associated with the given ``key``. """
-        ...
+
     def add_phantom(self, key: str, region: Region, content: str, layout: PhantomLayout, on_navigate: Callable[[str], None] | None = ...) -> int: ...
     def erase_phantoms(self, key: str) -> None: ...
     def erase_phantom_by_id(self, pid: int) -> None: ...
@@ -2505,14 +2441,14 @@ class View:
         .. since:: 4080
             ``syntax`` may be a `Syntax` object.
         """
-        ...
+
     @deprecated("Use assign_syntax() instead")
     def set_syntax_file(self, syntax_file: str) -> None:
         """ :deprecated: Use `assign_syntax()` instead. """
-        ...
+
     def syntax(self) -> Syntax | None:
         """ :returns: The syntax assigned to the buffer. """
-        ...
+
     @deprecated("Use symbol_regions() instead")
     def symbols(self) -> list[tuple[Region, str]]:
         """
@@ -2520,11 +2456,11 @@ class View:
 
         :deprecated: Use `symbol_regions()` instead.
         """
-        ...
+
     @deprecated("Use symbol_regions() instead")
     def get_symbols(self) -> list[tuple[Region, str]]:
         """ :deprecated: Use `symbol_regions()` instead. """
-        ...
+
     @deprecated("Use indexed_symbol_regions() instead")
     def indexed_symbols(self) -> list[tuple[Region, str]]:
         """
@@ -2533,7 +2469,7 @@ class View:
 
         .. since:: 3148
         """
-        ...
+
     @deprecated("Use indexed_symbol_regions() instead")
     def indexed_references(self) -> list[tuple[Region, str]]:
         """
@@ -2542,14 +2478,14 @@ class View:
 
         .. since:: 3148
         """
-        ...
+
     def symbol_regions(self) -> list[SymbolRegion]:
         """
         :returns: Info about symbols that are part of the view's symbol list.
 
         .. since:: 4085
         """
-        ...
+
     def indexed_symbol_regions(self, type: SymbolType = ...) -> list[SymbolRegion]:
         """
         :param type: The type of symbol to return.
@@ -2557,24 +2493,24 @@ class View:
 
         .. since:: 4085
         """
-        ...
+
     def set_status(self, key: str, value: str) -> None:
         """
         Add the status ``key`` to the view. The ``value`` will be displayed in the
         status bar, in a comma separated list of all status values, ordered by
         key. Setting the ``value`` to ``""`` will clear the status.
         """
-        ...
+
     def get_status(self, key: str) -> str:
         """
         :returns: The previous assigned value associated with the given ``key``, if any.
 
         See `set_status()`.
         """
-        ...
+
     def erase_status(self, key: str) -> None:
         """ Clear the status associated with the provided ``key``. """
-        ...
+
     def extract_completions(self, prefix: str, tp: Point = ...) -> list[str]:
         """
         Get a list of word-completions based on the contents of the view.
@@ -2582,7 +2518,7 @@ class View:
         :param prefix: The prefix to filter words by.
         :param tp: The `Point` by which to weigh words. Closer words are preferred.
         """
-        ...
+
     def find_all_results(self) -> list[tuple[str, int, int]]: ...
     def find_all_results_with_text(self) -> list[tuple[str, int, int, str]]: ...
     def command_history(self, index: int, modifying_only: bool = ...) -> tuple[str, CommandArgs, int]:
@@ -2599,16 +2535,16 @@ class View:
             entry. If the undo/redo history doesn't extend far enough, then
             ``(None, None, 0)`` will be returned.
         """
-        ...
+
     def overwrite_status(self) -> bool:
         """
         :returns: The overwrite status, which the user normally toggles via the
                   insert key.
         """
-        ...
+
     def set_overwrite_status(self, value: bool) -> None:
         """ Set the overwrite status. See `overwrite_status()`. """
-        ...
+
     def show_popup_menu(self, items: list[str], on_done: Callable[[int], None], flags: int = ...) -> None:
         """
         Show a popup menu at the caret, for selecting an item in a list.
@@ -2618,7 +2554,7 @@ class View:
                         popup was cancelled ``-1`` is passed instead.
         :param flags: must be ``0``, currently unused.
         """
-        ...
+
     def show_popup(self, content: str, flags: PopupFlags = ..., location: Point = ..., max_width: DIP = ..., max_height: DIP = ..., on_navigate: Callable[[str], None] | None = ..., on_hide: Callable[[], None] | None = ...) -> None:
         """
         Show a popup displaying HTML content.
@@ -2634,19 +2570,19 @@ class View:
             ``href`` attribute of the clicked link.
         :param on_hide: Called when the popup is hidden.
         """
-        ...
+
     def update_popup(self, content: str) -> None:
         """ Update the content of the currently visible popup. """
-        ...
+
     def is_popup_visible(self) -> bool:
         """ :returns: Whether a popup is currently shown. """
-        ...
+
     def hide_popup(self) -> None:
         """ Hide the current popup. """
-        ...
+
     def is_auto_complete_visible(self) -> bool:
         """ :returns: Whether the auto-complete menu is currently visible. """
-        ...
+
     def preserve_auto_complete_on_focus_lost(self) -> None:
         """
         Sets the auto complete popup state to be preserved the next time the
@@ -2656,7 +2592,7 @@ class View:
 
         .. since:: 4073
         """
-        ...
+
     def export_to_html(self, regions: Region | list[Region] | None = ..., minihtml: bool = ..., enclosing_tags: bool = ..., font_size: bool = ..., font_family: bool = ...) -> str:
         """
         Generates an HTML string of the current view contents, including styling
@@ -2678,14 +2614,13 @@ class View:
 
         .. since:: 4092
         """
-        ...
+
     def clear_undo_stack(self) -> None:
         """
         Clear the undo/redo stack.
 
         .. since:: 4114
         """
-        ...
 
 class Buffer:
     """
@@ -2705,7 +2640,7 @@ class Buffer:
 
         .. since:: 4083
         """
-        ...
+
     def file_name(self) -> str | None:
         """
         The full name file the file associated with the buffer, or ``None`` if
@@ -2713,13 +2648,12 @@ class Buffer:
 
         .. since:: 4083
         """
-        ...
+
     def views(self) -> list[View]:
         """ Returns a list of all views that are associated with this buffer. """
-        ...
+
     def primary_view(self) -> View:
         """ The primary view associated with this buffer. """
-        ...
 
 class Settings:
     """ A ``dict`` like object that a settings hierarchy. """
@@ -2731,14 +2665,14 @@ class Settings:
 
         .. since:: 4023 3.8
         """
-        ...
+
     def __setitem__(self, key: str, value: Value) -> None:
         """
         Set the named ``key`` to the provided ``value``.
 
         .. since:: 4023 3.8
         """
-        ...
+
     def __delitem__(self, key: str) -> None:
         """
         Deletes the provided ``key`` from the setting. Note that a parent
@@ -2747,21 +2681,21 @@ class Settings:
 
         .. since:: 4078 3.8
         """
-        ...
+
     def __contains__(self, key: str) -> bool:
         """
         Returns whether the provided ``key`` is set.
 
         .. since:: 4023 3.8
         """
-        ...
+
     def to_dict(self) -> dict[str, Value]:
         """
         Return the settings as a dict. This is not very fast.
 
         .. since:: 4078 3.8
         """
-        ...
+
     def setdefault(self, key: str, value: Value) -> Value:
         """
         Returns the value associated with the provided ``key``. If it's not
@@ -2770,7 +2704,7 @@ class Settings:
 
         .. since:: 4023 3.8
         """
-        ...
+
     def update(self, other: Settings | dict[str, Value] | Iterable[tuple[str, Value]] = ..., /, **kwargs: Value) -> None:
         """
         Update the settings from the provided argument(s).
@@ -2784,19 +2718,19 @@ class Settings:
 
         .. since:: 4078 3.8
         """
-        ...
+
     def get(self, key: str, default: Value | None = ...) -> Value:
         """ Same as `__getitem__`. """
-        ...
+
     def has(self, key: str) -> bool:
         """ Same as `__contains__`. """
-        ...
+
     def set(self, key: str, value: Value) -> None:
         """ Same as `__setitem__`. """
-        ...
+
     def erase(self, key: str) -> None:
         """ Same as `__delitem__`. """
-        ...
+
     def add_on_change(self, tag: str, callback: Callable[[], None]) -> None:
         """
         Register a callback to be run whenever a setting is changed.
@@ -2805,13 +2739,12 @@ class Settings:
                     `clear_on_change`.
         :param callback: A callable object to be run when a setting is changed.
         """
-        ...
+
     def clear_on_change(self, tag: str) -> None:
         """
         Remove all callbacks associated with the provided ``tag``. See
         `add_on_change`.
         """
-        ...
 
 class Phantom:
     """
@@ -2846,7 +2779,6 @@ class Phantom:
         Use this to uniquely identify a phantom in a set or similar. Phantoms
         can't be used for that directly as they are mutable.
         """
-        ...
 
 class PhantomSet:
     """
@@ -2866,7 +2798,6 @@ class PhantomSet:
         have changed they will be moved; new phantoms are added and ones not
         present are removed.
         """
-        ...
 
 class Html:
     """
@@ -2893,7 +2824,7 @@ class CompletionList:
             before the completions will be displayed to the user.
         :param flags: Flags controlling auto-complete behavior. See `AutoCompleteFlags`.
         """
-        ...
+
     def set_completions(self, completions: list[CompletionValue], flags: AutoCompleteFlags = ...) -> None:
         """
         Sets the list of completions, allowing the list to be displayed to the
@@ -2905,7 +2836,6 @@ class CompletionList:
             completions you're encouraged to call this function from a
             background thread to avoid blocking the UI.
         """
-        ...
 
 class CompletionItem:
     """
@@ -2943,14 +2873,13 @@ class CompletionItem:
         Specialized constructor for snippet completions. The `completion_format`
         is always `CompletionFormat.SNIPPET`.
         """
-        ...
+
     @classmethod
     def command_completion(cls, trigger: str, command: str, args: CommandArgs | None = ..., annotation: str = ..., kind: Kind = ..., details: str = ...) -> 'CompletionItem':
         """
         Specialized constructor for command completions. The `completion_format`
         is always `CompletionFormat.COMMAND`.
         """
-        ...
 
 def list_syntaxes() -> list[Syntax]:
     """
@@ -2958,7 +2887,6 @@ def list_syntaxes() -> list[Syntax]:
 
     Returns a list of Syntax.
     """
-    ...
 
 def syntax_from_path(path: str) -> Syntax | None:
     """
@@ -2966,7 +2894,6 @@ def syntax_from_path(path: str) -> Syntax | None:
 
     Returns a Syntax or None.
     """
-    ...
 
 def find_syntax_by_name(name: str) -> list[Syntax]:
     """
@@ -2974,7 +2901,6 @@ def find_syntax_by_name(name: str) -> list[Syntax]:
 
     Name must match exactly. Return a list of Syntax.
     """
-    ...
 
 def find_syntax_by_scope(scope: str) -> list[Syntax]:
     """
@@ -2982,7 +2908,6 @@ def find_syntax_by_scope(scope: str) -> list[Syntax]:
 
     Scope must match exactly. Return a list of Syntax.
     """
-    ...
 
 def find_syntax_for_file(path: str, first_line: str = ...) -> Syntax | None:
     """
@@ -2993,7 +2918,6 @@ def find_syntax_for_file(path: str, first_line: str = ...) -> Syntax | None:
 
     Returns a Syntax.
     """
-    ...
 
 class Syntax:
     """

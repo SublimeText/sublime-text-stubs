@@ -464,6 +464,11 @@ class ModuleGenerator:
 
     # -- helpers
 
+    def blank(self) -> None:
+        """A separating blank line, never two in a row and never a leading one."""
+        if self.lines and self.lines[-1] != "":
+            self.lines.append("")
+
     def note(self, code: str) -> None:
         """Record the identifiers of an emitted expression, to derive imports."""
         self.referenced.update(re.findall(r"\b[A-Za-z_][A-Za-z_0-9]*\b", code))
@@ -610,10 +615,13 @@ class ModuleGenerator:
         returns = self.render_return(fn, qualname)
         doc = render_docstring(ast.get_docstring(fn, clean=True), indent + INDENT)
         header = f"{indent}def {fn.name}({signature}) -> {returns}:"
+        # A docstring is already a complete body; only an undocumented declaration
+        # needs the `...` to stand in for one. Without it the closing quotes are the
+        # only thing separating one declaration from the next, hence the blank line.
         if doc:
             self.lines.append(header)
             self.lines.extend(doc)
-            self.lines.append(f"{indent}{INDENT}...")
+            self.blank()
         else:
             self.lines.append(header + " ...")
 
@@ -726,7 +734,8 @@ class ModuleGenerator:
         self.lines.append(header)
 
         body_indent = indent + INDENT
-        self.lines.extend(render_docstring(ast.get_docstring(cls, clean=True), body_indent))
+        doc = render_docstring(ast.get_docstring(cls, clean=True), body_indent)
+        self.lines.extend(doc)
 
         self.shadowed = attribute_names(cls) & SHADOWABLE_BUILTINS
         emitted = self.emit_instance_attributes(cls, body_indent)
@@ -763,7 +772,7 @@ class ModuleGenerator:
 
         self.emitted_methods[cls.name] = inherited | own
         self.shadowed = set()
-        if not emitted:
+        if not emitted and not doc:
             self.lines.append(f"{body_indent}...")
 
     # -- docstring-only event handlers
@@ -787,7 +796,7 @@ class ModuleGenerator:
             if rendered:
                 self.lines.append(header)
                 self.lines.extend(rendered)
-                self.lines.append(f"{indent}{INDENT}...")
+                self.blank()
             else:
                 self.lines.append(header + " ...")
             emitted = True
@@ -818,7 +827,7 @@ class ModuleGenerator:
     def separate(self, previous: str, current: str) -> None:
         """Blank line between top level items, but not between plain constants."""
         if previous and not (previous == current == "assignment"):
-            self.lines.append("")
+            self.blank()
 
     def generate(self) -> str:
         # `sublime_plugin` is emitted from an allowlist rather than by dropping
