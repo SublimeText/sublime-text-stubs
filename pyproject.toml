@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sublime-text-stubs"
+dynamic = ["version"]
+description = "Typing stubs for the Sublime Text plugin API (sublime, sublime_plugin)"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "FichteFoll" }]
+keywords = ["sublime-text", "stubs", "typing", "pep561"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Text Editors",
+    "Typing :: Stubs Only",
+]
+
+[project.urls]
+Homepage = "https://github.com/SublimeText/sublime-text-stubs"
+Issues = "https://github.com/SublimeText/sublime-text-stubs/issues"
+Changelog = "https://github.com/SublimeText/sublime-text-stubs/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "basedpyright",
+    "mypy",
+    "pyright",
+    "ty",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+# PEP 561 stub-only distribution: the directory name carries the `-stubs` suffix,
+# which is what makes type checkers associate it with the `sublime` module.
+packages = ["stubs/sublime-stubs", "stubs/sublime_plugin-stubs"]
+
+[tool.hatch.build.targets.sdist]
+include = ["stubs", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+# --- type checkers -----------------------------------------------------------
+# `pythonVersion` / `python_version` below is the Sublime Text embedded interpreter
+# this branch targets (ST build 4200 ships Python 3.8), not the interpreter used to
+# run the checkers.
+
+# basedpyright refuses to run when a pyproject.toml carries both a [tool.pyright] and a
+# [tool.basedpyright] section, so its settings live in ./basedpyrightconfig.json.
+[tool.pyright]
+include = ["stubs", "tests"]
+extraPaths = ["stubs"]
+exclude = ["references", "**/__pycache__", ".venv"]
+pythonVersion = "3.8"
+typeCheckingMode = "strict"
+reportMissingModuleSource = false
+
+[tool.mypy]
+# mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target
+# cannot be expressed here. pyright/basedpyright/ty still enforce 3.8, which is what
+# actually guards against 3.9+ syntax slipping into the stubs.
+python_version = "3.10"
+strict = true
+mypy_path = "stubs"
+files = ["stubs", "tests"]
+warn_unreachable = true
+enable_error_code = [
+    "deprecated",
+    "ignore-without-code",
+    "possibly-undefined",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-bool",
+    "truthy-iterable",
+    "unimported-reveal",
+    "unused-awaitable",
+]
+
+[tool.ty.src]
+include = ["stubs", "tests"]
+exclude = ["references"]
+
+[tool.ty.environment]
+python-version = "3.8"
+extra-paths = ["stubs"]

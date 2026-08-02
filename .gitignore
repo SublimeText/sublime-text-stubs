@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+/dist/
+/build/
+*.egg-info/
+.venv/
+uv.lock
+.mypy_cache/
+.ruff_cache/
+*.sublime-workspace
