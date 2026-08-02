@@ -2,7 +2,11 @@
 
 [PEP 561](https://peps.python.org/pep-0561/) typing stubs
 for the Sublime Text plugin API,
-covering the `sublime` and `sublime_plugin` modules.
+covering the `sublime`, `sublime_plugin` and `sublime_types` modules.
+
+The stubs carry the API documentation as docstrings,
+so hovering a symbol in an editor shows the same prose
+as the [official API reference](https://www.sublimetext.com/docs/api_reference.html).
 
 Sublime Text exposes these modules only inside its own embedded interpreter,
 so they cannot be imported or introspected from a normal Python environment.
@@ -53,6 +57,72 @@ Fixes that apply to more than one build line
 are cherry-picked between branches,
 so keep such commits small and self-contained.
 
+## Regenerating the stubs
+
+**The `.pyi` files under `stubs/` are generated. Do not edit them.**
+Corrections belong in `tools/generate_stubs.py`
+or in the declarative override tables in `tools/stub_overrides.py`.
+
+```sh
+uv run python tools/generate_stubs.py            # rewrite the .pyi files
+uv run python tools/generate_stubs.py --check    # what CI runs; fails on drift
+```
+
+The generator reads `references/python38/`,
+which holds the annotated `sublime.py`, `sublime_plugin.py` and `sublime_types.py`
+shipped with Sublime Text build 4200.
+Those sources already carry the full signatures
+and the reStructuredText docstrings the official docs are built from,
+so the stubs are derived from them mechanically.
+It needs Python 3.9 or later (for `ast.unparse`),
+which is why `tools/` is excluded from the type checkers
+rather than being held to the Python 3.8 target.
+
+The generator refuses to guess.
+Anything it cannot derive -- an unannotated parameter,
+a bare `dict` that strict mode rejects, an unused override entry --
+is reported with the exact `stub_overrides` key to add,
+and nothing is written until every one is resolved.
+
+`mypy stubgen --include-docstrings` is not used
+because it drops attribute docstrings
+(every enum member and every documented `self.x`),
+it cannot know about the docstring-only event handlers described below,
+and it has nowhere to record the strict-mode type corrections.
+
+### Onboarding a new Sublime Text build
+
+1. Copy the build's `sublime.py`, `sublime_plugin.py` and `sublime_types.py`
+   into `references/python<version>/`.
+2. Point `REFERENCE_DIR` and `ST_BUILD` in `tools/generate_stubs.py` at it.
+3. Run the generator and resolve everything it reports as unresolved.
+4. Run the four type checkers and commit the regenerated `.pyi` files.
+
+### What the generator has to work around
+
+- **Docstring-only event handlers.**
+  `EventListener`, `ViewEventListener` and `TextChangeListener`
+  declare no handler methods at all;
+  Sublime Text dispatches to them dynamically,
+  and each handler exists only as a `.. method::` directive in the class docstring.
+  The generator parses those directives into real declarations,
+  taking the return type from `EVENT_HANDLER_RETURNS`
+  because the directives either omit it
+  or spell it in prose-flavoured pseudo-Python (`-> (str, CommandArgs)`).
+- **`run` is not declared** on any of the command classes.
+  Sublime Text invokes it with command-specific keyword arguments,
+  so a base signature would reject every subclass that declares arguments of its own.
+- **Internal members are dropped**:
+  anything underscore-prefixed,
+  the trailing-underscore methods the plugin host calls into (`run_`, `is_enabled_`),
+  and, in `sublime_plugin`, everything outside the documented public API
+  (registries, host callbacks, the `.sublime-package` importer).
+- **Implicit optionals are made explicit**:
+  the reference writes `on_navigate: Callable[[str], None] = None` in places.
+- **Shadowed builtins are qualified**:
+  `TextChange.str` shadows `str` for the rest of that class body,
+  so annotations there are emitted as `builtins.str`.
+
 ## Development
 
 ```sh
@@ -70,10 +140,7 @@ There is no `stubtest` run,
 which means divergence from the actual runtime API
 is not caught automatically.
 
-`references/python38/` holds the annotated `sublime.py`, `sublime_plugin.py`
-and `sublime_types.py` shipped with Sublime Text build 4200,
-kept as the reference the stubs are written against.
-It is excluded from all four type checkers.
+`references/` is excluded from all four type checkers.
 
 Configuration notes:
 

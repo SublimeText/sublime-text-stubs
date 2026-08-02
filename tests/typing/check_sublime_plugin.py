@@ -3,7 +3,7 @@
 Not executed. See the module docstring of `check_sublime.py`.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import sublime
 import sublime_plugin
@@ -29,6 +29,32 @@ class DemoWindowCommand(sublime_plugin.WindowCommand):
         self.window.status_message(self.window.folders()[index])
 
 
+class DemoApplicationCommand(sublime_plugin.ApplicationCommand):
+    def is_visible(self) -> bool:
+        return len(sublime.windows()) > 1
+
+
+class FolderInputHandler(sublime_plugin.ListInputHandler):
+    def name(self) -> str:
+        return "folder"
+
+    def list_items(self) -> List[str]:
+        return sublime.active_window().folders()
+
+    def next_input(self, args: Dict[str, sublime.Value]) -> Optional[sublime_plugin.CommandInputHandler]:
+        return None
+
+
+class DemoInputCommand(sublime_plugin.WindowCommand):
+    def input(self, args: Dict[str, sublime.Value]) -> Optional[sublime_plugin.CommandInputHandler]:
+        if "folder" not in args:
+            return FolderInputHandler()
+        return None
+
+    def run(self, folder: str) -> None:
+        self.window.status_message(folder)
+
+
 class DemoEventListener(sublime_plugin.EventListener):
     def on_post_save(self, view: sublime.View) -> None:
         name: Optional[str] = view.file_name()
@@ -42,8 +68,42 @@ class DemoEventListener(sublime_plugin.EventListener):
             return
         view.show_popup(view.substr(view.word(point)), location=point)
 
+    def on_query_context(
+        self,
+        view: sublime.View,
+        key: str,
+        operator: sublime.QueryOperator,
+        operand: str,
+        match_all: bool,
+    ) -> Optional[bool]:
+        if key != "demo.has_selection":
+            return None
+        return len(view.sel()) > 0
+
+    def on_text_command(
+        self, view: sublime.View, command_name: str, args: sublime.CommandArgs
+    ) -> Optional[Tuple[str, sublime.CommandArgs]]:
+        if command_name == "insert_best_completion":
+            return ("insert", {"characters": "\t"})
+        return None
+
 
 class DemoViewEventListener(sublime_plugin.ViewEventListener):
     @classmethod
     def is_applicable(cls, settings: sublime.Settings) -> bool:
         return settings.get("syntax") == "Packages/Python/Python.sublime-syntax"
+
+    # Declared only as a `.. method::` directive in the reference docstring.
+    def on_load(self) -> None:
+        self.view.settings().set("demo.loaded", True)
+
+
+class DemoTextChangeListener(sublime_plugin.TextChangeListener):
+    def on_text_changed(self, changes: List[sublime.TextChange]) -> None:
+        for change in changes:
+            if change.str:
+                self.buffer.primary_view().set_status("demo", change.str)
+
+
+def event_type_is_reexported(event: sublime_plugin.Event) -> object:
+    return event.get("modifier_keys")

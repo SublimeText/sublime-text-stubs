@@ -38,10 +38,14 @@ source = "vcs"
 [tool.hatch.build.targets.wheel]
 # PEP 561 stub-only distribution: the directory name carries the `-stubs` suffix,
 # which is what makes type checkers associate it with the `sublime` module.
-packages = ["stubs/sublime-stubs", "stubs/sublime_plugin-stubs"]
+packages = [
+    "stubs/sublime-stubs",
+    "stubs/sublime_plugin-stubs",
+    "stubs/sublime_types-stubs",
+]
 
 [tool.hatch.build.targets.sdist]
-include = ["stubs", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+include = ["stubs", "tests", "tools", "README.md", "CHANGELOG.md", "LICENSE"]
 
 # --- type checkers -----------------------------------------------------------
 # `pythonVersion` / `python_version` below is the Sublime Text embedded interpreter
@@ -53,7 +57,9 @@ include = ["stubs", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 [tool.pyright]
 include = ["stubs", "tests"]
 extraPaths = ["stubs"]
-exclude = ["references", "**/__pycache__", ".venv"]
+# `tools/` holds the stub generator; it runs on a modern interpreter and is
+# deliberately not held to the Sublime Text target version configured below.
+exclude = ["references", "tools", "**/__pycache__", ".venv"]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"
 reportMissingModuleSource = false
@@ -81,7 +87,7 @@ enable_error_code = [
 
 [tool.ty.src]
 include = ["stubs", "tests"]
-exclude = ["references"]
+exclude = ["references", "tools"]
 
 [tool.ty.environment]
 python-version = "3.8"

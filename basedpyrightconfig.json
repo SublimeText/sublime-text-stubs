@@ -1,7 +1,7 @@
 {
   "include": ["stubs", "tests"],
   "extraPaths": ["stubs"],
-  "exclude": ["references", "**/__pycache__", ".venv"],
+  "exclude": ["references", "tools", "**/__pycache__", ".venv"],
   "pythonVersion": "3.8",
   "typeCheckingMode": "strict",
   "reportMissingModuleSource": false,

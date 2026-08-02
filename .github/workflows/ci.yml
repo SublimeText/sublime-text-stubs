@@ -11,6 +11,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  stubs-up-to-date:
+    name: Stubs match the reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --group dev
+
+      - name: Regenerate the stubs and fail on drift
+        run: uv run python tools/generate_stubs.py --check
+
   typecheck:
     name: ${{ matrix.checker }}
     runs-on: ubuntu-latest

@@ -13,3 +13,12 @@ not semantic versioning; see the README.
 - Initial project skeleton
   with placeholder stubs for `sublime` and `sublime_plugin`
   targeting Sublime Text build 4200 (Python 3.8).
+- Full coverage of `sublime` and `sublime_plugin`,
+  generated from the reference sources shipped with build 4200,
+  including the API documentation as docstrings
+  on classes, functions, enum members and attributes.
+- Stubs for the `sublime_types` module,
+  whose aliases are re-exported from `sublime` and `sublime_plugin`.
+- `tools/generate_stubs.py`,
+  which derives the stubs from `references/`
+  and is verified in CI to reproduce the committed files byte for byte.
