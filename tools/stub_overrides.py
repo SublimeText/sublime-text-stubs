@@ -108,6 +108,12 @@ PARAMS = {
     "sublime.CompletionItem.command_completion.args": "CommandArgs",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
+    # Unannotated with a `details=""` default, so the generator infers `str` from
+    # the default -- but the attribute assigned three lines below says
+    # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
+    # tuples with "\x1f" (`references/python38/sublime.py:1838`). The attribute wins.
+    "sublime.QuickPanelItem.__init__.details": "Union[str, List[str], Tuple[str]]",
+    "sublime.ListInputItem.__init__.details": "Union[str, List[str], Tuple[str]]",
     "sublime_plugin.CommandInputHandler.next_input.args": "Dict[str, Value]",
     "sublime_plugin.Command.input.args": "Dict[str, Value]",
     "sublime_plugin.ListInputHandler.description.value": "Value",

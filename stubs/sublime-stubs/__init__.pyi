@@ -3,7 +3,7 @@
 
 import builtins
 import enum
-from typing import Any, Callable, Dict, Iterable, Iterator, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union
 from typing_extensions import override
 from sublime_types import CommandArgs as CommandArgs, CompletionValue as CompletionValue, DIP as DIP, Kind as Kind, Point as Point, Value as Value, Vector as Vector
 
@@ -3057,7 +3057,7 @@ class QuickPanelItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
-    def __init__(self, trigger: str, details: str = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
+    def __init__(self, trigger: str, details: Union[str, List[str], Tuple[str]] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
     @override
     def __repr__(self) -> str: ...
 
@@ -3077,7 +3077,7 @@ class ListInputItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
-    def __init__(self, text: str, value: Any, details: str = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
+    def __init__(self, text: str, value: Any, details: Union[str, List[str], Tuple[str]] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
     @override
     def __repr__(self) -> str: ...
 

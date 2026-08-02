@@ -26,6 +26,10 @@ not semantic versioning; see the README.
   and `on_associate_buffer_async` is typed as `sublime.Buffer`,
   which is what the plugin host passes,
   and not as `sublime.View` as the reference documentation claims.
+- The `details` parameter of `QuickPanelItem` and `ListInputItem`
+  accepts a list or tuple of strings besides a plain string,
+  matching the `details` attribute of those classes
+  and what the runtime actually handles.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.
