@@ -79,6 +79,7 @@ uv run pyright
 uv run basedpyright
 uv run mypy
 uv run ty check --error-on-warning
+uv run ruff check
 ```
 
 Because the real modules cannot be imported,
@@ -89,7 +90,15 @@ which means divergence from the actual runtime API
 is not caught automatically.
 Extend `tests/typing/` when you touch an API that nothing there exercises.
 
-Checker settings, and why each is what it is,
+ruff covers what the checkers cannot see:
+its `flake8-pyi` rules judge whether a `.pyi` is *written* the way a stub should be,
+which is a question about form rather than about meaning.
+A finding under `stubs/` is therefore a bug in the generator.
+Fix it in `tools/generate_stubs.py` and regenerate;
+never edit a `.pyi` to silence ruff,
+and never reach for `--fix` there.
+
+Checker and lint settings, and why each is what it is,
 are documented in `pyproject.toml`.
 
 ## The `tools/` sub-project
@@ -105,13 +114,11 @@ uv run --directory tools ruff check
 
 basedpyright is the only type checker there,
 with every rule at `error`;
-ruff lints the same directory.
+ruff lints the same directory
+under its own rule set and its own Python target,
+which is why the root ruff run excludes `tools/`.
 Both have their own [`Tools`](.github/workflows/tools.yml) workflow.
 See `tools/pyproject.toml` for the settings and the reasons behind them.
-
-The stubs and the sample consumer code are not linted with ruff:
-`.pyi` files and code written to exercise a type checker
-follow conventions of their own.
 
 ## Onboarding a new Sublime Text build
 

@@ -23,14 +23,16 @@ uv run pyright
 uv run basedpyright
 uv run mypy
 uv run ty check --error-on-warning
+uv run ruff check
 
 uv run --directory tools basedpyright
 uv run --directory tools ruff check
 ```
 
 Run all of these before considering a change complete.
-The four root checkers must stay silent;
+The four root checkers and both ruff runs must stay silent;
 the generator must report no unresolved and no stale entries.
+A ruff finding under `stubs/` is fixed in the generator, never in the `.pyi`.
 
 ## Where things are documented
 
