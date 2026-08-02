@@ -474,8 +474,8 @@ class ModuleGenerator:
     # -- helpers
 
     def blank(self) -> None:
-        """A separating blank line, never two in a row and never a leading one."""
-        if self.lines and self.lines[-1] != "":
+        """A separating blank line, never two in a row and never opening a block."""
+        if self.lines and self.lines[-1] != "" and not self.lines[-1].endswith(":"):
             self.lines.append("")
 
     def note(self, code: str) -> None:
@@ -608,6 +608,7 @@ class ModuleGenerator:
         in_class: bool,
         needs_override: bool = False,
     ) -> None:
+        self.blank()  # before the decorators, which belong to the declaration
         for decorator in fn.decorator_list:
             name = ast.unparse(decorator)
             if name not in KEPT_DECORATORS:
@@ -632,7 +633,12 @@ class ModuleGenerator:
     def emit_def(
         self, indent: str, name: str, params: list[str], returns: str, doc: list[str]
     ) -> None:
-        """Emit a `def` and its body, wrapping the signature if it does not fit."""
+        """Emit a `def` and its body, wrapping the signature if it does not fit.
+
+        Every declaration is followed by a blank line, so that the one-liners read as
+        distinctly as the documented ones do. The matching leading blank is the
+        caller's, because it has to precede any decorators.
+        """
         header = f"{indent}def {name}({', '.join(params)}) -> {returns}:"
         closing = f"{indent}) -> {returns}:"
         # A long return annotation cannot be broken up, so when it overflows on its
@@ -651,15 +657,14 @@ class ModuleGenerator:
             self.lines.append(header)
 
         # A docstring is already a complete body; only an undocumented declaration
-        # needs the `...` to stand in for one. Without it the closing quotes are the
-        # only thing separating one declaration from the next, hence the blank line.
+        # needs the `...` to stand in for one.
         if doc:
             self.lines.extend(doc)
-            self.blank()
         elif wrapped:
             self.lines.append(f"{indent}{INDENT}...")
         else:
             self.lines[-1] += " ..."
+        self.blank()
 
     def emit_deprecation(self, fn: ast.FunctionDef, indent: str, qualname: str) -> None:
         """Turn the docstring's ``:deprecated:`` marker into a `@deprecated` decorator."""
@@ -826,6 +831,7 @@ class ModuleGenerator:
         doc = ast.get_docstring(cls, clean=True) or ""
         emitted = False
         for name, params, body in parse_method_directives(doc):
+            self.blank()
             # Keyed by the bare handler name: the same handler is declared by more
             # than one of the listener classes and always returns the same thing.
             override = self.override("EVENT_HANDLER_RETURNS", name)

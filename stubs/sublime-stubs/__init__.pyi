@@ -1028,12 +1028,17 @@ class Window:
     window_id: int
     settings_object: Settings | None
     template_settings_object: Settings | None
+
     def __init__(self, id: int) -> None: ...
+
     @override
     def __hash__(self) -> int: ...
+
     @override
     def __eq__(self, other: object) -> bool: ...
+
     def __bool__(self) -> bool: ...
+
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this window. """
 
@@ -1523,6 +1528,7 @@ class Edit:
     `View`, will cause the functions that require them to fail.
     """
     edit_token: int
+
     def __init__(self, token: int) -> None: ...
 
 class Region:
@@ -1546,7 +1552,9 @@ class Region:
     This affects behavior when pressing the up or down keys. Use ``-1`` if
     undefined.
     """
+
     def __init__(self, a: Point, b: Point | None = ..., xpos: DIP = ...) -> None: ...
+
     def __iter__(self) -> Iterator[Point]:
         """
         Iterate through all the points in the region.
@@ -1634,6 +1642,7 @@ class HistoricPosition:
 
     .. since:: 4075
     """
+
     def __init__(self, pt: Point, row: int, col: int, col_utf16: int, col_utf8: int) -> None: ...
 
 class TextChange:
@@ -1665,6 +1674,7 @@ class TextChange:
 
     :meta noindex:
     """
+
     def __init__(
         self,
         pa: HistoricPosition,
@@ -1683,7 +1693,9 @@ class Selection:
     This is primarily used to represent the textual selection.
     """
     view_id: int
+
     def __init__(self, id: int) -> None: ...
+
     def __iter__(self) -> Iterator[Region]:
         """
         Iterate through all the regions in the selection.
@@ -1705,6 +1717,7 @@ class Selection:
         """ :returns: Whether the selections are identical. """
 
     def __lt__(self, rhs: Selection | None) -> bool: ...
+
     def __bool__(self) -> bool:
         """ The selection is ``True`` when not empty. """
 
@@ -1759,11 +1772,15 @@ class Sheet:
     contain a View, or an image preview.
     """
     sheet_id: int
+
     def __init__(self, id: int) -> None: ...
+
     @override
     def __hash__(self) -> int: ...
+
     @override
     def __eq__(self, other: object) -> bool: ...
+
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this sheet. """
 
@@ -1832,6 +1849,7 @@ class TextSheet(Sheet):
 
     .. since:: 4065
     """
+
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. Only affects unsaved files. """
 
@@ -1848,6 +1866,7 @@ class HtmlSheet(Sheet):
 
     .. since:: 4065
     """
+
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. """
 
@@ -1871,6 +1890,7 @@ class ContextStackFrame:
     column. Maybe be ``(-1, -1)`` if the location is unclear, like in
     ``tmLanguage`` based syntaxes.
     """
+
     def __init__(
         self,
         context_name: str,
@@ -1890,13 +1910,19 @@ class View:
     view_id: int
     selection: Selection
     settings_object: Settings | None
+
     def __init__(self, id: int) -> None: ...
+
     def __len__(self) -> int: ...
+
     @override
     def __hash__(self) -> int: ...
+
     @override
     def __eq__(self, other: object) -> bool: ...
+
     def __bool__(self) -> bool: ...
+
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this view. """
 
@@ -2042,8 +2068,11 @@ class View:
         """ :returns: The number of character in the file. """
 
     def begin_edit(self, edit_token: int, cmd: str, args: CommandArgs | None = ...) -> Edit: ...
+
     def end_edit(self, edit: Edit) -> None: ...
+
     def is_in_edit(self) -> bool: ...
+
     def insert(self, edit: Edit, pt: Point, text: str) -> int:
         """
         Insert the given string into the buffer.
@@ -2235,8 +2264,11 @@ class View:
         """
 
     def indented_region(self, pt: Point) -> Region: ...
+
     def indentation_level(self, pt: Point) -> int: ...
+
     def has_non_empty_selection_region(self) -> bool: ...
+
     def lines(self, region: Region) -> list[Region]:
         """ :returns: A list of lines (in sorted order) intersecting the provided `Region`. """
 
@@ -2556,10 +2588,15 @@ class View:
         on_navigate: Callable[[str], None] | None = ...,
     ) -> int:
         ...
+
     def erase_phantoms(self, key: str) -> None: ...
+
     def erase_phantom_by_id(self, pid: int) -> None: ...
+
     def query_phantom(self, pid: int) -> list[Region]: ...
+
     def query_phantoms(self, pids: list[int]) -> list[Region]: ...
+
     def assign_syntax(self, syntax: str | Syntax) -> None:
         """
         Changes the syntax used by the view. ``syntax`` may be a packages path
@@ -2647,7 +2684,9 @@ class View:
         """
 
     def find_all_results(self) -> list[tuple[str, int, int]]: ...
+
     def find_all_results_with_text(self) -> list[tuple[str, int, int, str]]: ...
+
     def command_history(
         self,
         index: int,
@@ -2781,11 +2820,15 @@ class Buffer:
     .. since:: 4081
     """
     buffer_id: int
+
     def __init__(self, id: int) -> None: ...
+
     @override
     def __hash__(self) -> int: ...
+
     @override
     def __eq__(self, other: object) -> bool: ...
+
     def id(self) -> int:
         """
         Returns a number that uniquely identifies this buffer.
@@ -2810,7 +2853,9 @@ class Buffer:
 class Settings:
     """ A ``dict`` like object that a settings hierarchy. """
     settings_id: int
+
     def __init__(self, id: int) -> None: ...
+
     def __getitem__(self, key: str) -> Value:
         """
         Returns the named setting.
@@ -2925,6 +2970,7 @@ class Phantom:
     attribute is passed.
     """
     id: int | None
+
     def __init__(
         self,
         region: Region,
@@ -2933,8 +2979,10 @@ class Phantom:
         on_navigate: Callable[[str], None] | None = ...,
     ) -> None:
         ...
+
     @override
     def __eq__(self, rhs: object) -> bool: ...
+
     def to_tuple(
         self,
     ) -> tuple[tuple[Point, Point], str, PhantomLayout, Callable[[str], None] | None]:
@@ -2956,8 +3004,11 @@ class PhantomSet:
     key: str
     """ A string used to group the phantoms together. """
     phantoms: list[Phantom]
+
     def __init__(self, view: View, key: str = ...) -> None: ...
+
     def __del__(self) -> None: ...
+
     def update(self, phantoms: Iterable[Phantom]) -> None:
         """
         Update the set of phantoms. If the `Phantom.region` of existing phantoms
@@ -2971,6 +3022,7 @@ class Html:
     `CommandInputHandler.preview()`.
     """
     data: str
+
     def __init__(self, data: str) -> None: ...
 
 class CompletionList:
@@ -2983,6 +3035,7 @@ class CompletionList:
     target: int | None
     completions: list[CompletionValue] | None
     flags: AutoCompleteFlags
+
     def __init__(
         self,
         completions: list[CompletionValue] | None = ...,
@@ -3038,6 +3091,7 @@ class CompletionItem:
     .. since:: 4073
     """
     flags: CompletionItemFlags
+
     def __init__(
         self,
         trigger: str,
@@ -3049,8 +3103,10 @@ class CompletionItem:
         flags: CompletionItemFlags = ...,
     ) -> None:
         ...
+
     @override
     def __eq__(self, rhs: object) -> bool: ...
+
     @classmethod
     def snippet_completion(
         cls,
@@ -3132,9 +3188,12 @@ class Syntax:
     """ If the syntax is hidden from the user. """
     scope: str
     """ The base scope name of the syntax. """
+
     def __init__(self, path: str, name: str, hidden: bool, scope: str) -> None: ...
+
     @override
     def __eq__(self, other: object) -> bool: ...
+
     @override
     def __hash__(self) -> int: ...
 
@@ -3152,6 +3211,7 @@ class QuickPanelItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
+
     def __init__(
         self,
         trigger: str,
@@ -3177,6 +3237,7 @@ class ListInputItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
+
     def __init__(
         self,
         text: str,
@@ -3203,6 +3264,7 @@ class SymbolRegion:
     """ The type of the symbol. See `SymbolType`. """
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
+
     def __init__(
         self,
         name: str,
@@ -3233,6 +3295,7 @@ class SymbolLocation:
     """ The type of the symbol. See `SymbolType`. """
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
+
     def __init__(
         self,
         path: str,
@@ -3244,4 +3307,5 @@ class SymbolLocation:
         kind: Kind,
     ) -> None:
         ...
+
     def path_encoded_position(self) -> str: ...

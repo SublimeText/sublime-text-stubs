@@ -88,6 +88,7 @@ class TextInputHandler(CommandInputHandler):
     input handler MUST be made available in the Command Palette by adding the
     command to a :path:`Default.sublime-commands` file.*
     """
+
     def description(self, text: str) -> str:
         """
         The text to show in the *Command Palette* when this input handler is not
@@ -104,6 +105,7 @@ class ListInputHandler(CommandInputHandler):
     input handler MUST be made available in the Command Palette by adding the
     command to a :path:`Default.sublime-commands` file.*
     """
+
     def list_items(self) -> list[str] | tuple[list[str], int] | list[tuple[str, Value]] | tuple[list[tuple[str, Value]], int] | list[sublime.ListInputItem] | tuple[list[sublime.ListInputItem], int]:
         """
         This method should return the items to show in the list.
@@ -204,6 +206,7 @@ class WindowCommand(Command):
     """
     window: sublime.Window
     """ The `Window` this command is attached to. """
+
     def __init__(self, window: sublime.Window) -> None:
         """ :meta private: """
 
@@ -214,6 +217,7 @@ class TextCommand(Command):
     """
     view: sublime.View
     """ The `View` this command is attached to. """
+
     def __init__(self, view: sublime.View) -> None:
         """ :meta private: """
 
@@ -521,6 +525,7 @@ class EventListener:
 
         Called right before a project is closed, passed the Window object.
     """
+
     def on_init(self, views: list[sublime.View]) -> None:
         """
         Called once with a list of views that were loaded before the
@@ -1083,6 +1088,7 @@ class ViewEventListener:
         Called after a text command has been executed.
     """
     view: sublime.View
+
     def on_load(self) -> None:
         """
         Called when the file is finished loading.
@@ -1362,6 +1368,7 @@ class TextChangeListener:
         application.
     """
     buffer: sublime.Buffer
+
     def on_text_changed(self, changes: list[sublime.TextChange]) -> None:
         """
         Called once after changes has been made to a buffer, with detailed
@@ -1407,6 +1414,7 @@ class TextChangeListener:
         """ :returns: Whether this listener should apply to the provided buffer. """
 
     def __init__(self) -> None: ...
+
     def detach(self) -> None:
         """
         Remove this listener from the buffer.
