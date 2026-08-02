@@ -397,6 +397,9 @@ class ModuleGenerator:
         if annotation is not None and is_none(default) and not accepts_none(annotation):
             # The reference writes `on_navigate: Callable[[str], None] = None`
             # in a few places; under strict checking that has to be Optional.
+            # This applies to parameters only -- annotated `self.x: T = None`
+            # attributes keep their annotation verbatim, see
+            # `emit_instance_attributes`.
             annotation = f"Optional[{annotation}]"
         return annotation
 
@@ -529,6 +532,21 @@ class ModuleGenerator:
             value: ast.expr | None = None
             annotation: str | None = None
             if isinstance(node, ast.AnnAssign):
+                # The annotation is taken verbatim; unlike for parameters (see
+                # `resolve_arg`), an implicit `= None` default does NOT make the
+                # attribute Optional. The one case where that matters is
+                # `TextChangeListener.buffer`, written as
+                # `self.buffer: sublime.Buffer = None`
+                # (`references/python38/sublime_plugin.py:2249`). Both hand-written
+                # third-party stub sets (sublimelsp/LSP, SublimeText/sublime_lib)
+                # spell it `Buffer | None`, but the plugin host only ever hands out
+                # attached instances: `attach_buffer` and `check_text_change_listeners`
+                # both instantiate and attach in a single expression, `cls().attach(buf)`
+                # (`references/python38/sublime_plugin.py:679` and `:701`), so no
+                # listener body can observe the None. Declaring it Optional would
+                # force a narrowing check in every handler for a state users never
+                # see. `detach()` does not reset it either, so the attribute keeps
+                # pointing at the buffer it was last attached to.
                 target, value, annotation = node.target, node.value, ast.unparse(node.annotation)
             elif isinstance(node, ast.Assign) and len(node.targets) == 1:
                 target, value = node.targets[0], node.value

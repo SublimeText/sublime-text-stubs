@@ -120,6 +120,8 @@ and it has nowhere to record the strict-mode type corrections.
   (registries, host callbacks, the `.sublime-package` importer).
 - **Implicit optionals are made explicit**:
   the reference writes `on_navigate: Callable[[str], None] = None` in places.
+  This applies to parameters only;
+  see the deliberate divergence below for why attributes are exempt.
 - **Deprecations live in the prose**:
   a superseded member is only marked by a `:deprecated:` field in its docstring,
   so the generator parses that field,
@@ -128,6 +130,24 @@ and it has nowhere to record the strict-mode type corrections.
 - **Shadowed builtins are qualified**:
   `TextChange.str` shadows `str` for the rest of that class body,
   so annotations there are emitted as `builtins.str`.
+
+### Deliberate divergences from other stub sets
+
+- **`TextChangeListener.buffer` is `sublime.Buffer`, not `Buffer | None`.**
+  The reference writes `self.buffer: sublime.Buffer = None`,
+  and both hand-written third-party stub sets
+  (sublimelsp/LSP and SublimeText/sublime_lib)
+  declare the attribute optional,
+  which is literally what it holds between `__init__` and `attach()`.
+  That window is not observable from a listener, though:
+  the plugin host instantiates and attaches in a single expression,
+  `cls().attach(buf)`,
+  in both `attach_buffer` and `check_text_change_listeners`,
+  so by the time any handler runs the attribute is a real `Buffer`.
+  Declaring it optional would force a narrowing check in every handler
+  for a state users never see.
+  The exception to be aware of is `detach()`,
+  which leaves the attribute pointing at the buffer it was last attached to.
 
 ## Development
 
