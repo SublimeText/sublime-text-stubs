@@ -69,11 +69,6 @@ RETURNS = {
     "sublime.Window.get_output_panel": "View",
     "sublime.Window.show_input_panel": "View",
     "sublime.Region.__iter__": "Iterator[Point]",
-    "sublime.HistoricPosition.__repr__": "str",
-    "sublime.TextChange.__repr__": "str",
-    "sublime.TextSheet.__repr__": "str",
-    "sublime.ImageSheet.__repr__": "str",
-    "sublime.HtmlSheet.__repr__": "str",
     # These forward the return value of a void `sublime_api` call.
     "sublime.View.set_read_only": "None",
     "sublime.View.set_scratch": "None",

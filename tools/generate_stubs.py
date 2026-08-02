@@ -66,6 +66,11 @@ OBJECT_METHODS = {
     "__str__",
 }
 
+# Methods dropped from the stubs even though the reference defines them: `object`
+# already declares both as returning `str`, so a redeclaration tells a type checker
+# nothing it did not know, and the reference gives them no docstring worth keeping.
+REDUNDANT_OBJECT_METHODS = {"__repr__", "__str__"}
+
 # Modules imported plainly when the generated body refers to them.
 MODULE_IMPORTS = ["builtins", "enum", "sublime"]
 
@@ -738,7 +743,11 @@ class ModuleGenerator:
             if isinstance(node, ast.Expr):
                 continue  # docstrings, handled above and alongside their assignment
             if isinstance(node, ast.FunctionDef):
-                if is_private(node.name) or self.listed("SKIP_MEMBERS", self.key(cls.name, node.name)):
+                if (
+                    is_private(node.name)
+                    or node.name in REDUNDANT_OBJECT_METHODS
+                    or self.listed("SKIP_MEMBERS", self.key(cls.name, node.name))
+                ):
                     continue
                 self.emit_function(
                     node,

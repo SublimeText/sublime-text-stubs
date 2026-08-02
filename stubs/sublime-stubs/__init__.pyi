@@ -1062,8 +1062,6 @@ class Window:
     @override
     def __eq__(self, other: object) -> bool: ...
     def __bool__(self) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this window. """
         ...
@@ -1516,8 +1514,6 @@ class Edit:
     """
     edit_token: int
     def __init__(self, token: int) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class Region:
     """
@@ -1548,10 +1544,6 @@ class Region:
         .. since:: 4023 3.8
         """
         ...
-    @override
-    def __str__(self) -> str: ...
-    @override
-    def __repr__(self) -> str: ...
     def __len__(self) -> int:
         """ :returns: The size of the region. """
         ...
@@ -1634,8 +1626,6 @@ class HistoricPosition:
     .. since:: 4075
     """
     def __init__(self, pt: Point, row: int, col: int, col_utf16: int, col_utf8: int) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class TextChange:
     """
@@ -1667,8 +1657,6 @@ class TextChange:
     :meta noindex:
     """
     def __init__(self, pa: HistoricPosition, pb: HistoricPosition, len_utf16: int, len_utf8: int, s: builtins.str) -> None: ...
-    @override
-    def __repr__(self) -> builtins.str: ...
 
 class Selection:
     """
@@ -1703,10 +1691,6 @@ class Selection:
     def __bool__(self) -> bool:
         """ The selection is ``True`` when not empty. """
         ...
-    @override
-    def __str__(self) -> str: ...
-    @override
-    def __repr__(self) -> str: ...
     def is_valid(self) -> bool:
         """ :returns: Whether this selection is for a valid view. """
         ...
@@ -1764,8 +1748,6 @@ class Sheet:
     def __hash__(self) -> int: ...
     @override
     def __eq__(self, other: object) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this sheet. """
         ...
@@ -1835,8 +1817,6 @@ class TextSheet(Sheet):
 
     .. since:: 4065
     """
-    @override
-    def __repr__(self) -> str: ...
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. Only affects unsaved files. """
         ...
@@ -1847,8 +1827,7 @@ class ImageSheet(Sheet):
 
     .. since:: 4065
     """
-    @override
-    def __repr__(self) -> str: ...
+    ...
 
 class HtmlSheet(Sheet):
     """
@@ -1856,8 +1835,6 @@ class HtmlSheet(Sheet):
 
     .. since:: 4065
     """
-    @override
-    def __repr__(self) -> str: ...
     def set_name(self, name: str) -> None:
         """ Set the name displayed in the tab. """
         ...
@@ -1883,8 +1860,6 @@ class ContextStackFrame:
     ``tmLanguage`` based syntaxes.
     """
     def __init__(self, context_name: str, source_file: str, source_location: tuple[int, int]) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class View:
     """
@@ -1904,8 +1879,6 @@ class View:
     @override
     def __eq__(self, other: object) -> bool: ...
     def __bool__(self) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     def id(self) -> int:
         """ :returns: A number that uniquely identifies this view. """
         ...
@@ -2726,8 +2699,6 @@ class Buffer:
     def __hash__(self) -> int: ...
     @override
     def __eq__(self, other: object) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     def id(self) -> int:
         """
         Returns a number that uniquely identifies this buffer.
@@ -2784,8 +2755,6 @@ class Settings:
         .. since:: 4023 3.8
         """
         ...
-    @override
-    def __repr__(self) -> str: ...
     def to_dict(self) -> dict[str, Value]:
         """
         Return the settings as a dict. This is not very fast.
@@ -2869,8 +2838,6 @@ class Phantom:
     def __init__(self, region: Region, content: str, layout: PhantomLayout, on_navigate: Callable[[str], None] | None = ...) -> None: ...
     @override
     def __eq__(self, rhs: object) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     def to_tuple(self) -> tuple[tuple[Point, Point], str, PhantomLayout, Callable[[str], None] | None]:
         """
         Returns a tuple of this phantom containing the region, content, layout
@@ -2893,8 +2860,6 @@ class PhantomSet:
     phantoms: list[Phantom]
     def __init__(self, view: View, key: str = ...) -> None: ...
     def __del__(self) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
     def update(self, phantoms: Iterable[Phantom]) -> None:
         """
         Update the set of phantoms. If the `Phantom.region` of existing phantoms
@@ -2910,8 +2875,6 @@ class Html:
     """
     data: str
     def __init__(self, data: str) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class CompletionList:
     """
@@ -2931,8 +2894,6 @@ class CompletionList:
         :param flags: Flags controlling auto-complete behavior. See `AutoCompleteFlags`.
         """
         ...
-    @override
-    def __repr__(self) -> str: ...
     def set_completions(self, completions: list[CompletionValue], flags: AutoCompleteFlags = ...) -> None:
         """
         Sets the list of completions, allowing the list to be displayed to the
@@ -2976,8 +2937,6 @@ class CompletionItem:
     def __init__(self, trigger: str, annotation: str = ..., completion: str = ..., completion_format: CompletionFormat = ..., kind: Kind = ..., details: str = ..., flags: CompletionItemFlags = ...) -> None: ...
     @override
     def __eq__(self, rhs: object) -> bool: ...
-    @override
-    def __repr__(self) -> str: ...
     @classmethod
     def snippet_completion(cls, trigger: str, snippet: str, annotation: str = ..., kind: Kind = ..., details: str = ...) -> 'CompletionItem':
         """
@@ -3055,8 +3014,6 @@ class Syntax:
     def __eq__(self, other: object) -> bool: ...
     @override
     def __hash__(self) -> int: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class QuickPanelItem:
     """
@@ -3073,8 +3030,6 @@ class QuickPanelItem:
     kind: Kind
     """ The kind of the item. See `Kind`. """
     def __init__(self, trigger: str, details: str | list[str] | tuple[str] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class ListInputItem:
     """
@@ -3093,8 +3048,6 @@ class ListInputItem:
     kind: Kind
     """ The kind of the item. See `Kind`. """
     def __init__(self, text: str, value: Any, details: str | list[str] | tuple[str] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class SymbolRegion:
     """
@@ -3113,8 +3066,6 @@ class SymbolRegion:
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
     def __init__(self, name: str, region: Region, syntax: str, type: SymbolType, kind: Kind) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
 
 class SymbolLocation:
     """
@@ -3137,6 +3088,4 @@ class SymbolLocation:
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
     def __init__(self, path: str, display_name: str, row: int, col: int, syntax: str, type: SymbolType, kind: Kind) -> None: ...
-    @override
-    def __repr__(self) -> str: ...
     def path_encoded_position(self) -> str: ...
