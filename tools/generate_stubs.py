@@ -84,6 +84,25 @@ BUILTIN_GENERICS = {
     "Set": "set", "Tuple": "tuple", "Type": "type",
 }
 
+# The `stub_overrides` tables that are keyed by a name from the reference, split by
+# what a lookup yields. Every lookup goes through `ModuleGenerator.override` or
+# `ModuleGenerator.listed`, which record the key as matched, so that `main` can
+# report entries no module matched. Without that a table rots silently as the
+# reference changes: an entry naming a member that has since been renamed or
+# removed simply stops doing anything.
+VALUE_TABLES: dict[str, dict[str, str]] = {
+    "RETURNS": ov.RETURNS,
+    "PARAMS": ov.PARAMS,
+    "ATTRIBUTES": ov.ATTRIBUTES,
+    "TYPE_ALIASES": ov.TYPE_ALIASES,
+    "EVENT_HANDLER_RETURNS": ov.EVENT_HANDLER_RETURNS,
+}
+MEMBER_TABLES: dict[str, list[str]] = {
+    "SKIP_MEMBERS": ov.SKIP_MEMBERS,
+    "EVENT_HANDLER_CLASSES": ov.EVENT_HANDLER_CLASSES,
+    "SUBLIME_PLUGIN_PUBLIC_API": ov.SUBLIME_PLUGIN_PUBLIC_API,
+}
+
 
 class Unresolved(Exception):
     """Raised for anything the generator refuses to guess at."""
@@ -97,6 +116,11 @@ class Problems:
 
     def add(self, where: str, what: str, hint: str) -> None:
         self.messages.append(f"{where}: {what}\n    add to stub_overrides.{hint}")
+
+    def stale(self, where: str) -> None:
+        self.messages.append(
+            f"{where}: matches nothing in the reference\n    remove it from stub_overrides"
+        )
 
     def __bool__(self) -> bool:
         return bool(self.messages)
@@ -180,11 +204,16 @@ class Reference:
         self.bases: dict[tuple[str, str], list[str]] = {}
         self.methods: dict[tuple[str, str], set[str]] = {}
         self.functions: dict[str, set[str]] = {}  # module -> top level function names
+        self.aliases: dict[str, set[str]] = {}  # module -> annotated top level names
 
         for module, tree in self.trees.items():
             names: set[str] = set()
             self.functions[module] = {
                 n.name for n in tree.body if isinstance(n, ast.FunctionDef)
+            }
+            self.aliases[module] = {
+                n.target.id for n in tree.body
+                if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
             }
             for node in tree.body:
                 if not isinstance(node, ast.ClassDef):
@@ -370,7 +399,7 @@ class ModuleGenerator:
         self.ref: Reference = reference
         self.problems: Problems = problems
         self.tree: ast.Module = reference.trees[module]
-        self.used_overrides: set[str] = set()
+        self.matched: set[tuple[str, str]] = set()  # (table name, key)
         self.referenced: set[str] = set()
         self.emitted_methods: dict[str, set[str]] = {}
         self.shadowed: set[str] = set()
@@ -385,11 +414,19 @@ class ModuleGenerator:
     def key(self, *parts: str) -> str:
         return ".".join((self.module,) + parts)
 
-    def override(self, table: dict[str, str], key: str) -> str | None:
-        if key in table:
-            self.used_overrides.add(key)
-            return table[key]
-        return None
+    def override(self, table: str, key: str) -> str | None:
+        """The entry `key` has in `VALUE_TABLES[table]`, recorded as matched."""
+        value = VALUE_TABLES[table].get(key)
+        if value is not None:
+            self.matched.add((table, key))
+        return value
+
+    def listed(self, table: str, key: str) -> bool:
+        """Whether `MEMBER_TABLES[table]` names `key`, recorded as matched."""
+        if key not in MEMBER_TABLES[table]:
+            return False
+        self.matched.add((table, key))
+        return True
 
     def check_annotation(self, annotation: str, where: str) -> str:
         annotation = modernize(annotation)
@@ -450,7 +487,7 @@ class ModuleGenerator:
     def resolve_arg(
         self, qualname: str, arg: ast.arg, default: ast.expr | None
     ) -> str | None:
-        annotation = self.override(ov.PARAMS, f"{qualname}.{arg.arg}")
+        annotation = self.override("PARAMS", f"{qualname}.{arg.arg}")
         if annotation is None and arg.annotation is not None:
             annotation = ast.unparse(arg.annotation)
         if annotation is None and default is not None:
@@ -475,7 +512,7 @@ class ModuleGenerator:
         return f"{arg.arg}: {annotation}{suffix}"
 
     def render_return(self, fn: ast.FunctionDef, qualname: str) -> str:
-        annotation = self.override(ov.RETURNS, qualname)
+        annotation = self.override("RETURNS", qualname)
         if annotation is None and fn.returns is not None:
             annotation = ast.unparse(fn.returns)
         if annotation is None:
@@ -620,7 +657,7 @@ class ModuleGenerator:
                 continue
 
             qualname = self.key(cls.name, name)
-            override = self.override(ov.ATTRIBUTES, qualname)
+            override = self.override("ATTRIBUTES", qualname)
             if override is not None:
                 annotation = override
             if annotation is None and isinstance(value, ast.Name):
@@ -664,7 +701,7 @@ class ModuleGenerator:
             if isinstance(node, ast.Expr):
                 continue  # docstrings, handled above and alongside their assignment
             if isinstance(node, ast.FunctionDef):
-                if is_private(node.name) or self.key(cls.name, node.name) in ov.SKIP_MEMBERS:
+                if is_private(node.name) or self.listed("SKIP_MEMBERS", self.key(cls.name, node.name)):
                     continue
                 self.emit_function(
                     node,
@@ -686,14 +723,15 @@ class ModuleGenerator:
     # -- docstring-only event handlers
 
     def emit_event_handlers(self, cls: ast.ClassDef, indent: str) -> bool:
-        if self.module != "sublime_plugin" or cls.name not in ov.EVENT_HANDLER_CLASSES:
+        if self.module != "sublime_plugin" or not self.listed("EVENT_HANDLER_CLASSES", cls.name):
             return False
         doc = ast.get_docstring(cls, clean=True) or ""
         emitted = False
         for name, params, body in parse_method_directives(doc):
-            returns = modernize(
-                ov.EVENT_HANDLER_RETURNS.get(name, ov.EVENT_HANDLER_DEFAULT_RETURN)
-            )
+            # Keyed by the bare handler name: the same handler is declared by more
+            # than one of the listener classes and always returns the same thing.
+            override = self.override("EVENT_HANDLER_RETURNS", name)
+            returns = modernize(override or ov.EVENT_HANDLER_DEFAULT_RETURN)
             qualname = self.key(cls.name, name)
             signature = ", ".join(["self"] + [self.qualify(qualname, p) for p in params])
             self.note(signature)
@@ -721,7 +759,7 @@ class ModuleGenerator:
             return f"sublime.{name}" if name in self.ref.sublime_names else name
 
         name, _, annotation = parameter.partition(":")
-        override = self.override(ov.PARAMS, f"{qualname}.{name.strip()}")
+        override = self.override("PARAMS", f"{qualname}.{name.strip()}")
         if override is not None:
             return f"{name.strip()}: {modernize(override)}"
         if not annotation:
@@ -737,13 +775,13 @@ class ModuleGenerator:
             self.lines.append("")
 
     def generate(self) -> str:
-        allowlist = (
-            set(ov.SUBLIME_PLUGIN_PUBLIC_API) if self.module == "sublime_plugin" else None
-        )
+        # `sublime_plugin` is emitted from an allowlist rather than by dropping
+        # private names: most of the module is plugin host machinery.
+        allowlisted = self.module == "sublime_plugin"
         previous = ""
         for node in self.tree.body:
             if isinstance(node, ast.ClassDef):
-                if allowlist is not None and node.name not in allowlist:
+                if allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name):
                     continue
                 if node.name.startswith("_"):
                     continue
@@ -753,15 +791,15 @@ class ModuleGenerator:
                 self.emit_class(node, "")
                 previous = "class"
             elif isinstance(node, ast.FunctionDef):
-                if allowlist is not None or is_private(node.name):
+                if allowlisted or is_private(node.name):
                     continue
-                if self.key(node.name) in ov.SKIP_MEMBERS:
+                if self.listed("SKIP_MEMBERS", self.key(node.name)):
                     continue
                 self.separate(previous, "function")
                 self.emit_function(node, "", self.key(node.name), in_class=False)
                 previous = "function"
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
-                if allowlist is not None:
+                if allowlisted:
                     continue
                 self.separate(previous, "assignment")
                 if self.module == "sublime_types":
@@ -777,7 +815,7 @@ class ModuleGenerator:
         if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
             return
         name = node.target.id
-        override = self.override(ov.TYPE_ALIASES, name)
+        override = self.override("TYPE_ALIASES", name)
         if override is not None:
             value = modernize(override)
         else:
@@ -926,18 +964,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     reference = Reference(REFERENCE_DIR)
 
     outputs: dict[Path, str] = {}
-    used_overrides: set[str] = set()
+    matched: set[tuple[str, str]] = set()
     for module, package in ov.MODULES.items():
         generator = ModuleGenerator(module, reference, problems)
         outputs[REPO_ROOT / "stubs" / package / "__init__.pyi"] = generator.generate()
-        used_overrides |= generator.used_overrides
+        matched |= generator.matched
 
-    for table_name, table in (("RETURNS", ov.RETURNS), ("PARAMS", ov.PARAMS),
-                              ("ATTRIBUTES", ov.ATTRIBUTES), ("TYPE_ALIASES", ov.TYPE_ALIASES)):
+    for table_name, table in (*VALUE_TABLES.items(), *MEMBER_TABLES.items()):
         for key in table:
-            if key not in used_overrides:
-                problems.add(f"stub_overrides.{table_name}[{key!r}]", "unused override",
-                             f"{table_name} -- remove it")
+            if (table_name, key) not in matched:
+                problems.stale(f"stub_overrides.{table_name}[{key!r}]")
+
+    # The re-export lists are emitted verbatim rather than looked up, so they are
+    # checked against the reference directly.
+    for module, names in ov.SUBLIME_TYPES_REEXPORTS.items():
+        for name in names:
+            if name not in reference.aliases["sublime_types"]:
+                problems.stale(f"stub_overrides.SUBLIME_TYPES_REEXPORTS[{module!r}][{name!r}]")
 
     if problems:
         print("Cannot generate stubs:\n", file=sys.stderr)

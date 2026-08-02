@@ -81,9 +81,17 @@ See [Development](#development).
 
 The generator refuses to guess.
 Anything it cannot derive -- an unannotated parameter,
-a bare `dict` that strict mode rejects, an unused override entry --
+a bare `dict` that strict mode rejects --
 is reported with the exact `stub_overrides` key to add,
 and nothing is written until every one is resolved.
+
+The check runs in the other direction too:
+every `stub_overrides` table is keyed by a name from the reference,
+and an entry that matches nothing there is reported as stale.
+Corrections therefore cannot quietly stop applying
+when a member is renamed or removed in a later build,
+which is the failure mode that matters
+when onboarding a new Sublime Text build.
 
 The emitted stubs use modern typing syntax --
 PEP 604 unions (`str | None`)
