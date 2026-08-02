@@ -8,8 +8,40 @@ permissions:
   contents: read
 
 jobs:
+  check-ci:
+    name: Wait for CI to pass
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Wait for the CI and Tools workflows to succeed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          for workflow in CI Tools; do
+            echo "Waiting for '$workflow' on $SHA..."
+            conclusion=""
+            for _ in $(seq 1 40); do
+              conclusion=$(gh run list --repo "$REPO" --commit "$SHA" --workflow "$workflow" \
+                --json conclusion,status --jq '.[0] | if .status == "completed" then .conclusion else "pending" end')
+              case "$conclusion" in
+                success) echo "$workflow succeeded."; break ;;
+                pending|"") sleep 15 ;;
+                *) echo "$workflow concluded with '$conclusion'."; exit 1 ;;
+              esac
+            done
+            if [ "$conclusion" != success ]; then
+              echo "Timed out waiting for $workflow to complete."
+              exit 1
+            fi
+          done
+
   build:
     name: Build distribution
+    needs: check-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
