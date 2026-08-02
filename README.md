@@ -74,9 +74,10 @@ shipped with Sublime Text build 4200.
 Those sources already carry the full signatures
 and the reStructuredText docstrings the official docs are built from,
 so the stubs are derived from them mechanically.
-It needs Python 3.9 or later (for `ast.unparse`),
-which is why `tools/` is excluded from the type checkers
-rather than being held to the Python 3.8 target.
+The generator runs on the current Python,
+not on the Sublime Text one,
+so `tools/` is its own project with its own checker configuration.
+See [Development](#development).
 
 The generator refuses to guess.
 Anything it cannot derive -- an unannotated parameter,
@@ -142,15 +143,42 @@ is not caught automatically.
 
 `references/` is excluded from all four type checkers.
 
+### The `tools/` sub-project
+
+`tools/` is a separate, standalone uv project
+with its own `pyproject.toml`, lockfile and virtualenv.
+The stubs target the Python version embedded in Sublime Text,
+while the generator runs on the current one;
+a single project cannot express both targets,
+which is why the split exists rather than `tools/` simply going unchecked.
+
+```sh
+uv run --directory tools basedpyright     # or: cd tools && uv run basedpyright
+```
+
+basedpyright is the only checker there,
+at `typeCheckingMode = "all"` -- every rule at `error`, nothing relaxed.
+It is not part of the `CI` workflow;
+it has its own [`Tools`](.github/workflows/tools.yml) workflow.
+
+`tools/` is excluded from all four root checkers,
+so running them from the repo root never reaches it.
+
 Configuration notes:
 
-- basedpyright refuses to start
-  if a `pyproject.toml` contains both `[tool.pyright]` and `[tool.basedpyright]`,
-  so its settings live in `basedpyrightconfig.json`.
-- basedpyright's `typeCheckingMode = "all"` is not usable on this branch
+- basedpyright's `typeCheckingMode = "all"` is not usable for the stubs
   because it enables `reportDeprecated`,
   which flags `typing.List` and `typing.Optional`
   even though the Python 3.8 target requires them.
+  The `tools/` sub-project has no such constraint.
+- The root `basedpyrightconfig.json` is currently inert.
+  basedpyright only reads `pyrightconfig.json`
+  or a `[tool.basedpyright]` / `[tool.pyright]` table in `pyproject.toml`;
+  there is no `basedpyrightconfig.json`.
+  The root `basedpyright` run therefore uses `[tool.pyright]`,
+  and the extra rules in that file never take effect.
+  `tools/` avoids the trap by declaring `[tool.basedpyright]`,
+  which is legal there because that file has no `[tool.pyright]` section.
 - mypy 2.x refuses to target anything below Python 3.10,
   so `python_version` is set to `3.10` there.
   pyright, basedpyright and ty still enforce 3.8,

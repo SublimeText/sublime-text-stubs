@@ -1,0 +1,33 @@
+name: Tools
+
+# `ci.yml` checks the stubs; this checks the code that generates them.
+# They are separate projects with separate environments and Python targets.
+
+on:
+  push:
+    branches: ["main", "st-*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tools-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: tools
+
+jobs:
+  typecheck:
+    name: basedpyright
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v9
+        with:
+          enable-cache: true
+
+      - run: uv sync --group dev
+
+      - run: uv run basedpyright

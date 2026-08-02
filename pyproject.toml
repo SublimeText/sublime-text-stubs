@@ -52,13 +52,12 @@ include = ["stubs", "tests", "tools", "README.md", "CHANGELOG.md", "LICENSE"]
 # this branch targets (ST build 4200 ships Python 3.8), not the interpreter used to
 # run the checkers.
 
-# basedpyright refuses to run when a pyproject.toml carries both a [tool.pyright] and a
-# [tool.basedpyright] section, so its settings live in ./basedpyrightconfig.json.
 [tool.pyright]
 include = ["stubs", "tests"]
 extraPaths = ["stubs"]
-# `tools/` holds the stub generator; it runs on a modern interpreter and is
-# deliberately not held to the Sublime Text target version configured below.
+# `tools/` holds the stub generator, which runs on the current interpreter rather than
+# the Sublime Text one configured below. It is checked separately, as its own project:
+# see ./tools/pyproject.toml and the `Tools` workflow.
 exclude = ["references", "tools", "**/__pycache__", ".venv"]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"

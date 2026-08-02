@@ -1,0 +1,28 @@
+# The stub generator is its own project, deliberately separate from the repo root:
+# it runs on the current interpreter, while the stubs and their tests are checked
+# against the Python version embedded in Sublime Text. One project cannot express
+# both targets, so `tools/` carries its own lockfile, virtualenv and checker config.
+
+[project]
+name = "sublime-text-stubs-tools"
+version = "0"
+description = "Stub generator for sublime-text-stubs; checked independently of the stubs."
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = ["basedpyright"]
+
+[tool.uv]
+# Virtual project: only the dependency groups are installed, never the code itself.
+package = false
+
+# Unlike the repo root, this targets the interpreter the tools actually run on, and
+# nothing is relaxed: `all` puts every basedpyright rule at `error`. Declaring the
+# settings here rather than in a `pyrightconfig.json` keeps them basedpyright-only;
+# note that basedpyright refuses to run when one file carries both a `[tool.pyright]`
+# and a `[tool.basedpyright]` section.
+[tool.basedpyright]
+include = ["."]
+exclude = ["**/__pycache__", ".venv"]
+pythonVersion = "3.14"
+typeCheckingMode = "all"

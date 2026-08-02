@@ -27,8 +27,8 @@ import difflib
 import inspect
 import re
 import sys
+from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple
 
 import stub_overrides as ov
 
@@ -75,7 +75,7 @@ class Problems:
     """Collects every unresolved name so one run reports all of them."""
 
     def __init__(self) -> None:
-        self.messages: List[str] = []
+        self.messages: list[str] = []
 
     def add(self, where: str, what: str, hint: str) -> None:
         self.messages.append(f"{where}: {what}\n    add to stub_overrides.{hint}")
@@ -87,7 +87,7 @@ class Problems:
 # --- docstrings --------------------------------------------------------------
 
 
-def render_docstring(doc: Optional[str], indent: str) -> List[str]:
+def render_docstring(doc: str | None, indent: str) -> list[str]:
     """Render a docstring at the given indentation, or nothing if it is empty."""
     if not doc or not doc.strip():
         return []
@@ -106,7 +106,7 @@ def render_docstring(doc: Optional[str], indent: str) -> List[str]:
     return lines
 
 
-def attribute_docstring(body: Sequence[ast.stmt], index: int) -> Optional[str]:
+def attribute_docstring(body: Sequence[ast.stmt], index: int) -> str | None:
     """The bare string literal following ``body[index]``, if there is one."""
     if index + 1 >= len(body):
         return None
@@ -124,17 +124,17 @@ class Reference:
     """The parsed reference sources and the symbol tables derived from them."""
 
     def __init__(self, directory: Path) -> None:
-        self.trees: Dict[str, ast.Module] = {}
+        self.trees: dict[str, ast.Module] = {}
         for name in ov.MODULES:
             self.trees[name] = ast.parse((directory / f"{name}.py").read_text())
 
-        self.enum_members: Dict[str, str] = {}  # "HoverZone.TEXT" -> "HoverZone"
-        self.classes: Dict[str, Set[str]] = {}  # module -> class names
-        self.bases: Dict[Tuple[str, str], List[str]] = {}
-        self.methods: Dict[Tuple[str, str], Set[str]] = {}
+        self.enum_members: dict[str, str] = {}  # "HoverZone.TEXT" -> "HoverZone"
+        self.classes: dict[str, set[str]] = {}  # module -> class names
+        self.bases: dict[tuple[str, str], list[str]] = {}
+        self.methods: dict[tuple[str, str], set[str]] = {}
 
         for module, tree in self.trees.items():
-            names: Set[str] = set()
+            names: set[str] = set()
             for node in tree.body:
                 if not isinstance(node, ast.ClassDef):
                     continue
@@ -154,16 +154,16 @@ class Reference:
             self.classes[module] = names
 
         # Names that resolve as `sublime.X` for the synthesized event handlers.
-        self.sublime_names = set(self.classes["sublime"])
+        self.sublime_names: set[str] = set(self.classes["sublime"])
         self.sublime_names |= set(ov.SUBLIME_TYPES_REEXPORTS["sublime"])
         for node in self.trees["sublime"].body:
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
                 self.sublime_names.add(node.name)
 
 
-def attribute_names(cls: ast.ClassDef) -> Set[str]:
+def attribute_names(cls: ast.ClassDef) -> set[str]:
     """Every name the class binds as an attribute, class level or in ``__init__``."""
-    names: Set[str] = set()
+    names: set[str] = set()
     for node in cls.body:
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             names.add(node.target.id)
@@ -171,7 +171,7 @@ def attribute_names(cls: ast.ClassDef) -> Set[str]:
             names.update(t.id for t in node.targets if isinstance(t, ast.Name))
         elif isinstance(node, ast.FunctionDef) and node.name == "__init__":
             for statement in node.body:
-                targets: List[ast.expr] = []
+                targets: list[ast.expr] = []
                 if isinstance(statement, ast.AnnAssign):
                     targets = [statement.target]
                 elif isinstance(statement, ast.Assign):
@@ -183,7 +183,7 @@ def attribute_names(cls: ast.ClassDef) -> Set[str]:
     return names
 
 
-def is_none(node: Optional[ast.expr]) -> bool:
+def is_none(node: ast.expr | None) -> bool:
     return isinstance(node, ast.Constant) and node.value is None
 
 
@@ -257,15 +257,15 @@ def returns_a_value(fn: ast.FunctionDef) -> bool:
 
 class ModuleGenerator:
     def __init__(self, module: str, reference: Reference, problems: Problems) -> None:
-        self.module = module
-        self.ref = reference
-        self.problems = problems
-        self.tree = reference.trees[module]
-        self.used_overrides: Set[str] = set()
-        self.referenced: Set[str] = set()
-        self.emitted_methods: Dict[str, Set[str]] = {}
-        self.shadowed: Set[str] = set()
-        self.lines: List[str] = []
+        self.module: str = module
+        self.ref: Reference = reference
+        self.problems: Problems = problems
+        self.tree: ast.Module = reference.trees[module]
+        self.used_overrides: set[str] = set()
+        self.referenced: set[str] = set()
+        self.emitted_methods: dict[str, set[str]] = {}
+        self.shadowed: set[str] = set()
+        self.lines: list[str] = []
 
     # -- helpers
 
@@ -276,7 +276,7 @@ class ModuleGenerator:
     def key(self, *parts: str) -> str:
         return ".".join((self.module,) + parts)
 
-    def override(self, table: Dict[str, str], key: str) -> Optional[str]:
+    def override(self, table: dict[str, str], key: str) -> str | None:
         if key in table:
             self.used_overrides.add(key)
             return table[key]
@@ -295,7 +295,7 @@ class ModuleGenerator:
                 )
         return annotation
 
-    def infer_from_default(self, default: ast.expr) -> Optional[str]:
+    def infer_from_default(self, default: ast.expr) -> str | None:
         """The type of a parameter that is only described by its default value."""
         if isinstance(default, ast.Constant):
             value = default.value
@@ -314,32 +314,32 @@ class ModuleGenerator:
     def render_signature(self, fn: ast.FunctionDef, qualname: str, in_class: bool) -> str:
         args = fn.args
         positional = list(args.posonlyargs) + list(args.args)
-        defaults: List[Optional[ast.expr]] = [None] * (len(positional) - len(args.defaults))
+        defaults: list[ast.expr | None] = [None] * (len(positional) - len(args.defaults))
         defaults += list(args.defaults)
 
-        rendered: List[str] = []
+        rendered: list[str] = []
         for index, (arg, default) in enumerate(zip(positional, defaults)):
             if index == 0 and in_class and arg.arg in ("self", "cls"):
                 rendered.append(arg.arg)
                 continue
-            rendered.append(self.render_arg(fn, qualname, arg, default))
+            rendered.append(self.render_arg(qualname, arg, default))
             if index + 1 == len(args.posonlyargs):
                 rendered.append("/")
 
         if args.vararg is not None:
-            rendered.append("*" + self.render_arg(fn, qualname, args.vararg, None))
+            rendered.append("*" + self.render_arg(qualname, args.vararg, None))
         elif args.kwonlyargs:
             rendered.append("*")
         for arg, kw_default in zip(args.kwonlyargs, args.kw_defaults):
-            rendered.append(self.render_arg(fn, qualname, arg, kw_default))
+            rendered.append(self.render_arg(qualname, arg, kw_default))
         if args.kwarg is not None:
-            rendered.append("**" + self.render_arg(fn, qualname, args.kwarg, None))
+            rendered.append("**" + self.render_arg(qualname, args.kwarg, None))
 
         return ", ".join(rendered)
 
     def resolve_arg(
-        self, qualname: str, arg: ast.arg, default: Optional[ast.expr]
-    ) -> Optional[str]:
+        self, qualname: str, arg: ast.arg, default: ast.expr | None
+    ) -> str | None:
         annotation = self.override(ov.PARAMS, f"{qualname}.{arg.arg}")
         if annotation is None and arg.annotation is not None:
             annotation = ast.unparse(arg.annotation)
@@ -351,13 +351,7 @@ class ModuleGenerator:
             annotation = f"Optional[{annotation}]"
         return annotation
 
-    def render_arg(
-        self,
-        fn: ast.FunctionDef,
-        qualname: str,
-        arg: ast.arg,
-        default: Optional[ast.expr],
-    ) -> str:
+    def render_arg(self, qualname: str, arg: ast.arg, default: ast.expr | None) -> str:
         where = f"{qualname}({arg.arg})"
         annotation = self.resolve_arg(qualname, arg, default)
         if annotation is None:
@@ -410,7 +404,7 @@ class ModuleGenerator:
         else:
             self.lines.append(header + " ...")
 
-    def emit_assignment(self, node: ast.stmt, indent: str, doc: Optional[str]) -> bool:
+    def emit_assignment(self, node: ast.stmt, indent: str, doc: str | None) -> bool:
         """Emit a class or module level assignment verbatim. False if skipped."""
         if isinstance(node, ast.AnnAssign):
             if not isinstance(node.target, ast.Name):
@@ -446,12 +440,12 @@ class ModuleGenerator:
 
         init_qualname = self.key(cls.name, "__init__")
         positional = list(init.args.posonlyargs) + list(init.args.args)
-        defaults: List[Optional[ast.expr]] = [None] * (len(positional) - len(init.args.defaults))
+        defaults: list[ast.expr | None] = [None] * (len(positional) - len(init.args.defaults))
         defaults += list(init.args.defaults)
         parameters = list(zip(positional, defaults))
         parameters += list(zip(init.args.kwonlyargs, init.args.kw_defaults))
 
-        parameter_types: Dict[str, str] = {}
+        parameter_types: dict[str, str] = {}
         for arg, default in parameters:
             resolved = self.resolve_arg(init_qualname, arg, default)
             if resolved is not None:
@@ -459,9 +453,9 @@ class ModuleGenerator:
 
         emitted = False
         for index, node in enumerate(init.body):
-            target: Optional[ast.expr] = None
-            value: Optional[ast.expr] = None
-            annotation: Optional[str] = None
+            target: ast.expr | None = None
+            value: ast.expr | None = None
+            annotation: str | None = None
             if isinstance(node, ast.AnnAssign):
                 target, value, annotation = node.target, node.value, ast.unparse(node.annotation)
             elif isinstance(node, ast.Assign) and len(node.targets) == 1:
@@ -510,10 +504,10 @@ class ModuleGenerator:
 
         # Only methods actually present in the stub count as overridable: the
         # reference declares `Command.run`, but the stubs deliberately do not.
-        inherited: Set[str] = set()
+        inherited: set[str] = set()
         for base in self.ref.bases.get((self.module, cls.name), []):
             inherited |= self.emitted_methods.get(base, set())
-        own: Set[str] = set()
+        own: set[str] = set()
         for index, node in enumerate(cls.body):
             if isinstance(node, ast.Expr):
                 continue  # docstrings, handled above and alongside their assignment
@@ -563,7 +557,7 @@ class ModuleGenerator:
     def qualify(self, parameter: str) -> str:
         """Qualify bare `sublime` names in a parameter lifted from a docstring."""
 
-        def replace(match: "re.Match[str]") -> str:
+        def replace(match: re.Match[str]) -> str:
             name = match.group(0)
             return f"sublime.{name}" if name in self.ref.sublime_names else name
 
@@ -611,7 +605,7 @@ class ModuleGenerator:
                 if self.module == "sublime_types":
                     self.emit_type_alias(node)
                 else:
-                    self.emit_assignment(node, "", None)
+                    _ = self.emit_assignment(node, "", None)
                 previous = "assignment"
 
         body = "\n".join(self.lines).rstrip() + "\n"
@@ -630,7 +624,7 @@ class ModuleGenerator:
             if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                 # The reference quotes every alias to keep it lazily evaluated.
                 value = node.value.value
-            self.check_annotation(value, self.key(name))
+            _ = self.check_annotation(value, self.key(name))
         self.note(value)
         self.note("TypeAlias")
         self.lines.append(f"{name}: TypeAlias = {value}")
@@ -639,7 +633,7 @@ class ModuleGenerator:
         lines = [
             "# This file is generated by tools/generate_stubs.py -- do not edit.",
             f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py"
-            f" (Sublime Text build {ST_BUILD}).",
+            + f" (Sublime Text build {ST_BUILD}).",
             "",
         ]
         for module_name in MODULE_IMPORTS:
@@ -669,7 +663,7 @@ class ModuleGenerator:
 DIRECTIVE = re.compile(r"^\.\. method:: (\w+)\((.*)$")
 
 
-def parse_method_directives(doc: str) -> Iterator[Tuple[str, List[str], str]]:
+def parse_method_directives(doc: str) -> Iterator[tuple[str, list[str], str]]:
     """Yield ``(name, parameters, docstring)`` for each `.. method::` directive."""
     lines = doc.split("\n")
     index = 0
@@ -689,7 +683,7 @@ def parse_method_directives(doc: str) -> Iterator[Tuple[str, List[str], str]]:
         signature = signature[: matching_parenthesis(signature)]
 
         index += 1
-        body: List[str] = []
+        body: list[str] = []
         while index < len(lines):
             line = lines[index]
             if line.strip() and not line.startswith(" "):
@@ -715,9 +709,9 @@ def matching_parenthesis(signature: str) -> int:
     raise Unresolved(f"unterminated parameter list: {signature!r}")
 
 
-def split_parameters(signature: str) -> List[str]:
+def split_parameters(signature: str) -> list[str]:
     """Split a parameter list on top level commas."""
-    parameters: List[str] = []
+    parameters: list[str] = []
     depth = 0
     current = ""
     for char in signature:
@@ -744,20 +738,26 @@ def normalize_generics(text: str) -> str:
 # --- entry point -------------------------------------------------------------
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument(
+class Options(argparse.Namespace):
+    """Typed view of the parsed arguments; `argparse.Namespace` is otherwise untyped."""
+
+    check: bool = False
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
+    _ = parser.add_argument(
         "--check",
         action="store_true",
         help="do not write; exit non-zero if the committed stubs are out of date",
     )
-    options = parser.parse_args(argv)
+    options = parser.parse_args(argv, namespace=Options())
 
     problems = Problems()
     reference = Reference(REFERENCE_DIR)
 
-    outputs: Dict[Path, str] = {}
-    used_overrides: Set[str] = set()
+    outputs: dict[Path, str] = {}
+    used_overrides: set[str] = set()
     for module, package in ov.MODULES.items():
         generator = ModuleGenerator(module, reference, problems)
         outputs[REPO_ROOT / "stubs" / package / "__init__.pyi"] = generator.generate()
@@ -792,7 +792,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 )))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
+            _ = path.write_text(content)
             print(f"wrote {relative} ({len(content.splitlines())} lines)")
 
     if stale:
