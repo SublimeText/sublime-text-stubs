@@ -38,6 +38,9 @@ not semantic versioning; see the README.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.
+- ruff lints `tools/`,
+  at a line length of 120 and targeting Python 3.14,
+  as a second job of the `Tools` workflow.
 
 ### Changed
 

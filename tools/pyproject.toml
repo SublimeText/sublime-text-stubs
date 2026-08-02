@@ -10,7 +10,7 @@ description = "Stub generator for sublime-text-stubs; checked independently of t
 requires-python = ">=3.14"
 
 [dependency-groups]
-dev = ["basedpyright"]
+dev = ["basedpyright", "ruff"]
 
 [tool.uv]
 # Virtual project: only the dependency groups are installed, never the code itself.
@@ -26,3 +26,44 @@ include = ["."]
 exclude = ["**/__pycache__", ".venv"]
 pythonVersion = "3.14"
 typeCheckingMode = "all"
+
+# Only `tools/` is linted with ruff; the repo root holds `.pyi` files and sample
+# consumer code for the type checkers, which have their own conventions.
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+exclude = ["**/__pycache__", ".venv"]
+
+[tool.ruff.lint]
+# A broad selection minus the families that fight this code rather than improve it:
+# `D` (the docstring conventions collide with the reStructuredText prose lifted from
+# the reference), `T20` (this is a CLI script, `print` is its output), `S` (`assert`
+# is a fine internal invariant here), `EM`/`TRY` (message-in-exception ceremony),
+# `FBT` (the boolean flags are keyword-only at every call site) and `COM`/`CPY`.
+select = [
+    "A",     # flake8-builtins
+    "ARG",   # flake8-unused-arguments
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "FURB",  # refurb
+    "G",     # flake8-logging-format
+    "I",     # isort
+    "ISC",   # flake8-implicit-str-concat
+    "LOG",   # flake8-logging
+    "N",     # pep8-naming
+    "PERF",  # perflint
+    "PGH",   # pygrep-hooks
+    "PIE",   # flake8-pie
+    "PL",    # pylint
+    "PTH",   # flake8-use-pathlib
+    "RET",   # flake8-return
+    "RUF",   # ruff-specific rules
+    "SIM",   # flake8-simplify
+    "SLF",   # flake8-self
+    "TID",   # flake8-tidy-imports
+    "UP",    # pyupgrade
+    "W",     # pycodestyle warnings
+]

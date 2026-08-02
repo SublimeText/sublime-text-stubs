@@ -215,12 +215,21 @@ which is why the split exists rather than `tools/` simply going unchecked.
 
 ```sh
 uv run --directory tools basedpyright     # or: cd tools && uv run basedpyright
+uv run --directory tools ruff check
 ```
 
-basedpyright is the only checker there,
+basedpyright is the only type checker there,
 at `typeCheckingMode = "all"` -- every rule at `error`, nothing relaxed.
-It is not part of the `CI` workflow;
-it has its own [`Tools`](.github/workflows/tools.yml) workflow.
+ruff lints the same directory,
+with a line length of 120 and Python 3.14 as the target;
+its rule selection is listed in `tools/pyproject.toml`,
+along with why the omitted families are omitted.
+Neither is part of the `CI` workflow;
+they have their own [`Tools`](.github/workflows/tools.yml) workflow.
+
+The stubs and the sample consumer code are not linted with ruff:
+`.pyi` files and code written to exercise a type checker
+follow conventions of their own.
 
 `tools/` is excluded from all four root checkers,
 so running them from the repo root never reaches it.

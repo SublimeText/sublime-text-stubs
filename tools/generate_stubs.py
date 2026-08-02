@@ -39,6 +39,13 @@ ST_BUILD = "4200"
 
 INDENT = "    "
 
+# Width the generated `.pyi` files are kept within: a docstring that would exceed it
+# on a single line is emitted as a block instead.
+STUB_LINE_WIDTH = 100
+
+# What a one-line docstring adds around the prose: `""" ` and ` """`.
+DOCSTRING_QUOTES = 8
+
 # Decorators kept on generated declarations. Anything else is a bug in the
 # generator's understanding of the reference and is reported as unresolved.
 KEPT_DECORATORS = {"classmethod", "staticmethod", "property"}
@@ -105,7 +112,7 @@ MEMBER_TABLES: dict[str, list[str]] = {
 }
 
 
-class Unresolved(Exception):
+class UnresolvedError(Exception):
     """Raised for anything the generator refuses to guess at."""
 
 
@@ -136,15 +143,14 @@ def render_docstring(doc: str | None, indent: str) -> list[str]:
         return []
     doc = doc.strip("\n").rstrip()
     if '"""' in doc:
-        raise Unresolved("docstring contains a triple quote")
+        raise UnresolvedError("docstring contains a triple quote")
     prefix = "r" if "\\" in doc else ""
     if prefix and doc.endswith("\\"):
-        raise Unresolved("docstring ends with a backslash")
-    if "\n" not in doc and len(indent) + len(doc) + 8 <= 100:
+        raise UnresolvedError("docstring ends with a backslash")
+    if "\n" not in doc and len(indent) + len(doc) + DOCSTRING_QUOTES <= STUB_LINE_WIDTH:
         return [f'{indent}{prefix}""" {doc} """']
     lines = [f'{indent}{prefix}"""']
-    for line in doc.split("\n"):
-        lines.append(f"{indent}{line}".rstrip())
+    lines.extend(f"{indent}{line}".rstrip() for line in doc.split("\n"))
     lines.append(f'{indent}"""')
     return lines
 
@@ -154,9 +160,12 @@ def attribute_docstring(body: Sequence[ast.stmt], index: int) -> str | None:
     if index + 1 >= len(body):
         return None
     node = body[index + 1]
-    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
-        if isinstance(node.value.value, str):
-            return inspect.cleandoc(node.value.value)
+    if (
+        isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ):
+        return inspect.cleandoc(node.value.value)
     return None
 
 
@@ -265,9 +274,12 @@ def attribute_names(cls: ast.ClassDef) -> set[str]:
                 elif isinstance(statement, ast.Assign):
                     targets = list(statement.targets)
                 for target in targets:
-                    if isinstance(target, ast.Attribute):
-                        if isinstance(target.value, ast.Name) and target.value.id == "self":
-                            names.add(target.attr)
+                    if (
+                        isinstance(target, ast.Attribute)
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id == "self"
+                    ):
+                        names.add(target.attr)
     return names
 
 
@@ -391,6 +403,45 @@ def returns_a_value(fn: ast.FunctionDef) -> bool:
     return scan(fn.body)
 
 
+def self_assignment(node: ast.stmt) -> tuple[str, ast.expr | None, str | None] | None:
+    """``(name, value, annotation)`` of a public ``self.x = ...``, or ``None`` for anything else.
+
+    The annotation is taken verbatim; unlike for parameters (see `resolve_arg`), an
+    implicit ``= None`` default does NOT make the attribute Optional. The one case
+    where that matters is `TextChangeListener.buffer`, written as
+    ``self.buffer: sublime.Buffer = None``
+    (``references/python38/sublime_plugin.py:2249``). Both hand-written third-party
+    stub sets (sublimelsp/LSP, SublimeText/sublime_lib) spell it ``Buffer | None``,
+    but the plugin host only ever hands out attached instances: ``attach_buffer`` and
+    ``check_text_change_listeners`` both instantiate and attach in a single
+    expression, ``cls().attach(buf)`` (``references/python38/sublime_plugin.py:679``
+    and ``:701``), so no listener body can observe the None. Declaring it Optional
+    would force a narrowing check in every handler for a state users never see.
+    ``detach()`` does not reset it either, so the attribute keeps pointing at the
+    buffer it was last attached to.
+    """
+    if isinstance(node, ast.AnnAssign):
+        target, value, annotation = node.target, node.value, ast.unparse(node.annotation)
+    elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+        target, value, annotation = node.targets[0], node.value, None
+    else:
+        return None
+    if not isinstance(target, ast.Attribute):
+        return None
+    if not (isinstance(target.value, ast.Name) and target.value.id == "self"):
+        return None
+    if target.attr.startswith("_"):
+        return None
+    return target.attr, value, annotation
+
+
+def class_of(qualname: str) -> str | None:
+    """The class in a ``module.Class.member`` qualname; ``None`` for a module level one."""
+    _, _, rest = qualname.partition(".")
+    class_name, _, _ = rest.rpartition(".")
+    return class_name or None
+
+
 # --- the generator -----------------------------------------------------------
 
 
@@ -413,7 +464,7 @@ class ModuleGenerator:
         self.referenced.update(re.findall(r"\b[A-Za-z_][A-Za-z_0-9]*\b", code))
 
     def key(self, *parts: str) -> str:
-        return ".".join((self.module,) + parts)
+        return ".".join((self.module, *parts))
 
     def override(self, table: str, key: str) -> str | None:
         """The entry `key` has in `VALUE_TABLES[table]`, recorded as matched."""
@@ -450,9 +501,12 @@ class ModuleGenerator:
             if value is None:
                 return None  # `= None` alone says nothing about the type
             return type(value).__name__
-        if isinstance(default, ast.UnaryOp) and isinstance(default.operand, ast.Constant):
-            if isinstance(default.operand.value, (int, float)):
-                return type(default.operand.value).__name__
+        if (
+            isinstance(default, ast.UnaryOp)
+            and isinstance(default.operand, ast.Constant)
+            and isinstance(default.operand.value, (int, float))
+        ):
+            return type(default.operand.value).__name__
         if isinstance(default, ast.Attribute):
             return self.ref.enum_members.get(ast.unparse(default))
         return None
@@ -466,7 +520,7 @@ class ModuleGenerator:
         defaults += list(args.defaults)
 
         rendered: list[str] = []
-        for index, (arg, default) in enumerate(zip(positional, defaults)):
+        for index, (arg, default) in enumerate(zip(positional, defaults, strict=True)):
             if index == 0 and in_class and arg.arg in ("self", "cls"):
                 rendered.append(arg.arg)
                 continue
@@ -478,7 +532,7 @@ class ModuleGenerator:
             rendered.append("*" + self.render_arg(qualname, args.vararg, None))
         elif args.kwonlyargs:
             rendered.append("*")
-        for arg, kw_default in zip(args.kwonlyargs, args.kw_defaults):
+        for arg, kw_default in zip(args.kwonlyargs, args.kw_defaults, strict=True):
             rendered.append(self.render_arg(qualname, arg, kw_default))
         if args.kwarg is not None:
             rendered.append("**" + self.render_arg(qualname, args.kwarg, None))
@@ -560,8 +614,7 @@ class ModuleGenerator:
 
     def emit_deprecation(self, fn: ast.FunctionDef, indent: str, qualname: str) -> None:
         """Turn the docstring's ``:deprecated:`` marker into a `@deprecated` decorator."""
-        parts = qualname.split(".")
-        class_name = parts[1] if len(parts) == 3 else None
+        class_name = class_of(qualname)
         message = deprecation_message(
             ast.get_docstring(fn, clean=True),
             lambda name: self.ref.knows_callable(self.module, class_name, name),
@@ -603,6 +656,21 @@ class ModuleGenerator:
         self.lines.extend(render_docstring(doc, indent))
         return True
 
+    def init_parameter_types(self, init: ast.FunctionDef, qualname: str) -> dict[str, str]:
+        """The resolved type of every ``__init__`` parameter, keyed by parameter name."""
+        positional = list(init.args.posonlyargs) + list(init.args.args)
+        defaults: list[ast.expr | None] = [None] * (len(positional) - len(init.args.defaults))
+        defaults += list(init.args.defaults)
+        parameters = list(zip(positional, defaults, strict=True))
+        parameters += list(zip(init.args.kwonlyargs, init.args.kw_defaults, strict=True))
+
+        types: dict[str, str] = {}
+        for arg, default in parameters:
+            resolved = self.resolve_arg(qualname, arg, default)
+            if resolved is not None:
+                types[arg.arg] = resolved
+        return types
+
     def emit_instance_attributes(self, cls: ast.ClassDef, indent: str) -> bool:
         """Lift annotated ``self.x`` assignments out of ``__init__``."""
         init = next(
@@ -612,50 +680,14 @@ class ModuleGenerator:
         if init is None:
             return False
 
-        init_qualname = self.key(cls.name, "__init__")
-        positional = list(init.args.posonlyargs) + list(init.args.args)
-        defaults: list[ast.expr | None] = [None] * (len(positional) - len(init.args.defaults))
-        defaults += list(init.args.defaults)
-        parameters = list(zip(positional, defaults))
-        parameters += list(zip(init.args.kwonlyargs, init.args.kw_defaults))
-
-        parameter_types: dict[str, str] = {}
-        for arg, default in parameters:
-            resolved = self.resolve_arg(init_qualname, arg, default)
-            if resolved is not None:
-                parameter_types[arg.arg] = resolved
+        parameter_types = self.init_parameter_types(init, self.key(cls.name, "__init__"))
 
         emitted = False
         for index, node in enumerate(init.body):
-            target: ast.expr | None = None
-            value: ast.expr | None = None
-            annotation: str | None = None
-            if isinstance(node, ast.AnnAssign):
-                # The annotation is taken verbatim; unlike for parameters (see
-                # `resolve_arg`), an implicit `= None` default does NOT make the
-                # attribute Optional. The one case where that matters is
-                # `TextChangeListener.buffer`, written as
-                # `self.buffer: sublime.Buffer = None`
-                # (`references/python38/sublime_plugin.py:2249`). Both hand-written
-                # third-party stub sets (sublimelsp/LSP, SublimeText/sublime_lib)
-                # spell it `Buffer | None`, but the plugin host only ever hands out
-                # attached instances: `attach_buffer` and `check_text_change_listeners`
-                # both instantiate and attach in a single expression, `cls().attach(buf)`
-                # (`references/python38/sublime_plugin.py:679` and `:701`), so no
-                # listener body can observe the None. Declaring it Optional would
-                # force a narrowing check in every handler for a state users never
-                # see. `detach()` does not reset it either, so the attribute keeps
-                # pointing at the buffer it was last attached to.
-                target, value, annotation = node.target, node.value, ast.unparse(node.annotation)
-            elif isinstance(node, ast.Assign) and len(node.targets) == 1:
-                target, value = node.targets[0], node.value
-            if not isinstance(target, ast.Attribute):
+            assignment = self_assignment(node)
+            if assignment is None:
                 continue
-            if not (isinstance(target.value, ast.Name) and target.value.id == "self"):
-                continue
-            name = target.attr
-            if name.startswith("_"):
-                continue
+            name, value, annotation = assignment
 
             qualname = self.key(cls.name, name)
             override = self.override("ATTRIBUTES", qualname)
@@ -663,10 +695,14 @@ class ModuleGenerator:
                 annotation = override
             if annotation is None and isinstance(value, ast.Name):
                 annotation = parameter_types.get(value.id)
-            if annotation is None and isinstance(value, ast.Call):
-                # `self.selection = Selection(id)` and friends
-                if isinstance(value.func, ast.Name) and value.func.id in self.ref.classes[self.module]:
-                    annotation = value.func.id
+            # `self.selection = Selection(id)` and friends
+            if (
+                annotation is None
+                and isinstance(value, ast.Call)
+                and isinstance(value.func, ast.Name)
+                and value.func.id in self.ref.classes[self.module]
+            ):
+                annotation = value.func.id
             if annotation is None:
                 self.problems.add(qualname, "attribute type cannot be inferred", "ATTRIBUTES")
                 annotation = "Any"
@@ -849,17 +885,21 @@ class ModuleGenerator:
     def render_header(self) -> str:
         lines = [
             "# This file is generated by tools/generate_stubs.py -- do not edit.",
-            f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py"
-            + f" (Sublime Text build {ST_BUILD}).",
+            (
+                f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py"
+                f" (Sublime Text build {ST_BUILD})."
+            ),
             "",
             # A no-op in a stub file, where annotations are never evaluated, but it
             # documents that the modern syntax below is deliberate.
             "from __future__ import annotations",
             "",
         ]
-        for module_name in MODULE_IMPORTS:
-            if module_name in self.referenced and module_name != self.module:
-                lines.append(f"import {module_name}")
+        lines.extend(
+            f"import {module_name}"
+            for module_name in MODULE_IMPORTS
+            if module_name in self.referenced and module_name != self.module
+        )
 
         abc_used = [n for n in COLLECTIONS_ABC_NAMES if n in self.referenced]
         if abc_used:
@@ -930,7 +970,7 @@ def matching_parenthesis(signature: str) -> int:
             if depth == 0:
                 return index
             depth -= 1
-    raise Unresolved(f"unterminated parameter list: {signature!r}")
+    raise UnresolvedError(f"unterminated parameter list: {signature!r}")
 
 
 def split_parameters(signature: str) -> list[str]:
@@ -966,6 +1006,31 @@ class Options(argparse.Namespace):
     """Typed view of the parsed arguments; `argparse.Namespace` is otherwise untyped."""
 
     check: bool = False
+
+
+def write_stubs(outputs: dict[Path, str]) -> None:
+    for path, content in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _ = path.write_text(content)
+        print(f"wrote {path.relative_to(REPO_ROOT)} ({len(content.splitlines())} lines)")
+
+
+def report_drift(outputs: dict[Path, str]) -> bool:
+    """Diff the generated content against the committed stubs; True if any is stale."""
+    stale = False
+    for path, content in outputs.items():
+        relative = path.relative_to(REPO_ROOT)
+        current = path.read_text() if path.exists() else ""
+        if current != content:
+            stale = True
+            print(f"{relative} is out of date:")
+            print("".join(difflib.unified_diff(
+                current.splitlines(keepends=True),
+                content.splitlines(keepends=True),
+                fromfile=f"{relative} (committed)",
+                tofile=f"{relative} (generated)",
+            )))
+    return stale
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -1005,28 +1070,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"  {message}", file=sys.stderr)
         return 1
 
-    stale = False
-    for path, content in outputs.items():
-        relative = path.relative_to(REPO_ROOT)
-        if options.check:
-            current = path.read_text() if path.exists() else ""
-            if current != content:
-                stale = True
-                print(f"{relative} is out of date:")
-                print("".join(difflib.unified_diff(
-                    current.splitlines(keepends=True),
-                    content.splitlines(keepends=True),
-                    fromfile=f"{relative} (committed)",
-                    tofile=f"{relative} (generated)",
-                )))
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            _ = path.write_text(content)
-            print(f"wrote {relative} ({len(content.splitlines())} lines)")
-
-    if stale:
-        print("\nRun `python tools/generate_stubs.py` and commit the result.", file=sys.stderr)
-        return 1
+    if options.check:
+        if report_drift(outputs):
+            print("\nRun `python tools/generate_stubs.py` and commit the result.", file=sys.stderr)
+            return 1
+    else:
+        write_stubs(outputs)
     return 0
 
 
