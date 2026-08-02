@@ -49,6 +49,24 @@ def read_setting_via_types_module(name: str) -> ValueFromTypesModule:
     return sublime.load_settings("Preferences.sublime-settings")[name]
 
 
+def project_folder_names(window: sublime.Window) -> List[str]:
+    # `Value` is recursive, so the elements of a list or dict `Value` are `Value`s
+    # themselves and narrow via `isinstance` instead of arriving as `Any`.
+    data = window.project_data()
+    if not isinstance(data, dict):
+        return []
+    folders = data.get("folders")
+    if not isinstance(folders, list):
+        return []
+    names: List[str] = []
+    for folder in folders:
+        if isinstance(folder, dict):
+            name = folder.get("name")
+            if isinstance(name, str):
+                names.append(name)
+    return names
+
+
 def open_transient(window: sublime.Window, path: str) -> sublime.View:
     return window.open_file(path, sublime.NewFileFlags.TRANSIENT)
 

@@ -19,6 +19,9 @@ not semantic versioning; see the README.
   on classes, functions, enum members and attributes.
 - Stubs for the `sublime_types` module,
   whose aliases are re-exported from `sublime` and `sublime_plugin`.
+- `sublime_types.Value` is defined recursively,
+  so the elements of a list or dict `Value` are `Value`s themselves
+  instead of `Any`.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.

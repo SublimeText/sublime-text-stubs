@@ -126,6 +126,10 @@ TYPE_ALIASES = {
     # The reference says `dict`; an untyped dict is rejected under strict mode.
     # An event is a mapping of `x`/`y`/`modifier_keys` style entries.
     "Event": "Dict[str, Any]",
+    # JSON is recursive: the reference spells the containers as `List[Any]` /
+    # `Dict[str, Any]`, which loses the element types. Quoting the self-reference
+    # is what makes the recursive alias legal.
+    "Value": 'Union[bool, str, int, float, List["Value"], Dict[str, "Value"], None]',
 }
 
 # --- docstring-only event handlers -------------------------------------------
