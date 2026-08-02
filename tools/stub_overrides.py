@@ -55,6 +55,14 @@ SKIP_MEMBERS = [
     "sublime_plugin.TextCommand.run",
 ]
 
+# Annotations for module level constants the reference assigns a bare literal, which
+# would otherwise leave their type to inference.
+CONSTANTS = {
+    # A popup flag predating `PopupFlags`, and the only one with no member of that
+    # enum to alias; references/python38/sublime.py:260.
+    "sublime.HTML": "int",
+}
+
 # Return type overrides, taking precedence over the annotation in the reference.
 # Mostly bare generics, which `reportMissingTypeArguments` rejects under strict mode.
 RETURNS = {

@@ -106,6 +106,7 @@ BUILTIN_GENERICS = {
 # reference changes: an entry naming a member that has since been renamed or
 # removed simply stops doing anything.
 VALUE_TABLES: dict[str, dict[str, str]] = {
+    "CONSTANTS": ov.CONSTANTS,
     "RETURNS": ov.RETURNS,
     "PARAMS": ov.PARAMS,
     "ATTRIBUTES": ov.ATTRIBUTES,
@@ -679,7 +680,9 @@ class ModuleGenerator:
         self.note("deprecated")
         self.lines.append(f'{indent}@deprecated("{message}")')
 
-    def emit_assignment(self, node: ast.stmt, indent: str, doc: str | None) -> bool:
+    def emit_assignment(
+        self, node: ast.stmt, indent: str, doc: str | None, *, module_level: bool = False
+    ) -> bool:
         """Emit a class or module level assignment verbatim. False if skipped."""
         if isinstance(node, ast.AnnAssign):
             if not isinstance(node.target, ast.Name):
@@ -693,7 +696,12 @@ class ModuleGenerator:
             if len(targets) != len(node.targets):
                 return False  # e.g. `sys.stdout = _LogWriter()`
             name = targets[0].id
-            text = f"{' = '.join(t.id for t in targets)} = {ast.unparse(node.value)}"
+            # A bare literal leaves a module constant's type to inference, which
+            # `PYI052` flags in a stub; a `CONSTANTS` entry supplies the annotation
+            # it asks for while keeping the value in view.
+            annotation = self.override("CONSTANTS", self.key(name)) if module_level else None
+            declared = f": {self.check_annotation(annotation, self.key(name))}" if annotation else ""
+            text = f"{' = '.join(t.id for t in targets)}{declared} = {ast.unparse(node.value)}"
         else:
             return False
 
@@ -891,7 +899,7 @@ class ModuleGenerator:
                     previous = current
                 else:
                     self.separate(previous, "assignment")
-                    _ = self.emit_assignment(node, "", None)
+                    _ = self.emit_assignment(node, "", None, module_level=True)
                     previous = "assignment"
 
         body = "\n".join(self.lines).rstrip() + "\n"
