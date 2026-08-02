@@ -523,7 +523,8 @@ class ModuleGenerator:
 
     # -- signatures
 
-    def render_signature(self, fn: ast.FunctionDef, qualname: str, in_class: bool) -> str:
+    def render_signature(self, fn: ast.FunctionDef, qualname: str, in_class: bool) -> list[str]:
+        """The rendered parameters, one per element, for `emit_def` to lay out."""
         args = fn.args
         positional = list(args.posonlyargs) + list(args.args)
         defaults: list[ast.expr | None] = [None] * (len(positional) - len(args.defaults))
@@ -547,7 +548,7 @@ class ModuleGenerator:
         if args.kwarg is not None:
             rendered.append("**" + self.render_arg(qualname, args.kwarg, None))
 
-        return ", ".join(rendered)
+        return rendered
 
     def resolve_arg(
         self, qualname: str, arg: ast.arg, default: ast.expr | None
@@ -611,19 +612,45 @@ class ModuleGenerator:
             self.note("override")
             self.lines.append(f"{indent}@override")
 
-        signature = self.render_signature(fn, qualname, in_class)
-        returns = self.render_return(fn, qualname)
-        doc = render_docstring(ast.get_docstring(fn, clean=True), indent + INDENT)
-        header = f"{indent}def {fn.name}({signature}) -> {returns}:"
+        self.emit_def(
+            indent,
+            fn.name,
+            self.render_signature(fn, qualname, in_class),
+            self.render_return(fn, qualname),
+            render_docstring(ast.get_docstring(fn, clean=True), indent + INDENT),
+        )
+
+    def emit_def(
+        self, indent: str, name: str, params: list[str], returns: str, doc: list[str]
+    ) -> None:
+        """Emit a `def` and its body, wrapping the signature if it does not fit."""
+        header = f"{indent}def {name}({', '.join(params)}) -> {returns}:"
+        closing = f"{indent}) -> {returns}:"
+        # A long return annotation cannot be broken up, so when it overflows on its
+        # own, wrapping a lone `self` onto a line of its own only adds noise.
+        wrapped = len(header) > STUB_LINE_WIDTH and (
+            len(closing) <= STUB_LINE_WIDTH or len(params) > 1
+        )
+        if wrapped:
+            # One parameter per line, as black would wrap it. Splitting the joined
+            # signature instead is not an option: `Callable[[str, int], None]`
+            # contains a comma of its own.
+            self.lines.append(f"{indent}def {name}(")
+            self.lines.extend(f"{indent}{INDENT}{param}," for param in params)
+            self.lines.append(closing)
+        else:
+            self.lines.append(header)
+
         # A docstring is already a complete body; only an undocumented declaration
         # needs the `...` to stand in for one. Without it the closing quotes are the
         # only thing separating one declaration from the next, hence the blank line.
         if doc:
-            self.lines.append(header)
             self.lines.extend(doc)
             self.blank()
+        elif wrapped:
+            self.lines.append(f"{indent}{INDENT}...")
         else:
-            self.lines.append(header + " ...")
+            self.lines[-1] += " ..."
 
     def emit_deprecation(self, fn: ast.FunctionDef, indent: str, qualname: str) -> None:
         """Turn the docstring's ``:deprecated:`` marker into a `@deprecated` decorator."""
@@ -788,17 +815,10 @@ class ModuleGenerator:
             override = self.override("EVENT_HANDLER_RETURNS", name)
             returns = modernize(override or ov.EVENT_HANDLER_DEFAULT_RETURN)
             qualname = self.key(cls.name, name)
-            signature = ", ".join(["self"] + [self.qualify(qualname, p) for p in params])
-            self.note(signature)
+            signature = ["self"] + [self.qualify(qualname, p) for p in params]
+            self.note(", ".join(signature))
             self.note(returns)
-            header = f"{indent}def {name}({signature}) -> {returns}:"
-            rendered = render_docstring(body, indent + INDENT)
-            if rendered:
-                self.lines.append(header)
-                self.lines.extend(rendered)
-                self.blank()
-            else:
-                self.lines.append(header + " ...")
+            self.emit_def(indent, name, signature, returns, render_docstring(body, indent + INDENT))
             emitted = True
         return emitted
 

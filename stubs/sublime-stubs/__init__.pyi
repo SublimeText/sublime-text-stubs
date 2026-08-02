@@ -652,7 +652,12 @@ def ok_cancel_dialog(msg: str, ok_title: str = ..., title: str = ...) -> bool:
     :returns: Whether the user pressed the *ok* button.
     """
 
-def yes_no_cancel_dialog(msg: str, yes_title: str = ..., no_title: str = ..., title: str = ...) -> DialogResult:
+def yes_no_cancel_dialog(
+    msg: str,
+    yes_title: str = ...,
+    no_title: str = ...,
+    title: str = ...,
+) -> DialogResult:
     """
     Show a *yes / no / cancel* question dialog.
 
@@ -662,7 +667,13 @@ def yes_no_cancel_dialog(msg: str, yes_title: str = ..., no_title: str = ..., ti
     :param title: Title for the dialog. Windows only. :since:`4099`
     """
 
-def open_dialog(callback: Callable[[str | list[str] | None], None], file_types: list[tuple[str, list[str]]] = ..., directory: str | None = ..., multi_select: bool = ..., allow_folders: bool = ...) -> None:
+def open_dialog(
+    callback: Callable[[str | list[str] | None], None],
+    file_types: list[tuple[str, list[str]]] = ...,
+    directory: str | None = ...,
+    multi_select: bool = ...,
+    allow_folders: bool = ...,
+) -> None:
     """
     Show the open file dialog.
 
@@ -680,7 +691,13 @@ def open_dialog(callback: Callable[[str | list[str] | None], None], file_types: 
                           `select_folder_dialog`.
     """
 
-def save_dialog(callback: Callable[[str | None], None], file_types: list[tuple[str, list[str]]] = ..., directory: str | None = ..., name: str | None = ..., extension: str | None = ...) -> None:
+def save_dialog(
+    callback: Callable[[str | None], None],
+    file_types: list[tuple[str, list[str]]] = ...,
+    directory: str | None = ...,
+    name: str | None = ...,
+    extension: str | None = ...,
+) -> None:
     """
     Show the save file dialog
 
@@ -695,7 +712,11 @@ def save_dialog(callback: Callable[[str | None], None], file_types: list[tuple[s
     :param extension: The default extension used in the save dialog.
     """
 
-def select_folder_dialog(callback: Callable[[str | list[str] | None], None], directory: str | None = ..., multi_select: bool = ...) -> None:
+def select_folder_dialog(
+    callback: Callable[[str | list[str] | None], None],
+    directory: str | None = ...,
+    multi_select: bool = ...,
+) -> None:
     """
     Show the select folder dialog.
 
@@ -708,7 +729,10 @@ def select_folder_dialog(callback: Callable[[str | list[str] | None], None], dir
                          the callback will be called with a list.
     """
 
-def choose_font_dialog(callback: Callable[[Value], None], default: dict[str, Value] | None = ...) -> None:
+def choose_font_dialog(
+    callback: Callable[[Value], None],
+    default: dict[str, Value] | None = ...,
+) -> None:
     """
     Show a dialog for selecting a font.
 
@@ -1023,7 +1047,13 @@ class Window:
     def active_view(self) -> View | None:
         """ :returns: The currently edited `View`. """
 
-    def new_html_sheet(self, name: str, contents: str, flags: NewFileFlags = ..., group: int = ...) -> Sheet:
+    def new_html_sheet(
+        self,
+        name: str,
+        contents: str,
+        flags: NewFileFlags = ...,
+        group: int = ...,
+    ) -> Sheet:
         """
         Construct a sheet with HTML contents rendered using `minihtml`.
 
@@ -1123,7 +1153,13 @@ class Window:
     def set_view_index(self, view: View, group: int, index: int) -> None:
         """ Move the given `View` to the given ``group`` at the given ``index``. """
 
-    def move_sheets_to_group(self, sheets: list[Sheet], group: int, insertion_idx: int = ..., select: bool = ...) -> None:
+    def move_sheets_to_group(
+        self,
+        sheets: list[Sheet],
+        group: int,
+        insertion_idx: int = ...,
+        select: bool = ...,
+    ) -> None:
         """
         Moves all provided sheets to specified group at insertion index
         provided. If an index is not provided defaults to last index of the
@@ -1224,7 +1260,12 @@ class Window:
     def destroy_output_panel(self, name: str) -> None:
         """ Destroy the named output panel, hiding it if currently open. """
 
-    def create_io_panel(self, name: str, on_input: Callable[[str], None], unlisted: bool = ...) -> tuple[View, View]:
+    def create_io_panel(
+        self,
+        name: str,
+        on_input: Callable[[str], None],
+        unlisted: bool = ...,
+    ) -> tuple[View, View]:
         """
         Just like `create_output_panel`, find the view(s) associated with the
         named output panel, creating it if required. The output panel will
@@ -1268,7 +1309,14 @@ class Window:
     def get_output_panel(self, name: str) -> View:
         """ :deprecated: Use `create_output_panel` instead. """
 
-    def show_input_panel(self, caption: str, initial_text: str, on_done: Callable[[str], None] | None, on_change: Callable[[str], None] | None, on_cancel: Callable[[], None] | None) -> View:
+    def show_input_panel(
+        self,
+        caption: str,
+        initial_text: str,
+        on_done: Callable[[str], None] | None,
+        on_change: Callable[[str], None] | None,
+        on_cancel: Callable[[], None] | None,
+    ) -> View:
         """
         Shows the input panel, to collect a line of input from the user.
 
@@ -1280,7 +1328,15 @@ class Window:
         :returns: The `View` used for the input widget.
         """
 
-    def show_quick_panel(self, items: list[str] | list[list[str]] | list[QuickPanelItem], on_select: Callable[[int], None], flags: QuickPanelFlags = ..., selected_index: int = ..., on_highlight: Callable[[int], None] | None = ..., placeholder: str | None = ...) -> None:
+    def show_quick_panel(
+        self,
+        items: list[str] | list[list[str]] | list[QuickPanelItem],
+        on_select: Callable[[int], None],
+        flags: QuickPanelFlags = ...,
+        selected_index: int = ...,
+        on_highlight: Callable[[int], None] | None = ...,
+        placeholder: str | None = ...,
+    ) -> None:
         """
         Show a quick panel to select an item in a list. on_select will be called
         once, with the index of the selected item. If the quick panel was
@@ -1379,7 +1435,14 @@ class Window:
                   duplicated into new windows.
         """
 
-    def symbol_locations(self, sym: str, source: SymbolSource = ..., type: SymbolType = ..., kind_id: KindId = ..., kind_letter: str = ...) -> list[SymbolLocation]:
+    def symbol_locations(
+        self,
+        sym: str,
+        source: SymbolSource = ...,
+        type: SymbolType = ...,
+        kind_id: KindId = ...,
+        kind_letter: str = ...,
+    ) -> list[SymbolLocation]:
         """
         Find all locations where the symbol ``sym`` is located.
 
@@ -1597,7 +1660,15 @@ class TextChange:
 
     :meta noindex:
     """
-    def __init__(self, pa: HistoricPosition, pb: HistoricPosition, len_utf16: int, len_utf8: int, s: builtins.str) -> None: ...
+    def __init__(
+        self,
+        pa: HistoricPosition,
+        pb: HistoricPosition,
+        len_utf16: int,
+        len_utf8: int,
+        s: builtins.str,
+    ) -> None:
+        ...
 
 class Selection:
     """
@@ -1795,7 +1866,13 @@ class ContextStackFrame:
     column. Maybe be ``(-1, -1)`` if the location is unclear, like in
     ``tmLanguage`` based syntaxes.
     """
-    def __init__(self, context_name: str, source_file: str, source_location: tuple[int, int]) -> None: ...
+    def __init__(
+        self,
+        context_name: str,
+        source_file: str,
+        source_location: tuple[int, int],
+    ) -> None:
+        ...
 
 class View:
     """
@@ -2023,7 +2100,14 @@ class View:
         :returns: The first `Region` matching the provided pattern.
         """
 
-    def find_all(self, pattern: str, flags: FindFlags = ..., fmt: str | None = ..., extractions: list[str] | None = ..., within: Region | list[Region] | None = ...) -> list[Region]:
+    def find_all(
+        self,
+        pattern: str,
+        flags: FindFlags = ...,
+        fmt: str | None = ...,
+        extractions: list[str] | None = ...,
+        within: Region | list[Region] | None = ...,
+    ) -> list[Region]:
         """
         :param pattern: The regex or literal pattern to search by.
         :param flags: Controls various behaviors of find. See `FindFlags`.
@@ -2181,7 +2265,14 @@ class View:
     def classify(self, pt: Point) -> PointClassification:
         """ Classify the provided `Point`. See `PointClassification`. """
 
-    def find_by_class(self, pt: Point, forward: bool, classes: PointClassification, separators: str = ..., sub_word_separators: str = ...) -> Point:
+    def find_by_class(
+        self,
+        pt: Point,
+        forward: bool,
+        classes: PointClassification,
+        separators: str = ...,
+        sub_word_separators: str = ...,
+    ) -> Point:
         """
         Find the next location that matches the provided `PointClassification`.
 
@@ -2194,7 +2285,13 @@ class View:
         :returns: The found point.
         """
 
-    def expand_by_class(self, x: Region | Point, classes: PointClassification, separators: str = ..., sub_word_separators: str = ...) -> Region:
+    def expand_by_class(
+        self,
+        x: Region | Point,
+        classes: PointClassification,
+        separators: str = ...,
+        sub_word_separators: str = ...,
+    ) -> Region:
         """
         Expand the provided `Point` or `Region` to the left and right until each
         side lands on a location that matches the provided
@@ -2286,7 +2383,13 @@ class View:
     def visible_region(self) -> Region:
         """ :returns: The currently visible area of the view. """
 
-    def show(self, location: Region | Selection | Point, show_surrounds: bool = ..., keep_to_left: bool = ..., animate: bool = ...) -> None:
+    def show(
+        self,
+        location: Region | Selection | Point,
+        show_surrounds: bool = ...,
+        keep_to_left: bool = ...,
+        animate: bool = ...,
+    ) -> None:
         """
         Scroll the view to show the given location.
 
@@ -2366,7 +2469,18 @@ class View:
         :returns: The unfolded regions.
         """
 
-    def add_regions(self, key: str, regions: list[Region], scope: str = ..., icon: str = ..., flags: RegionFlags = ..., annotations: list[str] = ..., annotation_color: str = ..., on_navigate: Callable[[str], None] | None = ..., on_close: Callable[[], None] | None = ...) -> None:
+    def add_regions(
+        self,
+        key: str,
+        regions: list[Region],
+        scope: str = ...,
+        icon: str = ...,
+        flags: RegionFlags = ...,
+        annotations: list[str] = ...,
+        annotation_color: str = ...,
+        on_navigate: Callable[[str], None] | None = ...,
+        on_close: Callable[[], None] | None = ...,
+    ) -> None:
         """
         Adds visual indicators to regions of text in the view. Indicators
         include icons in the gutter, underlines under the text, borders around
@@ -2428,7 +2542,15 @@ class View:
     def erase_regions(self, key: str) -> None:
         """ Remove the regions associated with the given ``key``. """
 
-    def add_phantom(self, key: str, region: Region, content: str, layout: PhantomLayout, on_navigate: Callable[[str], None] | None = ...) -> int: ...
+    def add_phantom(
+        self,
+        key: str,
+        region: Region,
+        content: str,
+        layout: PhantomLayout,
+        on_navigate: Callable[[str], None] | None = ...,
+    ) -> int:
+        ...
     def erase_phantoms(self, key: str) -> None: ...
     def erase_phantom_by_id(self, pid: int) -> None: ...
     def query_phantom(self, pid: int) -> list[Region]: ...
@@ -2521,7 +2643,11 @@ class View:
 
     def find_all_results(self) -> list[tuple[str, int, int]]: ...
     def find_all_results_with_text(self) -> list[tuple[str, int, int, str]]: ...
-    def command_history(self, index: int, modifying_only: bool = ...) -> tuple[str, CommandArgs, int]:
+    def command_history(
+        self,
+        index: int,
+        modifying_only: bool = ...,
+    ) -> tuple[str, CommandArgs, int]:
         """
         Get info on previous run commands stored in the undo/redo stack.
 
@@ -2545,7 +2671,12 @@ class View:
     def set_overwrite_status(self, value: bool) -> None:
         """ Set the overwrite status. See `overwrite_status()`. """
 
-    def show_popup_menu(self, items: list[str], on_done: Callable[[int], None], flags: int = ...) -> None:
+    def show_popup_menu(
+        self,
+        items: list[str],
+        on_done: Callable[[int], None],
+        flags: int = ...,
+    ) -> None:
         """
         Show a popup menu at the caret, for selecting an item in a list.
 
@@ -2555,7 +2686,16 @@ class View:
         :param flags: must be ``0``, currently unused.
         """
 
-    def show_popup(self, content: str, flags: PopupFlags = ..., location: Point = ..., max_width: DIP = ..., max_height: DIP = ..., on_navigate: Callable[[str], None] | None = ..., on_hide: Callable[[], None] | None = ...) -> None:
+    def show_popup(
+        self,
+        content: str,
+        flags: PopupFlags = ...,
+        location: Point = ...,
+        max_width: DIP = ...,
+        max_height: DIP = ...,
+        on_navigate: Callable[[str], None] | None = ...,
+        on_hide: Callable[[], None] | None = ...,
+    ) -> None:
         """
         Show a popup displaying HTML content.
 
@@ -2593,7 +2733,14 @@ class View:
         .. since:: 4073
         """
 
-    def export_to_html(self, regions: Region | list[Region] | None = ..., minihtml: bool = ..., enclosing_tags: bool = ..., font_size: bool = ..., font_family: bool = ...) -> str:
+    def export_to_html(
+        self,
+        regions: Region | list[Region] | None = ...,
+        minihtml: bool = ...,
+        enclosing_tags: bool = ...,
+        font_size: bool = ...,
+        font_family: bool = ...,
+    ) -> str:
         """
         Generates an HTML string of the current view contents, including styling
         for syntax highlighting.
@@ -2705,7 +2852,12 @@ class Settings:
         .. since:: 4023 3.8
         """
 
-    def update(self, other: Settings | dict[str, Value] | Iterable[tuple[str, Value]] = ..., /, **kwargs: Value) -> None:
+    def update(
+        self,
+        other: Settings | dict[str, Value] | Iterable[tuple[str, Value]] = ...,
+        /,
+        **kwargs: Value,
+    ) -> None:
         """
         Update the settings from the provided argument(s).
 
@@ -2768,10 +2920,19 @@ class Phantom:
     attribute is passed.
     """
     id: int | None
-    def __init__(self, region: Region, content: str, layout: PhantomLayout, on_navigate: Callable[[str], None] | None = ...) -> None: ...
+    def __init__(
+        self,
+        region: Region,
+        content: str,
+        layout: PhantomLayout,
+        on_navigate: Callable[[str], None] | None = ...,
+    ) -> None:
+        ...
     @override
     def __eq__(self, rhs: object) -> bool: ...
-    def to_tuple(self) -> tuple[tuple[Point, Point], str, PhantomLayout, Callable[[str], None] | None]:
+    def to_tuple(
+        self,
+    ) -> tuple[tuple[Point, Point], str, PhantomLayout, Callable[[str], None] | None]:
         """
         Returns a tuple of this phantom containing the region, content, layout
         and callback.
@@ -2817,7 +2978,11 @@ class CompletionList:
     target: int | None
     completions: list[CompletionValue] | None
     flags: AutoCompleteFlags
-    def __init__(self, completions: list[CompletionValue] | None = ..., flags: AutoCompleteFlags = ...) -> None:
+    def __init__(
+        self,
+        completions: list[CompletionValue] | None = ...,
+        flags: AutoCompleteFlags = ...,
+    ) -> None:
         """
         :param completions:
             If ``None`` is passed, the method `set_completions()` must be called
@@ -2825,7 +2990,11 @@ class CompletionList:
         :param flags: Flags controlling auto-complete behavior. See `AutoCompleteFlags`.
         """
 
-    def set_completions(self, completions: list[CompletionValue], flags: AutoCompleteFlags = ...) -> None:
+    def set_completions(
+        self,
+        completions: list[CompletionValue],
+        flags: AutoCompleteFlags = ...,
+    ) -> None:
         """
         Sets the list of completions, allowing the list to be displayed to the
         user.
@@ -2864,18 +3033,43 @@ class CompletionItem:
     .. since:: 4073
     """
     flags: CompletionItemFlags
-    def __init__(self, trigger: str, annotation: str = ..., completion: str = ..., completion_format: CompletionFormat = ..., kind: Kind = ..., details: str = ..., flags: CompletionItemFlags = ...) -> None: ...
+    def __init__(
+        self,
+        trigger: str,
+        annotation: str = ...,
+        completion: str = ...,
+        completion_format: CompletionFormat = ...,
+        kind: Kind = ...,
+        details: str = ...,
+        flags: CompletionItemFlags = ...,
+    ) -> None:
+        ...
     @override
     def __eq__(self, rhs: object) -> bool: ...
     @classmethod
-    def snippet_completion(cls, trigger: str, snippet: str, annotation: str = ..., kind: Kind = ..., details: str = ...) -> 'CompletionItem':
+    def snippet_completion(
+        cls,
+        trigger: str,
+        snippet: str,
+        annotation: str = ...,
+        kind: Kind = ...,
+        details: str = ...,
+    ) -> 'CompletionItem':
         """
         Specialized constructor for snippet completions. The `completion_format`
         is always `CompletionFormat.SNIPPET`.
         """
 
     @classmethod
-    def command_completion(cls, trigger: str, command: str, args: CommandArgs | None = ..., annotation: str = ..., kind: Kind = ..., details: str = ...) -> 'CompletionItem':
+    def command_completion(
+        cls,
+        trigger: str,
+        command: str,
+        args: CommandArgs | None = ...,
+        annotation: str = ...,
+        kind: Kind = ...,
+        details: str = ...,
+    ) -> 'CompletionItem':
         """
         Specialized constructor for command completions. The `completion_format`
         is always `CompletionFormat.COMMAND`.
@@ -2953,7 +3147,14 @@ class QuickPanelItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
-    def __init__(self, trigger: str, details: str | list[str] | tuple[str] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
+    def __init__(
+        self,
+        trigger: str,
+        details: str | list[str] | tuple[str] = ...,
+        annotation: str = ...,
+        kind: Kind = ...,
+    ) -> None:
+        ...
 
 class ListInputItem:
     """
@@ -2971,7 +3172,15 @@ class ListInputItem:
     """ Hint to draw to the right-hand side of the row. """
     kind: Kind
     """ The kind of the item. See `Kind`. """
-    def __init__(self, text: str, value: Any, details: str | list[str] | tuple[str] = ..., annotation: str = ..., kind: Kind = ...) -> None: ...
+    def __init__(
+        self,
+        text: str,
+        value: Any,
+        details: str | list[str] | tuple[str] = ...,
+        annotation: str = ...,
+        kind: Kind = ...,
+    ) -> None:
+        ...
 
 class SymbolRegion:
     """
@@ -2989,7 +3198,15 @@ class SymbolRegion:
     """ The type of the symbol. See `SymbolType`. """
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
-    def __init__(self, name: str, region: Region, syntax: str, type: SymbolType, kind: Kind) -> None: ...
+    def __init__(
+        self,
+        name: str,
+        region: Region,
+        syntax: str,
+        type: SymbolType,
+        kind: Kind,
+    ) -> None:
+        ...
 
 class SymbolLocation:
     """
@@ -3011,5 +3228,15 @@ class SymbolLocation:
     """ The type of the symbol. See `SymbolType`. """
     kind: Kind
     """ The kind of the symbol. See `Kind`. """
-    def __init__(self, path: str, display_name: str, row: int, col: int, syntax: str, type: SymbolType, kind: Kind) -> None: ...
+    def __init__(
+        self,
+        path: str,
+        display_name: str,
+        row: int,
+        col: int,
+        syntax: str,
+        type: SymbolType,
+        kind: Kind,
+    ) -> None:
+        ...
     def path_encoded_position(self) -> str: ...

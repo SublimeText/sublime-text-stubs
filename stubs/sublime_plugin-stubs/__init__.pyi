@@ -702,7 +702,12 @@ class EventListener:
         does not block the application.
         """
 
-    def on_hover(self, view: sublime.View, point: sublime.Point, hover_zone: sublime.HoverZone) -> None:
+    def on_hover(
+        self,
+        view: sublime.View,
+        point: sublime.Point,
+        hover_zone: sublime.HoverZone,
+    ) -> None:
         """
         Called when the user's mouse hovers over the view for a short period.
 
@@ -715,7 +720,14 @@ class EventListener:
             Which element in Sublime Text the mouse has hovered over.
         """
 
-    def on_query_context(self, view: sublime.View, key: str, operator: sublime.QueryOperator, operand: str, match_all: bool) -> bool | None:
+    def on_query_context(
+        self,
+        view: sublime.View,
+        key: str,
+        operator: sublime.QueryOperator,
+        operand: str,
+        match_all: bool,
+    ) -> bool | None:
         """
         Called when determining to trigger a key binding with the given context
         key. If the plugin knows how to respond to the context, it should
@@ -739,7 +751,12 @@ class EventListener:
             ``None``.
         """
 
-    def on_query_completions(self, view: sublime.View, prefix: str, locations: list[sublime.Point]) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
+    def on_query_completions(
+        self,
+        view: sublime.View,
+        prefix: str,
+        locations: list[sublime.Point],
+    ) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
         """
         Called whenever completions are to be presented to the user.
 
@@ -752,24 +769,44 @@ class EventListener:
         :returns: A list of completions in one of the valid formats or ``None`` if no completions are provided.
         """
 
-    def on_text_command(self, view: sublime.View, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
+    def on_text_command(
+        self,
+        view: sublime.View,
+        command_name: str,
+        args: sublime.CommandArgs,
+    ) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a text command is issued. The listener may return a
         (command, arguments) tuple to rewrite the command, or ``None`` to run
         the command unmodified.
         """
 
-    def on_window_command(self, window: sublime.Window, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
+    def on_window_command(
+        self,
+        window: sublime.Window,
+        command_name: str,
+        args: sublime.CommandArgs,
+    ) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a window command is issued. The listener may return a
         (command, arguments) tuple to rewrite the command, or ``None`` to run
         the command unmodified.
         """
 
-    def on_post_text_command(self, view: sublime.View, command_name: str, args: sublime.CommandArgs) -> None:
+    def on_post_text_command(
+        self,
+        view: sublime.View,
+        command_name: str,
+        args: sublime.CommandArgs,
+    ) -> None:
         """ Called after a text command has been executed. """
 
-    def on_post_window_command(self, window: sublime.Window, command_name: str, args: sublime.CommandArgs) -> None:
+    def on_post_window_command(
+        self,
+        window: sublime.Window,
+        command_name: str,
+        args: sublime.CommandArgs,
+    ) -> None:
         """ Called after a window command has been executed. """
 
     def on_new_window(self, window: sublime.Window) -> None:
@@ -1210,7 +1247,13 @@ class ViewEventListener:
             Which element in Sublime Text the mouse has hovered over.
         """
 
-    def on_query_context(self, key: str, operator: sublime.QueryOperator, operand: str, match_all: bool) -> bool | None:
+    def on_query_context(
+        self,
+        key: str,
+        operator: sublime.QueryOperator,
+        operand: str,
+        match_all: bool,
+    ) -> bool | None:
         """
         Called when determining to trigger a key binding with the given context
         key. If the plugin knows how to respond to the context, it should
@@ -1231,7 +1274,11 @@ class ViewEventListener:
                   return ``None``.
         """
 
-    def on_query_completions(self, prefix: str, locations: list[sublime.Point]) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
+    def on_query_completions(
+        self,
+        prefix: str,
+        locations: list[sublime.Point],
+    ) -> list[sublime.CompletionValue] | tuple[list[sublime.CompletionValue], sublime.AutoCompleteFlags] | sublime.CompletionList | None:
         """
         Called whenever completions are to be presented to the user.
 
@@ -1244,7 +1291,11 @@ class ViewEventListener:
         :returns: A list of completions in one of the valid formats or ``None`` if no completions are provided.
         """
 
-    def on_text_command(self, command_name: str, args: sublime.CommandArgs) -> tuple[str, sublime.CommandArgs] | None:
+    def on_text_command(
+        self,
+        command_name: str,
+        args: sublime.CommandArgs,
+    ) -> tuple[str, sublime.CommandArgs] | None:
         """
         Called when a text command is issued. The listener may return a
         `` (command, arguments)`` tuple to rewrite the command, or ``None`` to
