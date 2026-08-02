@@ -5,10 +5,9 @@ Not executed. See the module docstring of `check_sublime.py`.
 
 from typing import Dict, List, Optional, Tuple
 
-from typing_extensions import override
-
 import sublime
 import sublime_plugin
+from typing_extensions import override
 
 
 class DemoTextCommand(sublime_plugin.TextCommand):
@@ -68,7 +67,7 @@ class DemoEventListener(sublime_plugin.EventListener):
     def on_post_save(self, view: sublime.View) -> None:
         name: Optional[str] = view.file_name()
         if name is not None:
-            sublime.status_message("saved {}".format(name))
+            sublime.status_message(f"saved {name}")
 
     @override
     def on_hover(

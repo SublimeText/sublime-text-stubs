@@ -11,16 +11,13 @@ from sublime_types import Value as ValueFromTypesModule
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
-    regions: List[sublime.Region] = []
-    for region in view.sel():
-        regions.append(view.word(region))
-    return regions
+    return [view.word(region) for region in view.sel()]
 
 
 def describe_cursor(view: sublime.View) -> str:
     point: sublime.Point = view.sel()[0].begin()
     row, col = view.rowcol(point)
-    return "{}:{}".format(row + 1, col + 1)
+    return f"{row + 1}:{col + 1}"
 
 
 def current_file_name() -> Optional[str]:
@@ -105,7 +102,7 @@ def quick_panel(window: sublime.Window) -> None:
         sublime.QuickPanelItem(folder, details=folder, kind=sublime.KIND_NAVIGATION)
         for folder in window.folders()
     ]
-    window.show_quick_panel(items, lambda index: None, placeholder="Pick a folder")
+    window.show_quick_panel(items, lambda _index: None, placeholder="Pick a folder")
 
 
 def phantoms(view: sublime.View) -> sublime.PhantomSet:
