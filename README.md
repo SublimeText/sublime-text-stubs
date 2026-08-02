@@ -171,14 +171,21 @@ Configuration notes:
   which flags `typing.List` and `typing.Optional`
   even though the Python 3.8 target requires them.
   The `tools/` sub-project has no such constraint.
-- The root `basedpyrightconfig.json` is currently inert.
-  basedpyright only reads `pyrightconfig.json`
-  or a `[tool.basedpyright]` / `[tool.pyright]` table in `pyproject.toml`;
-  there is no `basedpyrightconfig.json`.
-  The root `basedpyright` run therefore uses `[tool.pyright]`,
-  and the extra rules in that file never take effect.
-  `tools/` avoids the trap by declaring `[tool.basedpyright]`,
-  which is legal there because that file has no `[tool.pyright]` section.
+- pyright and basedpyright share the single `[tool.pyright]` section.
+  A second `[tool.basedpyright]` section is not an option:
+  basedpyright rejects a `pyproject.toml` carrying both
+  (`Config file could not be parsed`)
+  and then silently falls back to its defaults.
+  basedpyright does honour its own extra rules from `[tool.pyright]`,
+  so the two settings plain pyright does not know
+  -- `reportPrivateLocalImportUsage` and `reportImplicitRelativeImport` --
+  live there too.
+  pyright logs `Config contains unrecognized setting` for them and carries on.
+  There is no `basedpyrightconfig.json`;
+  basedpyright never reads such a file,
+  so settings placed in one are silently ignored.
+  `tools/` can use `[tool.basedpyright]`
+  only because its `pyproject.toml` has no `[tool.pyright]` section.
 - mypy 2.x refuses to target anything below Python 3.10,
   so `python_version` is set to `3.10` there.
   pyright, basedpyright and ty still enforce 3.8,

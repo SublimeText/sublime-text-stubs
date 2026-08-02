@@ -49,6 +49,15 @@ BARE_GENERICS = {
     "Dict", "List", "Set", "FrozenSet", "Tuple", "Type", "Callable", "Iterator", "Iterable",
 }
 
+# Methods `object` defines, so redeclaring one is an override even for a class with
+# no base of its own; `reportImplicitOverride` wants `@override` on those too.
+# `__init__` and `__new__` are left out: the rule exempts constructors.
+OBJECT_METHODS = {
+    "__delattr__", "__dir__", "__eq__", "__format__", "__getattribute__", "__hash__",
+    "__ne__", "__reduce__", "__reduce_ex__", "__repr__", "__setattr__", "__sizeof__",
+    "__str__",
+}
+
 # Modules imported plainly when the generated body refers to them.
 MODULE_IMPORTS = ["builtins", "enum", "sublime"]
 
@@ -504,7 +513,8 @@ class ModuleGenerator:
 
         # Only methods actually present in the stub count as overridable: the
         # reference declares `Command.run`, but the stubs deliberately do not.
-        inherited: set[str] = set()
+        # Everything inherits from `object`, whether the reference says so or not.
+        inherited: set[str] = set(OBJECT_METHODS)
         for base in self.ref.bases.get((self.module, cls.name), []):
             inherited |= self.emitted_methods.get(base, set())
         own: set[str] = set()

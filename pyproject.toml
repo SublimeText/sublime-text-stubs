@@ -52,6 +52,12 @@ include = ["stubs", "tests", "tools", "README.md", "CHANGELOG.md", "LICENSE"]
 # this branch targets (ST build 4200 ships Python 3.8), not the interpreter used to
 # run the checkers.
 
+# Shared by pyright and basedpyright. basedpyright reads `[tool.pyright]` and honours
+# its own extra rules from it; a separate `[tool.basedpyright]` section is not an
+# option, because basedpyright rejects a pyproject.toml that carries both sections
+# ("Config file could not be parsed") and silently falls back to its defaults.
+# The two basedpyright-only settings below therefore make plain pyright log
+# "Config contains unrecognized setting"; it ignores them and carries on.
 [tool.pyright]
 include = ["stubs", "tests"]
 extraPaths = ["stubs"]
@@ -62,6 +68,15 @@ exclude = ["references", "tools", "**/__pycache__", ".venv"]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"
 reportMissingModuleSource = false
+reportImplicitOverride = "error"
+reportImplicitStringConcatenation = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportPrivateLocalImportUsage = "error"  # basedpyright only
+reportImplicitRelativeImport = "error"  # basedpyright only
+# basedpyright's `typeCheckingMode = "all"` is unusable on this branch precisely
+# because it turns this on: the 3.8 target requires `typing.List` / `typing.Optional`,
+# which typeshed marks deprecated.
+reportDeprecated = false
 
 [tool.mypy]
 # mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target
