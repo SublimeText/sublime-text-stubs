@@ -371,6 +371,11 @@ def modernize(annotation: str) -> str:
         tree: ast.expr = ast.parse(annotation, mode="eval").body
     except SyntaxError:
         return annotation
+    if isinstance(tree, ast.Constant) and isinstance(tree.value, str):
+        # The reference quotes forward references, and every `sublime_types` alias,
+        # so that they stay lazily evaluated at runtime. A stub is never evaluated,
+        # so there the quotes only get in the way (`PYI020`, `UP037`).
+        return modernize(tree.value)
     original = ast.unparse(tree)  # before the transformer mutates the tree in place
     # `NodeTransformer.visit` is typed as returning `Any`.
     transformed = cast("ast.expr", _Modernizer().visit(tree))
@@ -914,11 +919,8 @@ class ModuleGenerator:
             value = modernize(override)
         else:
             assert node.value is not None
-            value = ast.unparse(node.value)
-            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                # The reference quotes every alias to keep it lazily evaluated.
-                value = node.value.value
-            value = self.check_annotation(value, self.key(name))
+            # `modernize` unquotes the string the reference wraps every alias in.
+            value = self.check_annotation(ast.unparse(node.value), self.key(name))
         self.note(value)
         self.note("TypeAlias")
         self.lines.append(f"{name}: TypeAlias = {value}")

@@ -3059,7 +3059,7 @@ class CompletionItem:
         annotation: str = ...,
         kind: Kind = ...,
         details: str = ...,
-    ) -> 'CompletionItem':
+    ) -> CompletionItem:
         """
         Specialized constructor for snippet completions. The `completion_format`
         is always `CompletionFormat.SNIPPET`.
@@ -3074,7 +3074,7 @@ class CompletionItem:
         annotation: str = ...,
         kind: Kind = ...,
         details: str = ...,
-    ) -> 'CompletionItem':
+    ) -> CompletionItem:
         """
         Specialized constructor for command completions. The `completion_format`
         is always `CompletionFormat.COMMAND`.
