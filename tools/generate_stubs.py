@@ -27,7 +27,7 @@ import difflib
 import inspect
 import re
 import sys
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
 import stub_overrides as ov
@@ -73,7 +73,7 @@ TYPING_NAMES = [
     "Optional", "Sequence", "Set", "Tuple", "Union",
 ]
 
-TYPING_EXTENSIONS_NAMES = ["TypeAlias", "override"]
+TYPING_EXTENSIONS_NAMES = ["TypeAlias", "deprecated", "override"]
 
 
 class Unresolved(Exception):
@@ -126,6 +126,35 @@ def attribute_docstring(body: Sequence[ast.stmt], index: int) -> str | None:
     return None
 
 
+# The reference marks superseded members with a `:deprecated:` field in the
+# docstring, e.g. ``:deprecated: Use `get_clipboard_async` instead. :since:`4075```.
+# It is always a single line; a trailing `:since:` role may share it.
+DEPRECATION_MARKER = re.compile(r"^:deprecated:[^\S\n]*(.*)$", re.MULTILINE)
+RST_ROLE = re.compile(r":[a-z]+:`[^`]*`")
+RST_LITERAL = re.compile(r"`([^`]+)`")
+
+
+def deprecation_message(doc: str | None, is_callable: Callable[[str], bool]) -> str | None:
+    """The prose of the docstring's ``:deprecated:`` marker, or ``None`` if it has none.
+
+    The reStructuredText markup is stripped so the message reads as plain prose in
+    a type checker's diagnostic. A ```name``` reference is spelled ``name()`` when
+    the reference knows it as a function or method, since that is what these
+    messages point at.
+    """
+    match = DEPRECATION_MARKER.search(doc or "")
+    if match is None:
+        return None
+    text = RST_ROLE.sub("", match.group(1))
+
+    def literal(reference: re.Match[str]) -> str:
+        name = reference.group(1)
+        return f"{name}()" if is_callable(name) else name
+
+    text = RST_LITERAL.sub(literal, text)
+    return text.strip().rstrip(".").strip()
+
+
 # --- reference model ---------------------------------------------------------
 
 
@@ -141,9 +170,13 @@ class Reference:
         self.classes: dict[str, set[str]] = {}  # module -> class names
         self.bases: dict[tuple[str, str], list[str]] = {}
         self.methods: dict[tuple[str, str], set[str]] = {}
+        self.functions: dict[str, set[str]] = {}  # module -> top level function names
 
         for module, tree in self.trees.items():
             names: set[str] = set()
+            self.functions[module] = {
+                n.name for n in tree.body if isinstance(n, ast.FunctionDef)
+            }
             for node in tree.body:
                 if not isinstance(node, ast.ClassDef):
                     continue
@@ -168,6 +201,13 @@ class Reference:
         for node in self.trees["sublime"].body:
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
                 self.sublime_names.add(node.name)
+
+
+    def knows_callable(self, module: str, class_name: str | None, name: str) -> bool:
+        """Whether the reference knows ``name`` as a module function or as a method."""
+        if class_name is not None and name in self.methods.get((module, class_name), set()):
+            return True
+        return name in self.functions.get(module, set())
 
 
 def attribute_names(cls: ast.ClassDef) -> set[str]:
@@ -398,6 +438,9 @@ class ModuleGenerator:
                 self.problems.add(qualname, f"unsupported decorator @{name}", "the generator")
                 continue
             self.lines.append(f"{indent}@{name}")
+        # typeshed's convention: below `@classmethod` / `@staticmethod` / `@property`,
+        # above `@override`.
+        self.emit_deprecation(fn, indent, qualname)
         if needs_override:
             self.note("override")
             self.lines.append(f"{indent}@override")
@@ -412,6 +455,26 @@ class ModuleGenerator:
             self.lines.append(f"{indent}{INDENT}...")
         else:
             self.lines.append(header + " ...")
+
+    def emit_deprecation(self, fn: ast.FunctionDef, indent: str, qualname: str) -> None:
+        """Turn the docstring's ``:deprecated:`` marker into a `@deprecated` decorator."""
+        parts = qualname.split(".")
+        class_name = parts[1] if len(parts) == 3 else None
+        message = deprecation_message(
+            ast.get_docstring(fn, clean=True),
+            lambda name: self.ref.knows_callable(self.module, class_name, name),
+        )
+        if message is None:
+            return
+        if not message or '"' in message:
+            self.problems.add(
+                qualname,
+                f"`:deprecated:` marker yields no usable message: {message!r}",
+                "the generator -- teach it this marker's shape",
+            )
+            return
+        self.note("deprecated")
+        self.lines.append(f'{indent}@deprecated("{message}")')
 
     def emit_assignment(self, node: ast.stmt, indent: str, doc: str | None) -> bool:
         """Emit a class or module level assignment verbatim. False if skipped."""

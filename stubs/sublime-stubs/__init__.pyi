@@ -4,7 +4,7 @@
 import builtins
 import enum
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union
-from typing_extensions import override
+from typing_extensions import deprecated, override
 from sublime_types import CommandArgs as CommandArgs, CompletionValue as CompletionValue, DIP as DIP, Kind as Kind, Point as Point, Value as Value, Vector as Vector
 
 
@@ -778,6 +778,7 @@ def get_clipboard_async(callback: Callable[[str], None], size_limit: int = ...) 
     """
     ...
 
+@deprecated("Use get_clipboard_async() instead")
 def get_clipboard(size_limit: int = ...) -> str:
     """
     Get the contents of the clipboard.
@@ -1251,6 +1252,7 @@ class Window:
     def layout(self) -> dict[str, Value]:
         """ Get the group layout of the window. """
         ...
+    @deprecated("Use layout() instead")
     def get_layout(self) -> dict[str, Value]:
         """ :deprecated: Use `layout()` instead """
         ...
@@ -1318,6 +1320,7 @@ class Window:
         panels.
         """
         ...
+    @deprecated("Use create_output_panel() instead")
     def get_output_panel(self, name: str) -> View:
         """ :deprecated: Use `create_output_panel` instead. """
         ...
@@ -1446,24 +1449,28 @@ class Window:
         :return: the found symbol locations.
         """
         ...
+    @deprecated("Use symbol_locations() instead")
     def lookup_symbol_in_index(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is defined across files in the current project.
         :deprecated: Use `symbol_locations()` instead.
         """
         ...
+    @deprecated("Use symbol_locations() instead")
     def lookup_symbol_in_open_files(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is defined across open files.
         :deprecated: Use `symbol_locations()` instead.
         """
         ...
+    @deprecated("Use symbol_locations() instead")
     def lookup_references_in_index(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is referenced across files in the current project.
         :deprecated: Use `symbol_locations()` instead.
         """
         ...
+    @deprecated("Use symbol_locations() instead")
     def lookup_references_in_open_files(self, symbol: str) -> list[SymbolLocation]:
         """
         :returns: All locations where the symbol is referenced across open files.
@@ -2523,12 +2530,14 @@ class View:
             ``syntax`` may be a `Syntax` object.
         """
         ...
+    @deprecated("Use assign_syntax() instead")
     def set_syntax_file(self, syntax_file: str) -> None:
         """ :deprecated: Use `assign_syntax()` instead. """
         ...
     def syntax(self) -> Optional[Syntax]:
         """ :returns: The syntax assigned to the buffer. """
         ...
+    @deprecated("Use symbol_regions() instead")
     def symbols(self) -> list[tuple[Region, str]]:
         """
         Extract all the symbols defined in the buffer.
@@ -2536,9 +2545,11 @@ class View:
         :deprecated: Use `symbol_regions()` instead.
         """
         ...
+    @deprecated("Use symbol_regions() instead")
     def get_symbols(self) -> list[tuple[Region, str]]:
         """ :deprecated: Use `symbol_regions()` instead. """
         ...
+    @deprecated("Use indexed_symbol_regions() instead")
     def indexed_symbols(self) -> list[tuple[Region, str]]:
         """
         :returns: A list of the `Region` and name of symbols.
@@ -2547,6 +2558,7 @@ class View:
         .. since:: 3148
         """
         ...
+    @deprecated("Use indexed_symbol_regions() instead")
     def indexed_references(self) -> list[tuple[Region, str]]:
         """
         :returns: A list of the `Region` and name of symbols.

@@ -30,6 +30,11 @@ not semantic versioning; see the README.
   accepts a list or tuple of strings besides a plain string,
   matching the `details` attribute of those classes
   and what the runtime actually handles.
+- Members whose reference docstring carries a `:deprecated:` marker
+  are decorated with `typing_extensions.deprecated`,
+  carrying the marker's prose as the message,
+  so checkers and editors flag their use
+  and point at the replacement.
 - `tools/generate_stubs.py`,
   which derives the stubs from `references/`
   and is verified in CI to reproduce the committed files byte for byte.

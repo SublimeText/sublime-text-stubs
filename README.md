@@ -120,6 +120,11 @@ and it has nowhere to record the strict-mode type corrections.
   (registries, host callbacks, the `.sublime-package` importer).
 - **Implicit optionals are made explicit**:
   the reference writes `on_navigate: Callable[[str], None] = None` in places.
+- **Deprecations live in the prose**:
+  a superseded member is only marked by a `:deprecated:` field in its docstring,
+  so the generator parses that field,
+  strips the reStructuredText markup from it
+  and emits `@typing_extensions.deprecated` with the remaining message.
 - **Shadowed builtins are qualified**:
   `TextChange.str` shadows `str` for the rest of that class body,
   so annotations there are emitted as `builtins.str`.
