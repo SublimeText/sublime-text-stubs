@@ -45,7 +45,7 @@ packages = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["stubs", "tests", "tools", "README.md", "CHANGELOG.md", "LICENSE"]
+include = ["stubs", "tests", "tools", "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "LICENSE"]
 
 # --- type checkers -----------------------------------------------------------
 # `pythonVersion` / `python_version` below is the Sublime Text embedded interpreter

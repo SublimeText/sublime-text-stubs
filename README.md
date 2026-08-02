@@ -44,256 +44,42 @@ sublime-text-stubs = "==1.4200.*"
 Sublime Text 4 also still ships a legacy Python 3.3 runtime.
 It is scheduled for removal and is not targeted by this package.
 
-## Repository layout
+## Notes for plugin authors
 
-Each supported Sublime Text build line lives on its own branch,
-because the build lines target different Python versions
-and therefore need different stub syntax and type checker settings:
-
-- `main` -- ST build 4200, Python 3.8, tagged `v1.4200.x`
-- (planned) `st-4206` -- ST build 4206, Python 3.14, tagged `v1.4206.x`
-
-Fixes that apply to more than one build line
-are cherry-picked between branches,
-so keep such commits small and self-contained.
-
-## Regenerating the stubs
-
-**The `.pyi` files under `stubs/` are generated. Do not edit them.**
-Corrections belong in `tools/generate_stubs.py`
-or in the declarative override tables in `tools/stub_overrides.py`.
-
-```sh
-uv run python tools/generate_stubs.py            # rewrite the .pyi files
-uv run python tools/generate_stubs.py --check    # what CI runs; fails on drift
-```
-
-The generator reads `references/python38/`,
-which holds the annotated `sublime.py`, `sublime_plugin.py` and `sublime_types.py`
-shipped with Sublime Text build 4200.
-Those sources already carry the full signatures
-and the reStructuredText docstrings the official docs are built from,
-so the stubs are derived from them mechanically.
-The generator runs on the current Python,
-not on the Sublime Text one,
-so `tools/` is its own project with its own checker configuration.
-See [Development](#development).
-
-The generator refuses to guess.
-Anything it cannot derive -- an unannotated parameter,
-a bare `dict` that strict mode rejects --
-is reported with the exact `stub_overrides` key to add,
-and nothing is written until every one is resolved.
-
-The check runs in the other direction too:
-every `stub_overrides` table is keyed by a name from the reference,
-and an entry that matches nothing there is reported as stale.
-Corrections therefore cannot quietly stop applying
-when a member is renamed or removed in a later build,
-which is the failure mode that matters
-when onboarding a new Sublime Text build.
-
-The emitted stubs use modern typing syntax --
-PEP 604 unions (`str | None`)
-and PEP 585 builtin generics (`list[str]`, `dict[str, Value]`) --
-even though this branch describes a Python 3.8 API.
-That is safe because a `.pyi` is never executed:
-its annotations are read by type checkers, not evaluated by an interpreter,
-so the syntax available in the targeted runtime does not constrain them.
-All four checkers accept it under `pythonVersion = "3.8"`,
-which is what typeshed relies on
-and what both hand-written third-party stub sets
-(sublimelsp/LSP and SublimeText/sublime_lib) do as well.
-The abstract collection types come from `collections.abc` for the same reason,
-and each file opens with `from __future__ import annotations`,
-which is a no-op in a stub
-but records the intent.
-The reference sources spell all of this the 3.8 way,
-so `generate_stubs.modernize` rewrites every annotation on the way out.
-
-`mypy stubgen --include-docstrings` is not used
-because it drops attribute docstrings
-(every enum member and every documented `self.x`),
-it cannot know about the docstring-only event handlers described below,
-and it has nowhere to record the strict-mode type corrections.
-
-### Onboarding a new Sublime Text build
-
-1. Copy the build's `sublime.py`, `sublime_plugin.py` and `sublime_types.py`
-   into `references/python<version>/`.
-2. Point `REFERENCE_DIR` and `ST_BUILD` in `tools/generate_stubs.py` at it.
-3. Run the generator and resolve everything it reports as unresolved.
-4. Run the four type checkers and commit the regenerated `.pyi` files.
-
-### What the generator has to work around
-
-- **Docstring-only event handlers.**
-  `EventListener`, `ViewEventListener` and `TextChangeListener`
-  declare no handler methods at all;
-  Sublime Text dispatches to them dynamically,
-  and each handler exists only as a `.. method::` directive in the class docstring.
-  The generator parses those directives into real declarations,
-  taking the return type from `EVENT_HANDLER_RETURNS`
-  because the directives either omit it
-  or spell it in prose-flavoured pseudo-Python (`-> (str, CommandArgs)`).
-- **`run` is not declared** on any of the command classes.
+- **Commands do not declare `run`.**
   Sublime Text invokes it with command-specific keyword arguments,
-  so a base signature would reject every subclass that declares arguments of its own.
-  `is_enabled`, `is_visible`, `is_checked` and `description` receive their arguments
-  the very same way,
-  but they do have a default implementation,
-  so they are emitted exactly as the reference declares them: without parameters.
-  Adding `**kwargs` to them, as sublimelsp/LSP's stub does,
-  would contradict the reference
-  and would make *every* override an error,
-  including the parameterless one that the reference itself declares:
-  an override may not accept less than its base,
-  and dropping `**kwargs` does exactly that.
-  With the parameterless declaration,
-  only a *required* parameter is rejected,
-  and that rejection is correct,
-  because such an override also raises `TypeError` at runtime
+  so the stubs leave the signature to your subclass.
+  Write `def run(self, **kwargs)`,
+  or `def run(self, edit, **kwargs)` for a `TextCommand`.
+- **`is_enabled`, `is_visible`, `is_checked` and `description`**
+  receive their command arguments the same dynamic way,
+  but they are declared without parameters,
+  exactly as Sublime Text declares them.
+  `def is_enabled(self)`, `def is_enabled(self, my_arg="")`
+  and `def is_enabled(self, **kwargs)` all type-check.
+  A *required* parameter is rejected,
+  and that rejection is correct:
+  such an override also raises `TypeError` at runtime
   when the command is invoked without that argument.
-  Write the override as `def is_enabled(self)`,
-  `def is_enabled(self, my_arg="")` or `def is_enabled(self, **kwargs)`;
-  all three type-check and all three are safe.
-  See `tools/stub_overrides.py` for the spellings that would silence the check
-  and why they are not used.
-- **Internal members are dropped**:
-  anything underscore-prefixed,
-  the trailing-underscore methods the plugin host calls into (`run_`, `is_enabled_`),
-  and, in `sublime_plugin`, everything outside the documented public API
-  (registries, host callbacks, the `.sublime-package` importer).
-- **Implicit optionals are made explicit**:
-  the reference writes `on_navigate: Callable[[str], None] = None` in places.
-  This applies to parameters only;
-  see the deliberate divergence below for why attributes are exempt.
-- **Deprecations live in the prose**:
-  a superseded member is only marked by a `:deprecated:` field in its docstring,
-  so the generator parses that field,
-  strips the reStructuredText markup from it
-  and emits `@typing_extensions.deprecated` with the remaining message.
-- **Shadowed builtins are qualified**:
-  `TextChange.str` shadows `str` for the rest of that class body,
-  so annotations there are emitted as `builtins.str`.
-
-### Deliberate divergences from other stub sets
-
 - **`TextChangeListener.buffer` is `sublime.Buffer`, not `Buffer | None`.**
-  The reference writes `self.buffer: sublime.Buffer = None`,
-  and both hand-written third-party stub sets
-  (sublimelsp/LSP and SublimeText/sublime_lib)
-  declare the attribute optional,
-  which is literally what it holds between `__init__` and `attach()`.
-  That window is not observable from a listener, though:
-  the plugin host instantiates and attaches in a single expression,
-  `cls().attach(buf)`,
-  in both `attach_buffer` and `check_text_change_listeners`,
-  so by the time any handler runs the attribute is a real `Buffer`.
-  Declaring it optional would force a narrowing check in every handler
-  for a state users never see.
-  The exception to be aware of is `detach()`,
-  which leaves the attribute pointing at the buffer it was last attached to.
+  The plugin host attaches the listener immediately after constructing it,
+  so no handler can observe the unattached state.
+- **`sublime_types.ModifierKeys`** exists only in these stubs,
+  as the type of the `modifier_keys` entry of an `Event`.
+  Import it inside an `if TYPE_CHECKING:` block,
+  since the real module has no such name at runtime.
 
-## Development
+The stubs are validated by type-checking sample consumer code,
+not against the running editor,
+so divergences from the actual runtime API are possible.
+Please [report](https://github.com/SublimeText/sublime-text-stubs/issues) any you find.
 
-```sh
-uv sync --group dev
-uv run pyright
-uv run basedpyright
-uv run mypy
-uv run ty check --error-on-warning
-```
+## Contributing
 
-Because the real modules cannot be imported,
-correctness is validated by strict-checking sample consumer code
-under `tests/typing/` with all four checkers.
-There is no `stubtest` run,
-which means divergence from the actual runtime API
-is not caught automatically.
-
-`references/` is excluded from all four type checkers.
-
-### The `tools/` sub-project
-
-`tools/` is a separate, standalone uv project
-with its own `pyproject.toml`, lockfile and virtualenv.
-The stubs target the Python version embedded in Sublime Text,
-while the generator runs on the current one;
-a single project cannot express both targets,
-which is why the split exists rather than `tools/` simply going unchecked.
-
-```sh
-uv run --directory tools basedpyright     # or: cd tools && uv run basedpyright
-uv run --directory tools ruff check
-```
-
-basedpyright is the only type checker there,
-at `typeCheckingMode = "all"` -- every rule at `error`, nothing relaxed.
-ruff lints the same directory,
-with a line length of 120 and Python 3.14 as the target;
-its rule selection is listed in `tools/pyproject.toml`,
-along with why the omitted families are omitted.
-Neither is part of the `CI` workflow;
-they have their own [`Tools`](.github/workflows/tools.yml) workflow.
-
-The stubs and the sample consumer code are not linted with ruff:
-`.pyi` files and code written to exercise a type checker
-follow conventions of their own.
-
-`tools/` is excluded from all four root checkers,
-so running them from the repo root never reaches it.
-
-Configuration notes:
-
-- `typeCheckingMode` is `"strict"`, not basedpyright's `"all"`,
-  because the two checkers share one section (see the next bullet)
-  and plain pyright rejects the value:
-  it logs
-  `Config "typeCheckingMode" entry must contain "off", "basic", "standard", or "strict"`
-  and then silently falls back to `"standard"`,
-  which is weaker than what it manages today.
-  Every rule `"all"` adds on top of `"strict"` is therefore listed individually,
-  so basedpyright still runs the full set.
-  Only `reportAny` and `reportExplicitAny` stay off:
-  the API genuinely traffics in `Any`
-  -- `sublime_types.Event` is a `dict[str, Any]`,
-  `ListInputItem.value` is an arbitrary value handed back to the command,
-  and `set_timeout` ignores whatever its callback returns --
-  and narrowing any of them would misdescribe the runtime.
-  `reportDeprecated` is on and stays quiet.
-  It was previously turned off on the assumption
-  that it flags `typing.List` and `typing.Optional`,
-  which the stubs used to emit;
-  it does not,
-  neither at `pythonVersion = "3.8"` nor above,
-  because typeshed does not carry `@deprecated` on those aliases.
-- pyright and basedpyright share the single `[tool.pyright]` section.
-  A second `[tool.basedpyright]` section is not an option:
-  basedpyright rejects a `pyproject.toml` carrying both
-  (`Config file could not be parsed`)
-  and then silently falls back to its defaults.
-  basedpyright does honour its own extra rules from `[tool.pyright]`,
-  so the settings plain pyright does not know
-  -- `reportAny`, `reportUnannotatedClassAttribute`
-  and the rest, marked `# basedpyright only` --
-  live there too.
-  pyright logs `Config contains unrecognized setting` for each of them
-  and carries on.
-  There is no `basedpyrightconfig.json`;
-  basedpyright never reads such a file,
-  so settings placed in one are silently ignored.
-  `tools/` can use `[tool.basedpyright]`
-  only because its `pyproject.toml` has no `[tool.pyright]` section.
-- mypy 2.x refuses to target anything below Python 3.10,
-  so `python_version` is set to `3.10` there.
-  pyright, basedpyright and ty still enforce 3.8,
-  which is what actually guards the sample consumer code under `tests/typing/`
-  against constructs a plugin author on build 4200 could not use.
-  The stub files themselves are exempt from that,
-  as described under [Regenerating the stubs](#regenerating-the-stubs):
-  their syntax is not the runtime's,
-  but the API surface they describe still is.
+See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the project structure,
+how the stubs are generated and validated,
+and how to correct them.
 
 ## License
 
