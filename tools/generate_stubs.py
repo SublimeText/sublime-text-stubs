@@ -13,10 +13,37 @@ them mechanically instead of being transcribed by hand.
 The ``.pyi`` files are generated artifacts and must not be edited: corrections go
 into this script or into ``stub_overrides.py``.
 
-Why not ``mypy stubgen --include-docstrings``? It drops attribute docstrings
-(every enum member and every ``self.x`` documented in the reference), it cannot
-know about the docstring-only event handlers, and it has no place to record the
-strict-mode type corrections. All three are handled here.
+Why not ``mypy stubgen --include-docstrings``? Measured against mypy 2.3.0 on this
+reference, its output carries 700 errors under plain ``strict`` pyright -- which is
+weaker than the ruleset ``pyproject.toml`` enforces -- and every one of them has to
+be repaired from the reference anyway:
+
+- 137 attributes and constants come out as ``Incomplete``. Every backwards
+  compatibility alias (``HOVER_TEXT = HoverZone.TEXT``) loses both its value and its
+  type, as does every ``self.x`` lifted out of an ``__init__``.
+- All 114 attribute docstrings are dropped. The reference documents its enum members
+  and instance attributes with bare string literals, which is the bulk of what these
+  stubs exist to carry to the editor.
+- ``sublime_types`` is a total loss: eight ``X: TypeAlias`` declarations with no value
+  at all, which is what 109 of those errors are downstream of. The two `TypedDict`
+  definitions have no counterpart in the reference to begin with.
+- The 83 docstring-only event handlers are absent; nothing mechanical finds a
+  ``.. method::`` directive.
+- 160 private and plugin-host names are included (``_LogWriter``, ``ZipLoader``, the
+  module level ``on_*`` dispatchers, ``run_`` and friends), so `SUBLIME_PLUGIN_PUBLIC_API`
+  and `is_private` are still needed verbatim.
+- 99 declarations get no return annotation, and so an implicit ``Any``, where the
+  reference body plainly returns nothing.
+- The 16 ``@override`` and 11 ``@deprecated`` decorators are not derived.
+- Three parameters keep an implicit-optional ``= None`` (``ruff`` ``RUF013``).
+
+What it does get right is PEP 604 / PEP 585 spelling and 481 of the 826 signatures.
+Taking it as a base would therefore retire `modernize` and the signature layout in
+`emit_def`, and replace them with ~500 fix-ups keyed by qualname against a second
+parse of the reference, spliced in textually because `ast.unparse` would destroy the
+docstring formatting. That is no smaller than the emission layer it replaces, and it
+buys a build time dependency on mypy whose output shape shifts between releases, so
+`--check` would fail for reasons unrelated to the reference or the overrides.
 """
 
 from __future__ import annotations
