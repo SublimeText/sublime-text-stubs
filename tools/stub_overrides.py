@@ -26,6 +26,7 @@ SUBLIME_TYPES_REEXPORTS = {
         "CommandArgs",
         "CompletionValue",
         "DIP",
+        "FontOptions",
         "Kind",
         "MacroStep",
         "Point",
@@ -170,6 +171,15 @@ PARAMS = {
     # only to `Mapping[str, object]` -- which would wrongly accept any mapping of
     # arbitrary values -- so the parameter has to name both types.
     "sublime.expand_variables.variables": "dict[str, str] | WindowVariables",
+    # The reference spells these as `callback: Callable[[Value], None]` and
+    # `default: dict[str, Value]` (references/python38/sublime.py:925); see
+    # `FontOptions` in `EXTRA_TYPE_ALIAS_CLASSES`. The `| None` on the callback
+    # argument is from the docstring (sublime.py:933-934): it "will be called with
+    # ``None`` if the dialog is cancelled". `default` needs no `| None` here -- the
+    # generator already emits `FontOptions | None = ...` from the reference's
+    # `= None` default.
+    "sublime.choose_font_dialog.callback": "Callable[[FontOptions | None], None]",
+    "sublime.choose_font_dialog.default": "FontOptions",
 }
 
 # Types for instance attributes assigned without an annotation in `__init__`.
@@ -412,6 +422,26 @@ class WindowVariables(TypedDict, total=False):
     project_name: str
     project_base_name: str
     project_extension: str''',
+    # `choose_font_dialog` (references/python38/sublime.py:925-947) documents no
+    # types at all, only the example `{ "font_face": "monospace" }` at
+    # sublime.py:932. A live `choose_font_dialog(print)` call passed
+    # `{'font_face': 'Sans', 'font_size': 10}` to the callback, which is where
+    # `font_size: int` comes from. `total=False` because the same type describes
+    # both directions and the input side reads both keys through `.get`
+    # (sublime.py:941-943: `default.get("font_face")` and
+    # `default.get("font_size")`).
+    "FontOptions": '''\
+class FontOptions(TypedDict, total=False):
+    """
+    The ``default`` argument of `choose_font_dialog`, and the value it passes to
+    its callback.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``FontOptions`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    font_face: str
+    font_size: int''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

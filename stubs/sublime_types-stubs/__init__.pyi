@@ -187,3 +187,15 @@ class WindowVariables(TypedDict, total=False):
     project_name: str
     project_base_name: str
     project_extension: str
+
+class FontOptions(TypedDict, total=False):
+    """
+    The ``default`` argument of `choose_font_dialog`, and the value it passes to
+    its callback.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``FontOptions`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    font_face: str
+    font_size: int

@@ -33,6 +33,10 @@ not semantic versioning; see the README.
   all of them optional.
   `sublime.expand_variables()` now takes `dict[str, str] | WindowVariables`,
   so the round trip its docstring recommends keeps type-checking.
+- `choose_font_dialog()` takes a `FontOptions` default
+  and calls its callback with `FontOptions | None`,
+  a stub-only `TypedDict` with the `font_face` and `font_size` keys
+  a live call was observed to pass, both optional.
 
 ### Changed
 

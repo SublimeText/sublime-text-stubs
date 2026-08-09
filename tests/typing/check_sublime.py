@@ -4,13 +4,13 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
 
 if TYPE_CHECKING:
-    from sublime_types import UIInfoPalette
+    from sublime_types import FontOptions, UIInfoPalette
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
@@ -184,3 +184,12 @@ def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
     if name is None:
         return template
     return sublime.expand_variables(template, variables)
+
+
+def pick_font(on_chosen: Callable[[str], None]) -> None:
+    def chosen(options: Optional["FontOptions"]) -> None:
+        # The callback receives `None` if the dialog was cancelled.
+        if options is not None:
+            on_chosen(options.get("font_face", "monospace"))
+
+    sublime.choose_font_dialog(chosen, {"font_face": "monospace"})

@@ -9,6 +9,7 @@ from typing import Any, Literal
 from sublime_types import CommandArgs as CommandArgs
 from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
+from sublime_types import FontOptions as FontOptions
 from sublime_types import Kind as Kind
 from sublime_types import MacroStep as MacroStep
 from sublime_types import Point as Point
@@ -740,8 +741,8 @@ def select_folder_dialog(
     """
 
 def choose_font_dialog(
-    callback: Callable[[Value], None],
-    default: dict[str, Value] | None = ...,
+    callback: Callable[[FontOptions | None], None],
+    default: FontOptions | None = ...,
 ) -> None:
     """
     Show a dialog for selecting a font.
