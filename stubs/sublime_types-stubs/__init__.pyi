@@ -4,7 +4,7 @@
 from typing import TypedDict
 
 from sublime import CompletionItem, KindId
-from typing_extensions import TypeAlias
+from typing_extensions import NotRequired, TypeAlias
 
 DIP: TypeAlias = float
 Vector: TypeAlias = tuple[DIP, DIP]
@@ -111,3 +111,28 @@ class UIInfo(TypedDict, total=False):
     system: UIInfoSystem
     theme: UIInfoTheme
     color_scheme: UIInfoColorScheme
+
+class ScopeStyle(TypedDict):
+    """
+    The return value of `View.style_for_scope`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ScopeStyle`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    foreground: str
+    """ Normalized to the six character hex form with a leading hash, e.g. ``#ff0000``. """
+    selection_foreground: NotRequired[str]
+    background: NotRequired[str]
+    """ Normalized the same way as `foreground`. """
+    bold: bool
+    italic: bool
+    glow: NotRequired[bool]
+    underline: NotRequired[bool]
+    stippled_underline: NotRequired[bool]
+    squiggly_underline: NotRequired[bool]
+    # The docstring swaps these two: it says `source_line: str` and `source_file: int`.
+    # These are the types the runtime actually returns.
+    source_line: int
+    source_column: int
+    source_file: str

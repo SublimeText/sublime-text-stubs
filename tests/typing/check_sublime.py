@@ -89,6 +89,18 @@ def accent_color() -> Optional[str]:
     return palette.get("accent") if palette is not None else None
 
 
+def scope_colors(view: sublime.View, scope: str) -> Tuple[str, Optional[str]]:
+    # A required key needs no `.get` guard; a "(only if set)" one does.
+    style = view.style_for_scope(scope)
+    return style["foreground"], style.get("background")
+
+
+def scope_origin(view: sublime.View, scope: str) -> Tuple[str, int]:
+    # The reference docstring swaps these two types; the stubs follow the runtime.
+    style = view.style_for_scope(scope)
+    return style["source_file"], style["source_line"]
+
+
 def completions() -> sublime.CompletionList:
     items: List[sublime.CompletionValue] = [
         sublime.CompletionItem(

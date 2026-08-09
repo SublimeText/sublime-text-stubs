@@ -118,7 +118,7 @@ TYPING_NAMES = ["Any", "Literal", "TypedDict"]
 # are deprecated aliases of these.
 COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
 
-TYPING_EXTENSIONS_NAMES = ["TypeAlias", "deprecated", "override"]
+TYPING_EXTENSIONS_NAMES = ["NotRequired", "TypeAlias", "deprecated", "override"]
 
 # PEP 585: the `typing` aliases superseded by the builtin generics.
 BUILTIN_GENERICS = {

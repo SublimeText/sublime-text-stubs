@@ -15,6 +15,12 @@ not semantic versioning; see the README.
   including the `color_scheme.palette` colors.
   These types have no counterpart at runtime,
   so import them under `if TYPE_CHECKING:`.
+- `View.style_for_scope()` returns `ScopeStyle`,
+  a stub-only `TypedDict` naming every key its docstring documents,
+  with the "(only if set)" ones marked `NotRequired`.
+  Its `source_line` is `int` and its `source_file` is `str`,
+  which is what the runtime returns
+  rather than what the upstream docstring claims.
 
 ### Changed
 

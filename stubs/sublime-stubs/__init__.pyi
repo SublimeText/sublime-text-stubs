@@ -11,6 +11,7 @@ from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
 from sublime_types import Kind as Kind
 from sublime_types import Point as Point
+from sublime_types import ScopeStyle as ScopeStyle
 from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
 from sublime_types import Vector as Vector
@@ -2238,7 +2239,7 @@ class View:
         .. since:: 3150
         """
 
-    def style_for_scope(self, scope: str) -> dict[str, Value]:
+    def style_for_scope(self, scope: str) -> ScopeStyle:
         """
         Accepts a string scope name and returns a ``dict`` of style information
         including the keys:

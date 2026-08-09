@@ -22,7 +22,17 @@ MODULES = {
 # unconditionally and re-export them (``X as X``), because plugin authors refer
 # to them as ``sublime.Point`` and the like.
 SUBLIME_TYPES_REEXPORTS = {
-    "sublime": ["CommandArgs", "CompletionValue", "DIP", "Kind", "Point", "UIInfo", "Value", "Vector"],
+    "sublime": [
+        "CommandArgs",
+        "CompletionValue",
+        "DIP",
+        "Kind",
+        "Point",
+        "ScopeStyle",
+        "UIInfo",
+        "Value",
+        "Vector",
+    ],
     "sublime_plugin": ["Event", "Value"],
 }
 
@@ -75,6 +85,10 @@ RETURNS = {
     "sublime.get_macro": "list[dict[str, Value]]",
     "sublime.Settings.to_dict": "dict[str, Value]",
     "sublime.Window.get_layout": "dict[str, Value]",
+    # Bare `dict[str, Value]` in the reference, whose docstring
+    # (references/python38/sublime.py:3057-3080) names every key; see `ScopeStyle` in
+    # `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.View.style_for_scope": "ScopeStyle",
     # Unannotated in the reference.
     "sublime.Window.__eq__": "bool",
     "sublime.Window.get_output_panel": "View",
@@ -269,6 +283,44 @@ class UIInfo(TypedDict, total=False):
     system: UIInfoSystem
     theme: UIInfoTheme
     color_scheme: UIInfoColorScheme''',
+    # `View.style_for_scope` (references/python38/sublime.py:3056) returns a bare
+    # `dict[str, Value]`, but its docstring lists every key it can carry, in the order
+    # below. `NotRequired` marks exactly the keys it flags "(only if set)".
+    #
+    # Two of those keys are documented with the wrong type: sublime.py:3074-3076 says
+    # `"source_line": str` and `"source_file": int`, but a live
+    # `view.style_for_scope(...)` call returns `'source_line': -1` and
+    # `'source_file': 'Packages/Theme - Nil/Tubnil_mod.tmTheme'`. The runtime wins, as
+    # it does for `QuickPanelItem.details` above.
+    #
+    # Keep prose in the emitted block free of the bare word `sublime`: the import
+    # builder scans the generated body for module names, and a stray mention would add
+    # an unused `import sublime` to `sublime_types`.
+    "ScopeStyle": '''\
+class ScopeStyle(TypedDict):
+    """
+    The return value of `View.style_for_scope`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ScopeStyle`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    foreground: str
+    """ Normalized to the six character hex form with a leading hash, e.g. ``#ff0000``. """
+    selection_foreground: NotRequired[str]
+    background: NotRequired[str]
+    """ Normalized the same way as `foreground`. """
+    bold: bool
+    italic: bool
+    glow: NotRequired[bool]
+    underline: NotRequired[bool]
+    stippled_underline: NotRequired[bool]
+    squiggly_underline: NotRequired[bool]
+    # The docstring swaps these two: it says `source_line: str` and `source_file: int`.
+    # These are the types the runtime actually returns.
+    source_line: int
+    source_column: int
+    source_file: str''',
 }
 
 # --- docstring-only event handlers -------------------------------------------
