@@ -22,7 +22,7 @@ MODULES = {
 # unconditionally and re-export them (``X as X``), because plugin authors refer
 # to them as ``sublime.Point`` and the like.
 SUBLIME_TYPES_REEXPORTS = {
-    "sublime": ["CommandArgs", "CompletionValue", "DIP", "Kind", "Point", "Value", "Vector"],
+    "sublime": ["CommandArgs", "CompletionValue", "DIP", "Kind", "Point", "UIInfo", "Value", "Vector"],
     "sublime_plugin": ["Event", "Value"],
 }
 
@@ -67,8 +67,10 @@ CONSTANTS = {
 # Return type overrides, taking precedence over the annotation in the reference.
 # Mostly bare generics, which `reportMissingTypeArguments` rejects under strict mode.
 RETURNS = {
-    # Bare `dict` in the reference; strict mode needs type arguments.
-    "sublime.ui_info": "dict[str, Value]",
+    # Bare `dict` in the reference; the API docs narrow it no further than
+    # `dict[str, Value]`, but `UIInfo` (see `EXTRA_TYPE_ALIAS_CLASSES`) spells out the
+    # `system`/`theme`/`color_scheme` keys the docstring already names.
+    "sublime.ui_info": "UIInfo",
     # Each entry has a "command" and an "args" key.
     "sublime.get_macro": "list[dict[str, Value]]",
     "sublime.Settings.to_dict": "dict[str, Value]",
@@ -178,6 +180,95 @@ class Event(TypedDict, total=False):
     x: float
     y: float
     modifier_keys: ModifierKeys''',
+}
+
+# `sublime_types` classes with no reference-side counterpart at all: nothing to key
+# them to, so -- unlike every table above -- they are not matched against the
+# reference and cannot be flagged stale. `generate_stubs.py` appends them, in
+# order, after the reference-derived aliases in `sublime_types`.
+#
+# `sublime.ui_info` (references/python38/sublime.py:1170) returns a bare `dict`
+# documented only as "top-level keys `system`, `theme` and `color_scheme`"; the
+# official API reference and the community docs go no further than that sentence.
+# The shapes below are reverse engineered from a live `sublime.ui_info()` call
+# (ST build 4200, palette keys matching the ``--accent``/``--redish``/etc. color
+# scheme variables), not from any documented schema, so every field is optional
+# and the whole thing is a stub-only addition -- import it under
+# `if TYPE_CHECKING:`.
+EXTRA_TYPE_ALIAS_CLASSES = {
+    "UIInfo": '''\
+class UIInfoSystem(TypedDict, total=False):
+    """
+    The ``system`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoSystem`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    style: str
+    """ ``"dark"`` or ``"light"``, mirroring the OS appearance. """
+
+class UIInfoTheme(TypedDict, total=False):
+    """
+    The ``theme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoTheme`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``theme`` setting. """
+    resolved_value: str
+    """ The theme file actually in effect, after auto light/dark switching. """
+    style: str
+    """ ``"system"`` when the theme follows the OS appearance, else unset. """
+
+class UIInfoPalette(TypedDict, total=False):
+    """
+    The ``palette`` entry of `UIInfoColorScheme`: the current color scheme's
+    ``--accent``/``--redish``/etc. variables, as hex color strings.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoPalette`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    accent: str
+    background: str
+    foreground: str
+    bluish: str
+    cyanish: str
+    greenish: str
+    orangish: str
+    pinkish: str
+    purplish: str
+    redish: str
+    yellowish: str
+
+class UIInfoColorScheme(TypedDict, total=False):
+    """
+    The ``color_scheme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoColorScheme`` name at runtime, so it
+    must be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``color_scheme`` setting. """
+    resolved_value: str
+    """ The color scheme file actually in effect, after auto light/dark switching. """
+    palette: UIInfoPalette
+
+class UIInfo(TypedDict, total=False):
+    """
+    The return value of `ui_info`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfo`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    system: UIInfoSystem
+    theme: UIInfoTheme
+    color_scheme: UIInfoColorScheme''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

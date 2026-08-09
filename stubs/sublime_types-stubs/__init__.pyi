@@ -38,3 +38,76 @@ class Event(TypedDict, total=False):
     modifier_keys: ModifierKeys
 
 CompletionValue: TypeAlias = str | tuple[str, str] | CompletionItem
+
+class UIInfoSystem(TypedDict, total=False):
+    """
+    The ``system`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoSystem`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    style: str
+    """ ``"dark"`` or ``"light"``, mirroring the OS appearance. """
+
+class UIInfoTheme(TypedDict, total=False):
+    """
+    The ``theme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoTheme`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``theme`` setting. """
+    resolved_value: str
+    """ The theme file actually in effect, after auto light/dark switching. """
+    style: str
+    """ ``"system"`` when the theme follows the OS appearance, else unset. """
+
+class UIInfoPalette(TypedDict, total=False):
+    """
+    The ``palette`` entry of `UIInfoColorScheme`: the current color scheme's
+    ``--accent``/``--redish``/etc. variables, as hex color strings.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoPalette`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    accent: str
+    background: str
+    foreground: str
+    bluish: str
+    cyanish: str
+    greenish: str
+    orangish: str
+    pinkish: str
+    purplish: str
+    redish: str
+    yellowish: str
+
+class UIInfoColorScheme(TypedDict, total=False):
+    """
+    The ``color_scheme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoColorScheme`` name at runtime, so it
+    must be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``color_scheme`` setting. """
+    resolved_value: str
+    """ The color scheme file actually in effect, after auto light/dark switching. """
+    palette: UIInfoPalette
+
+class UIInfo(TypedDict, total=False):
+    """
+    The return value of `ui_info`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfo`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    system: UIInfoSystem
+    theme: UIInfoTheme
+    color_scheme: UIInfoColorScheme

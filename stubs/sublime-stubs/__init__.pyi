@@ -11,6 +11,7 @@ from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
 from sublime_types import Kind as Kind
 from sublime_types import Point as Point
+from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
 from sublime_types import Vector as Vector
 from typing_extensions import deprecated, override
@@ -905,7 +906,7 @@ def get_log_control_tree() -> bool:
     .. since:: 4099
     """
 
-def ui_info() -> dict[str, Value]:
+def ui_info() -> UIInfo:
     """
     .. since:: 4096
 

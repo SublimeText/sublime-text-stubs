@@ -8,6 +8,14 @@ not semantic versioning; see the README.
 
 ## [Unreleased]
 
+### Added
+
+- `sublime.ui_info()` returns `UIInfo`,
+  a stub-only `TypedDict` describing its `system`, `theme` and `color_scheme` keys,
+  including the `color_scheme.palette` colors.
+  These types have no counterpart at runtime,
+  so import them under `if TYPE_CHECKING:`.
+
 ### Changed
 
 - `sublime.HTML` is annotated as `Literal[1]` rather than left to inference.

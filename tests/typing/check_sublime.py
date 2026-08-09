@@ -4,10 +4,13 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
+
+if TYPE_CHECKING:
+    from sublime_types import UIInfoPalette
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
@@ -77,6 +80,13 @@ def region_arithmetic() -> int:
 def deprecated_aliases_still_resolve() -> sublime.RegionFlags:
     # The module level constants predating the enums are part of the API.
     return sublime.DRAW_NO_FILL | sublime.PERSISTENT
+
+
+def accent_color() -> Optional[str]:
+    # `UIInfo` and its nested TypedDicts are stub-only, so the fields have to be
+    # narrowed with `.get` rather than assumed present.
+    palette: Optional[UIInfoPalette] = sublime.ui_info().get("color_scheme", {}).get("palette")
+    return palette.get("accent") if palette is not None else None
 
 
 def completions() -> sublime.CompletionList:
