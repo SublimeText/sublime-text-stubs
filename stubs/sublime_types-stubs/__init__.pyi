@@ -165,3 +165,25 @@ class WindowLayout(TypedDict):
     Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
     into `cols` and `rows`, describing one group's rectangle.
     """
+
+class WindowVariables(TypedDict, total=False):
+    """
+    The return value of `Window.extract_variables`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowVariables`` name at runtime, so it must
+    be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    packages: str
+    platform: str
+    file: str
+    file_path: str
+    file_name: str
+    file_base_name: str
+    file_extension: str
+    folder: str
+    project: str
+    project_path: str
+    project_name: str
+    project_base_name: str
+    project_extension: str

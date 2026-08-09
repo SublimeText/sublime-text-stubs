@@ -34,6 +34,7 @@ SUBLIME_TYPES_REEXPORTS = {
         "Value",
         "Vector",
         "WindowLayout",
+        "WindowVariables",
     ],
     "sublime_plugin": ["Event", "Value"],
 }
@@ -97,6 +98,10 @@ RETURNS = {
     # (references/python38/sublime.py:3057-3080) names every key; see `ScopeStyle` in
     # `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.View.style_for_scope": "ScopeStyle",
+    # `dict[str, str]` in the reference, whose docstring
+    # (references/python38/sublime.py:2017-2038) names every key it may contain; see
+    # `WindowVariables` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.Window.extract_variables": "WindowVariables",
     # Unannotated in the reference.
     "sublime.Window.__eq__": "bool",
     "sublime.Window.get_output_panel": "View",
@@ -158,6 +163,13 @@ PARAMS = {
     # to that: without this override, `window.set_layout(window.layout())` stops
     # type-checking once `layout()` returns a `WindowLayout` instead.
     "sublime.Window.set_layout.layout": "WindowLayout",
+    # `variables` in the reference is `dict[str, str]`
+    # (references/python38/sublime.py:1253), and sublime.py:2036 tells the user the
+    # result of `extract_variables()` is "suitable for use with `expand_variables()`".
+    # A `TypedDict` is assignable to neither `dict[str, str]` nor `Mapping[str, str]`,
+    # only to `Mapping[str, object]` -- which would wrongly accept any mapping of
+    # arbitrary values -- so the parameter has to name both types.
+    "sublime.expand_variables.variables": "dict[str, str] | WindowVariables",
 }
 
 # Types for instance attributes assigned without an annotation in `__init__`.
@@ -373,6 +385,33 @@ class WindowLayout(TypedDict):
     Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
     into `cols` and `rows`, describing one group's rectangle.
     """''',
+    # `Window.extract_variables` (references/python38/sublime.py:2017-2038) returns
+    # `dict[str, str]` and introduces its key list with "May contain:", so not one of
+    # them is guaranteed and the class is uniformly `total=False` rather than marking
+    # every field `NotRequired`. The key order below is the docstring's
+    # (references/python38/sublime.py:2022-2034).
+    "WindowVariables": '''\
+class WindowVariables(TypedDict, total=False):
+    """
+    The return value of `Window.extract_variables`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowVariables`` name at runtime, so it must
+    be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    packages: str
+    platform: str
+    file: str
+    file_path: str
+    file_name: str
+    file_base_name: str
+    file_extension: str
+    folder: str
+    project: str
+    project_path: str
+    project_name: str
+    project_base_name: str
+    project_extension: str''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

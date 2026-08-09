@@ -17,6 +17,7 @@ from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
 from sublime_types import Vector as Vector
 from sublime_types import WindowLayout as WindowLayout
+from sublime_types import WindowVariables as WindowVariables
 from typing_extensions import deprecated, override
 
 class HoverZone(enum.IntEnum):
@@ -965,7 +966,7 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: Value, variables: dict[str, str]) -> Value:
+def expand_variables(value: Value, variables: dict[str, str] | WindowVariables) -> Value:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the
@@ -1498,7 +1499,7 @@ class Window:
         :deprecated: Use `symbol_locations()` instead.
         """
 
-    def extract_variables(self) -> dict[str, str]:
+    def extract_variables(self) -> WindowVariables:
         """
         Get the ``dict`` of contextual keys of the window.
 

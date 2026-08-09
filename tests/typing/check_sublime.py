@@ -175,3 +175,12 @@ def widen_first_column(window: sublime.Window) -> None:
     if cols[1:-1]:
         cols[1] = 0.6
     window.set_layout(layout)
+
+
+def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
+    # `extract_variables()` is documented as input to `expand_variables()`.
+    variables = window.extract_variables()
+    name = variables.get("project_name")
+    if name is None:
+        return template
+    return sublime.expand_variables(template, variables)

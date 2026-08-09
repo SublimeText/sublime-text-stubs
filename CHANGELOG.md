@@ -28,6 +28,11 @@ not semantic versioning; see the README.
   and `Window.set_layout()` accepts one,
   a stub-only `TypedDict` with the `cols`, `rows` and `cells` keys
   a live call was observed to always carry.
+- `Window.extract_variables()` returns `WindowVariables`,
+  a stub-only `TypedDict` with the keys its docstring says the result may contain,
+  all of them optional.
+  `sublime.expand_variables()` now takes `dict[str, str] | WindowVariables`,
+  so the round trip its docstring recommends keeps type-checking.
 
 ### Changed
 
