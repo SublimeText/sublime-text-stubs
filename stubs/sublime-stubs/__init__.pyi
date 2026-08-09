@@ -10,6 +10,7 @@ from sublime_types import CommandArgs as CommandArgs
 from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
 from sublime_types import Kind as Kind
+from sublime_types import MacroStep as MacroStep
 from sublime_types import Point as Point
 from sublime_types import ScopeStyle as ScopeStyle
 from sublime_types import UIInfo as UIInfo
@@ -1003,7 +1004,7 @@ def active_window() -> Window:
 def windows() -> list[Window]:
     """ :returns: A list of all the open windows. """
 
-def get_macro() -> list[dict[str, Value]]:
+def get_macro() -> list[MacroStep]:
     """
     :returns: A list of the commands and args that compromise the currently
               recorded macro. Each ``dict`` will contain the keys ``"command"``

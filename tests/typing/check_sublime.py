@@ -101,6 +101,11 @@ def scope_origin(view: sublime.View, scope: str) -> Tuple[str, int]:
     return style["source_file"], style["source_line"]
 
 
+def replay_macro(window: sublime.Window) -> None:
+    for step in sublime.get_macro():
+        window.run_command(step["command"], step["args"])
+
+
 def completions() -> sublime.CompletionList:
     items: List[sublime.CompletionValue] = [
         sublime.CompletionItem(

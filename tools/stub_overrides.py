@@ -27,6 +27,7 @@ SUBLIME_TYPES_REEXPORTS = {
         "CompletionValue",
         "DIP",
         "Kind",
+        "MacroStep",
         "Point",
         "ScopeStyle",
         "UIInfo",
@@ -81,8 +82,10 @@ RETURNS = {
     # `dict[str, Value]`, but `UIInfo` (see `EXTRA_TYPE_ALIAS_CLASSES`) spells out the
     # `system`/`theme`/`color_scheme` keys the docstring already names.
     "sublime.ui_info": "UIInfo",
-    # Each entry has a "command" and an "args" key.
-    "sublime.get_macro": "list[dict[str, Value]]",
+    # Bare `list[dict]` in the reference, whose docstring
+    # (references/python38/sublime.py:1314-1320) names both keys of every entry;
+    # see `MacroStep` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.get_macro": "list[MacroStep]",
     "sublime.Settings.to_dict": "dict[str, Value]",
     "sublime.Window.get_layout": "dict[str, Value]",
     # Bare `dict[str, Value]` in the reference, whose docstring
@@ -321,6 +324,22 @@ class ScopeStyle(TypedDict):
     source_line: int
     source_column: int
     source_file: str''',
+    # `get_macro` (references/python38/sublime.py:1314-1320) returns a bare
+    # `list[dict]`, but its docstring says each entry "will contain the keys
+    # ``"command"`` and ``"args"``", so both fields are required. `CommandArgs` is
+    # `dict[str, Value] | None`, so a command with no arguments is already covered
+    # by its `None` arm.
+    "MacroStep": '''\
+class MacroStep(TypedDict):
+    """
+    An entry of `get_macro`'s result.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``MacroStep`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    command: str
+    args: CommandArgs''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

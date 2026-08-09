@@ -21,6 +21,9 @@ not semantic versioning; see the README.
   Its `source_line` is `int` and its `source_file` is `str`,
   which is what the runtime returns
   rather than what the upstream docstring claims.
+- `sublime.get_macro()` returns `list[MacroStep]`,
+  a stub-only `TypedDict` with the `command` and `args` keys
+  its docstring says every entry always carries.
 
 ### Changed
 

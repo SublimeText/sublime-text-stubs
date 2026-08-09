@@ -136,3 +136,14 @@ class ScopeStyle(TypedDict):
     source_line: int
     source_column: int
     source_file: str
+
+class MacroStep(TypedDict):
+    """
+    An entry of `get_macro`'s result.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``MacroStep`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    command: str
+    args: CommandArgs
