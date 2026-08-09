@@ -16,6 +16,7 @@ from sublime_types import ScopeStyle as ScopeStyle
 from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
 from sublime_types import Vector as Vector
+from sublime_types import WindowLayout as WindowLayout
 from typing_extensions import deprecated, override
 
 class HoverZone(enum.IntEnum):
@@ -1242,14 +1243,14 @@ class Window:
         :since: 4135
         """
 
-    def layout(self) -> dict[str, Value]:
+    def layout(self) -> WindowLayout:
         """ Get the group layout of the window. """
 
     @deprecated("Use layout() instead")
-    def get_layout(self) -> dict[str, Value]:
+    def get_layout(self) -> WindowLayout:
         """ :deprecated: Use `layout()` instead """
 
-    def set_layout(self, layout: dict[str, Value]) -> None:
+    def set_layout(self, layout: WindowLayout) -> None:
         """ Set the group layout of the window. """
 
     def create_output_panel(self, name: str, unlisted: bool = ...) -> View:

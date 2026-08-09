@@ -33,6 +33,7 @@ SUBLIME_TYPES_REEXPORTS = {
         "UIInfo",
         "Value",
         "Vector",
+        "WindowLayout",
     ],
     "sublime_plugin": ["Event", "Value"],
 }
@@ -87,7 +88,11 @@ RETURNS = {
     # see `MacroStep` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.get_macro": "list[MacroStep]",
     "sublime.Settings.to_dict": "dict[str, Value]",
-    "sublime.Window.get_layout": "dict[str, Value]",
+    # Bare `dict[str, Value]` in the reference for `layout`, and unannotated for the
+    # deprecated `get_layout` (references/python38/sublime.py:1679-1695); neither
+    # docstring names a key, see `WindowLayout` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.Window.layout": "WindowLayout",
+    "sublime.Window.get_layout": "WindowLayout",
     # Bare `dict[str, Value]` in the reference, whose docstring
     # (references/python38/sublime.py:3057-3080) names every key; see `ScopeStyle` in
     # `EXTRA_TYPE_ALIAS_CLASSES`.
@@ -148,6 +153,11 @@ PARAMS = {
     # (`references/python38/sublime_plugin.py:829` and `:838`).
     "sublime_plugin.EventListener.on_associate_buffer.buffer": "sublime.Buffer",
     "sublime_plugin.EventListener.on_associate_buffer_async.buffer": "sublime.Buffer",
+    # `layout` in the reference is `dict[str, Value]`
+    # (references/python38/sublime.py:1691), but a `WindowLayout` is not assignable
+    # to that: without this override, `window.set_layout(window.layout())` stops
+    # type-checking once `layout()` returns a `WindowLayout` instead.
+    "sublime.Window.set_layout.layout": "WindowLayout",
 }
 
 # Types for instance attributes assigned without an annotation in `__init__`.
@@ -340,6 +350,29 @@ class MacroStep(TypedDict):
     """
     command: str
     args: CommandArgs''',
+    # `Window.layout` (references/python38/sublime.py:1679-1695) documents no keys at
+    # all, only "Get/Set the group layout of the window". The shape below comes from a
+    # live `window.layout()` call, which returned
+    # `{'cells': [[0, 0, 1, 1]], 'cols': [0.0, 1.0], 'rows': [0.0, 1.0]}`. All three
+    # keys were present in that call, so the class is total.
+    "WindowLayout": '''\
+class WindowLayout(TypedDict):
+    """
+    The return value of `Window.layout`, and the argument to `Window.set_layout`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowLayout`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    cols: list[float]
+    """ Normalized 0.0-1.0 division positions along the x axis. """
+    rows: list[float]
+    """ Normalized 0.0-1.0 division positions along the y axis. """
+    cells: list[list[int]]
+    """
+    Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
+    into `cols` and `rows`, describing one group's rectangle.
+    """''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

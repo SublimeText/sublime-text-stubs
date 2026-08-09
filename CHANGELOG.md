@@ -24,6 +24,10 @@ not semantic versioning; see the README.
 - `sublime.get_macro()` returns `list[MacroStep]`,
   a stub-only `TypedDict` with the `command` and `args` keys
   its docstring says every entry always carries.
+- `Window.layout()` and `Window.get_layout()` return `WindowLayout`,
+  and `Window.set_layout()` accepts one,
+  a stub-only `TypedDict` with the `cols`, `rows` and `cells` keys
+  a live call was observed to always carry.
 
 ### Changed
 

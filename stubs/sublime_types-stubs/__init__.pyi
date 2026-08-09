@@ -147,3 +147,21 @@ class MacroStep(TypedDict):
     """
     command: str
     args: CommandArgs
+
+class WindowLayout(TypedDict):
+    """
+    The return value of `Window.layout`, and the argument to `Window.set_layout`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowLayout`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    cols: list[float]
+    """ Normalized 0.0-1.0 division positions along the x axis. """
+    rows: list[float]
+    """ Normalized 0.0-1.0 division positions along the y axis. """
+    cells: list[list[int]]
+    """
+    Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
+    into `cols` and `rows`, describing one group's rectangle.
+    """

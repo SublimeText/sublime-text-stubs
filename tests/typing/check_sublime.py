@@ -165,3 +165,13 @@ def timeouts() -> None:
 def platform_is_known() -> bool:
     # `platform()` is annotated with a `Literal`, so this comparison is checked.
     return sublime.platform() in ("osx", "linux", "windows")
+
+
+def widen_first_column(window: sublime.Window) -> None:
+    # `set_layout` has to accept what `layout` returns.
+    layout = window.layout()
+    cols: List[float] = layout["cols"]
+    # The outer entries are the window edges; only the interior ones are dividers.
+    if cols[1:-1]:
+        cols[1] = 0.6
+    window.set_layout(layout)
