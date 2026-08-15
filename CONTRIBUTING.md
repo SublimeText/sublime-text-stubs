@@ -71,6 +71,8 @@ add the entry, rerun the generator, commit the regenerated `.pyi` alongside it.
 Record the reasoning for a non-obvious entry as a comment next to it,
 with a `references/python38/<file>:<line>` pointer
 to the reference code that justifies it.
+If the correction changes what plugin authors have to write or can expect,
+add the consequence -- not the reasoning -- to the notes in `README.md`.
 
 The two exceptions to the staleness check are `EXTRA_TYPE_ALIASES`
 and `EXTRA_TYPE_ALIAS_CLASSES`:

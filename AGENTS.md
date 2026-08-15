@@ -37,6 +37,7 @@ A ruff finding under `stubs/` is fixed in the generator, never in the `.pyi`.
 ## Where things are documented
 
 - `README.md` -- for users of the stubs: installation, versioning, API quirks they will meet.
+  Consequences only; the reasoning behind a quirk stays in the code.
 - `CONTRIBUTING.md` -- for contributors: structure, generating, validating, adjusting overrides,
   onboarding a new ST build, releasing.
 - `CHANGELOG.md` -- user-visible changes, grouped under `[Unreleased]` until a tag.
