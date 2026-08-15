@@ -133,8 +133,10 @@ RETURNS = {
 PARAMS = {
     "sublime.load_binary_resource.name": "str",
     "sublime.find_syntax_for_file.path": "str",
-    "sublime.set_timeout.callback": "Callable[[], Any]",
-    "sublime.set_timeout_async.callback": "Callable[[], Any]",
+    # The callback's return value is discarded by the runtime, so `object` describes
+    # it without resorting to `Any`.
+    "sublime.set_timeout.callback": "Callable[[], object]",
+    "sublime.set_timeout_async.callback": "Callable[[], object]",
     "sublime.Window.__eq__.other": "object",
     # Every wrapper object is constructed from the id of its native counterpart.
     "sublime.Selection.__init__.id": "int",

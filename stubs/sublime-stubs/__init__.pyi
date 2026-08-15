@@ -4,7 +4,7 @@
 import builtins
 import enum
 from collections.abc import Callable, Iterable, Iterator, Mapping
-from typing import Any, Generic, Literal
+from typing import Generic, Literal
 
 from sublime_types import CommandArgs as CommandArgs
 from sublime_types import CommandArgsLike as CommandArgsLike
@@ -992,14 +992,14 @@ def load_settings(base_name: str) -> Settings:
 def save_settings(base_name: str) -> None:
     """ Flush any in-memory changes to the named settings object to disk. """
 
-def set_timeout(callback: Callable[[], Any], delay: int = ...) -> None:
+def set_timeout(callback: Callable[[], object], delay: int = ...) -> None:
     """
     Run the ``callback`` in the main thread after the given ``delay``
     (in milliseconds). Callbacks with an equal delay will be run in the order
     they were added.
     """
 
-def set_timeout_async(callback: Callable[[], Any], delay: int = ...) -> None:
+def set_timeout_async(callback: Callable[[], object], delay: int = ...) -> None:
     """
     Runs the callback on an alternate thread after the given delay
     (in milliseconds).

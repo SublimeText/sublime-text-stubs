@@ -8,6 +8,15 @@ not semantic versioning; see the README.
 
 ## [Unreleased]
 
+### Changed
+
+- `set_timeout()` and `set_timeout_async()` type their `callback` as
+  `Callable[[], object]` instead of `Callable[[], Any]`.
+  The runtime discards whatever the callback returns,
+  so `object` describes that without resorting to `Any`.
+  With no remaining `Any` in the stubs,
+  `reportAny` and `reportExplicitAny` (basedpyright only) are now enabled.
+
 ### Added
 
 - `sublime.ui_info()` returns `UIInfo`,

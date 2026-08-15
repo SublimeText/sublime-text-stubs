@@ -105,13 +105,8 @@ reportSelfClsDefault = "error"  # basedpyright only
 reportUnannotatedClassAttribute = "error"  # basedpyright only
 reportUnsafeMultipleInheritance = "error"  # basedpyright only
 reportUnusedParameter = "error"  # basedpyright only
-
-# The two rules from "all" that are not reachable here: the API genuinely traffics
-# in `Any`. `set_timeout` and `set_timeout_async` ignore whatever their callback
-# returns, so the callback type has to accept a callable returning anything.
-# Narrowing that would misdescribe the runtime.
-reportAny = false  # basedpyright only
-reportExplicitAny = false  # basedpyright only
+reportAny = "error"  # basedpyright only
+reportExplicitAny = "error"  # basedpyright only
 
 [tool.mypy]
 # mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target
