@@ -188,6 +188,19 @@ ATTRIBUTES = {
     "sublime.CompletionList.target": "int | None",
 }
 
+# Module level `TypeVar` declarations, keyed by module name. The reference has no
+# counterpart to key them to, so the value is the complete declaration block, emitted
+# at the top of the module body (after the imports, before the first declaration). A
+# module declaring more than one TypeVar spells them as one multi-line block.
+TYPE_VARS: dict[str, str] = {}
+
+# Replacements for a class's rendered base list, keyed by `module.Class`. The value is
+# used verbatim in place of everything the reference declares between the parentheses,
+# which is how a reference class is made generic (`Generic[_T]`) or is given an already
+# parameterized base (`CommandInputHandler[str]`). The `@override` and inheritance
+# bookkeeping keeps following the reference's own bases.
+CLASS_BASES: dict[str, str] = {}
+
 # `sublime_types` aliases the generator cannot take verbatim.
 TYPE_ALIASES = {
     # JSON is recursive: the reference spells the containers as `List[Any]` /
