@@ -37,15 +37,26 @@ not semantic versioning; see the README.
   and calls its callback with `FontOptions | None`,
   a stub-only `TypedDict` with the `font_face` and `font_size` keys
   a live call was observed to pass, both optional.
+- `ValueLike` and `CommandArgsLike`,
+  stub-only `sublime_types` aliases accepted wherever a plugin
+  passes a value into Sublime Text.
+  `Value`'s containers, `list[Value]` and `dict[str, Value]`, are invariant,
+  so a `List[str]` or `Dict[str, str]` could not be passed
+  anywhere a `Value` was expected.
+  `ValueLike` uses the covariant `Sequence` and `Mapping` protocols instead,
+  so it admits a `collections.abc.Mapping` that is not a `dict`,
+  which type-checks but is rejected at runtime,
+  and it does not model that whatever is passed in
+  comes back as a plain `list` or `dict`.
 
 ### Changed
 
 - `ListInputItem` is generic over its `value` type,
-  bounded by and defaulting to `Value`,
+  bounded by `ValueLike` and defaulting to `Value`,
   rather than typing the value as `Any`.
 - `CommandInputHandler` and `ListInputHandler` are generic
   over the value the selected input passes to the command,
-  bounded by `Value`,
+  bounded by `ValueLike`,
   and `TextInputHandler` is a `CommandInputHandler[str]`.
   `ListInputHandler`'s parameter defaults to `Value`,
   while `CommandInputHandler`'s is contravariant and defaults to `Never`,
@@ -60,6 +71,16 @@ not semantic versioning; see the README.
   and may mix the three item forms within one iterable.
   Note that a bare `tuple` of items type-checks
   but is read at runtime as the `(items, index)` pre-select form.
+- Every parameter through which a plugin passes a value *into* Sublime Text --
+  `Settings` mutators, `sublime.encode_value` and `expand_variables`,
+  `run_command` and its `format_command`, `html_format_command`
+  and `command_url` relatives, `set_project_data`, `begin_edit`
+  and `CompletionItem.command_completion` --
+  now accepts `ValueLike` or `CommandArgsLike`
+  instead of `Value` or `CommandArgs`,
+  so a `List[str]` or `Dict[str, str]` can be passed directly.
+  Return types, and the parameters Sublime Text fills in,
+  keep their narrower `Value` or `CommandArgs` types.
 - `sublime.HTML` is annotated as `Literal[1]` rather than left to inference.
 - Signatures longer than 100 characters are wrapped one parameter per line.
 - Annotations no longer carry the quotes the reference needs at runtime,

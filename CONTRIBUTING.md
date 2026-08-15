@@ -50,10 +50,11 @@ is reported with the exact `stub_overrides` key to add,
 and nothing is written until every one is resolved.
 
 The check runs in the other direction too:
-every override table is keyed by a name from the reference,
+almost every override table is keyed by a name from the reference,
 and an entry that matches nothing there is reported as stale.
 Corrections therefore cannot quietly stop applying
 when a member is renamed or removed in a later build.
+The two exceptions are covered in "Adjusting the stubs" below.
 
 ## Adjusting the stubs
 
@@ -70,6 +71,14 @@ add the entry, rerun the generator, commit the regenerated `.pyi` alongside it.
 Record the reasoning for a non-obvious entry as a comment next to it,
 with a `references/python38/<file>:<line>` pointer
 to the reference code that justifies it.
+
+The two exceptions to the staleness check are `EXTRA_TYPE_ALIASES`
+and `EXTRA_TYPE_ALIAS_CLASSES`:
+they add `sublime_types` names, such as `ValueLike`,
+that have no reference-side counterpart at all,
+so nothing validates them beyond the type checkers.
+A name added to either table must also be added to `SUBLIME_TYPES_REEXPORTS`
+for every module that re-exports it.
 
 ## Validating
 
