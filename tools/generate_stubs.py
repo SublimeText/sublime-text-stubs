@@ -978,14 +978,19 @@ class ModuleGenerator:
         They are emitted after the reference-derived aliases and before the extra
         classes, so that they sit among the plain aliases rather than among the
         `TypedDict`s. Returns the `separate` kind they leave behind.
+
+        The kind is not `"assignment"`: these blocks carry a docstring, and `separate`
+        packs consecutive assignments without a blank line, which would run the
+        docstring of one into the declaration of the next and make the first read as
+        documentation of the reference-derived alias above it.
         """
         if self.module != "sublime_types":
             return previous
         for block in ov.EXTRA_TYPE_ALIASES.values():
-            self.separate(previous, "assignment")
+            self.separate(previous, "documented alias")
             self.note(block)
             self.lines.append(block)
-            previous = "assignment"
+            previous = "documented alias"
         return previous
 
     def emit_extra_type_alias_classes(self, previous: str) -> None:

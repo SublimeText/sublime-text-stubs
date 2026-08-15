@@ -39,11 +39,27 @@ class Event(TypedDict, total=False):
     modifier_keys: ModifierKeys
 
 CompletionValue: TypeAlias = str | tuple[str, str] | CompletionItem
-# What the value layer accepts on the way *in*, where `Value` describes
-# what it hands back. The containers are the covariant protocols, so a
-# `list[str]` or a `dict[str, str]` can be passed as it is.
+
 ValueLike: TypeAlias = bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None
+"""
+What the value layer accepts on the way *in*, where `Value` describes what it
+hands back. The containers are the covariant protocols, so a ``list[str]`` or a
+``dict[str, str]`` can be passed as it is.
+
+This alias exists only in the stubs, for type checking: the real
+``sublime_types`` module has no ``ValueLike`` name at runtime, so it must be
+imported inside an ``if TYPE_CHECKING:`` block.
+"""
+
 CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None
+"""
+What a command's arguments may be spelled as on the way *in*, where
+`CommandArgs` describes what the plugin host hands back.
+
+This alias exists only in the stubs, for type checking: the real
+``sublime_types`` module has no ``CommandArgsLike`` name at runtime, so it must
+be imported inside an ``if TYPE_CHECKING:`` block.
+"""
 
 class UIInfoSystem(TypedDict, total=False):
     """

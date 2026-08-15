@@ -348,17 +348,37 @@ TYPE_ALIASES = {
 # `PySequence_Check` at runtime and is not a nominal `Sequence` for the checkers
 # either.
 #
-# Keep the *emitted* comment free of the bare word `sublime` and of any name in the
+# Keep the *emitted* docstrings free of the bare word `sublime` and of any name in the
 # generator's import tables, for the reason `EXTRA_TYPE_ALIAS_CLASSES` records below.
+# Both carry the same stub-only notice the extra classes do, because these are the only
+# `sublime_types` names that are stub-only without being a class: they sit among `Value`
+# and `CommandArgs`, which do exist at runtime, so nothing else would tell a reader that
+# importing one unguarded raises `ImportError` on the plugin host.
 EXTRA_TYPE_ALIASES = {
     "ValueLike": (
-        "# What the value layer accepts on the way *in*, where `Value` describes\n"
-        "# what it hands back. The containers are the covariant protocols, so a\n"
-        "# `list[str]` or a `dict[str, str]` can be passed as it is.\n"
         "ValueLike: TypeAlias ="
-        " bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None"
+        " bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None\n"
+        '"""\n'
+        "What the value layer accepts on the way *in*, where `Value` describes what it\n"
+        "hands back. The containers are the covariant protocols, so a ``list[str]`` or a\n"
+        "``dict[str, str]`` can be passed as it is.\n"
+        "\n"
+        "This alias exists only in the stubs, for type checking: the real\n"
+        "``sublime_types`` module has no ``ValueLike`` name at runtime, so it must be\n"
+        "imported inside an ``if TYPE_CHECKING:`` block.\n"
+        '"""'
     ),
-    "CommandArgsLike": "CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None",
+    "CommandArgsLike": (
+        "CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None\n"
+        '"""\n'
+        "What a command's arguments may be spelled as on the way *in*, where\n"
+        "`CommandArgs` describes what the plugin host hands back.\n"
+        "\n"
+        "This alias exists only in the stubs, for type checking: the real\n"
+        "``sublime_types`` module has no ``CommandArgsLike`` name at runtime, so it must\n"
+        "be imported inside an ``if TYPE_CHECKING:`` block.\n"
+        '"""'
+    ),
 }
 
 # `sublime_types` aliases the generator replaces with a class declaration instead of a
