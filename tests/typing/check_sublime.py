@@ -8,6 +8,7 @@ from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
+from typing_extensions import assert_type
 
 if TYPE_CHECKING:
     from sublime_types import FontOptions, UIInfoPalette
@@ -130,6 +131,27 @@ def quick_panel(window: sublime.Window) -> None:
         for folder in window.folders()
     ]
     window.show_quick_panel(items, lambda _index: None, placeholder="Pick a folder")
+
+
+def list_input_item_value() -> int:
+    # `assert_type` rather than an annotated assignment: `Any` satisfies the latter,
+    # so it would not catch a regression to the pre-generic stubs.
+    item = sublime.ListInputItem("label", 42)
+    return assert_type(item.value, int)
+
+
+def bare_list_input_item_value(item: sublime.ListInputItem) -> sublime.Value:
+    # A bare, unparameterized use defaults to `Value` rather than to `Any`, so an
+    # author who does not parameterize still has to narrow before using the value.
+    return assert_type(item.value, sublime.Value)
+
+
+def make_list_input_item(value: List[sublime.Value]) -> "sublime.ListInputItem[List[sublime.Value]]":
+    # The runtime class cannot be subscripted on the Python 3.8 host, so a
+    # parameterized annotation has to be quoted. The argument has to satisfy the
+    # `Value` bound: a container element type has to be `Value` itself, because
+    # `list` is invariant and `List[str]` is therefore not a `Value`.
+    return sublime.ListInputItem("label", value)
 
 
 def phantoms(view: sublime.View) -> sublime.PhantomSet:

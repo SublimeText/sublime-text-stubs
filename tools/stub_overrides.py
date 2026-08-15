@@ -142,6 +142,9 @@ PARAMS = {
     "sublime.CompletionItem.command_completion.args": "CommandArgs",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
+    # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
+    # over it instead, so the constructor argument is what fixes the item's value type.
+    "sublime.ListInputItem.__init__.value": "_T_Value",
     # Unannotated with a `details=""` default, so the generator infers `str` from
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
@@ -186,20 +189,40 @@ PARAMS = {
 ATTRIBUTES = {
     "sublime.View.settings_object": "Settings | None",
     "sublime.CompletionList.target": "int | None",
+    # Annotated `Any` in the reference (references/python38/sublime.py:4330), whose own
+    # docstring one line below calls it "A `Value` passed to the command"; see
+    # `TYPE_VARS`.
+    "sublime.ListInputItem.value": "_T_Value",
 }
 
 # Module level `TypeVar` declarations, keyed by module name. The reference has no
 # counterpart to key them to, so the value is the complete declaration block, emitted
 # at the top of the module body (after the imports, before the first declaration). A
 # module declaring more than one TypeVar spells them as one multi-line block.
-TYPE_VARS: dict[str, str] = {}
+TYPE_VARS: dict[str, str] = {
+    # Bounded by `Value` because the item's value is what gets delivered to the command:
+    # "A `Value` passed to the command if the row is selected"
+    # (references/python38/sublime.py:4330-4331). Defaulted because the runtime class
+    # carries no `__class_getitem__` on the Python 3.8 host and therefore cannot be
+    # subscripted, so every bare use has to keep working; `default=Value` (rather than
+    # `Any`) makes a bare `ListInputItem` an item of an unknown `Value`, which has to be
+    # narrowed, instead of one that silently accepts anything.
+    #
+    # Keep this justification out of the emitted block: `note()` scans the block for
+    # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
+    "sublime": '_T_Value = TypeVar("_T_Value", bound=Value, default=Value)',
+}
 
 # Replacements for a class's rendered base list, keyed by `module.Class`. The value is
 # used verbatim in place of everything the reference declares between the parentheses,
 # which is how a reference class is made generic (`Generic[_T]`) or is given an already
 # parameterized base (`CommandInputHandler[str]`). The `@override` and inheritance
 # bookkeeping keeps following the reference's own bases.
-CLASS_BASES: dict[str, str] = {}
+CLASS_BASES: dict[str, str] = {
+    # The reference class has no bases; `Generic[_T_Value]` is what makes its `value`
+    # generic. See `TYPE_VARS` above.
+    "sublime.ListInputItem": "Generic[_T_Value]",
+}
 
 # `sublime_types` aliases the generator cannot take verbatim.
 TYPE_ALIASES = {

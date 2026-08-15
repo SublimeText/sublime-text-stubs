@@ -121,8 +121,11 @@ COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
 # `Never` and `TypeVar` come from here rather than from `typing`: `typing.Never` only
 # exists from 3.11 on, and only `typing_extensions.TypeVar` carries the PEP 696
 # `default=` argument on the Python versions the checkers target.
+# The order is the emitted one, so it has to be isort's: case-insensitive, since the
+# `order-by-type = false` in the root pyproject.toml leaves ruff's default
+# `case-sensitive = false` in charge.
 TYPING_EXTENSIONS_NAMES = [
-    "Never", "NotRequired", "TypeAlias", "TypeVar", "deprecated", "override",
+    "deprecated", "Never", "NotRequired", "override", "TypeAlias", "TypeVar",
 ]
 
 # PEP 585: the `typing` aliases superseded by the builtin generics.

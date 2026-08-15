@@ -40,6 +40,9 @@ not semantic versioning; see the README.
 
 ### Changed
 
+- `ListInputItem` is generic over its `value` type,
+  bounded by and defaulting to `Value`,
+  rather than typing the value as `Any`.
 - `sublime.HTML` is annotated as `Literal[1]` rather than left to inference.
 - Signatures longer than 100 characters are wrapped one parameter per line.
 - Annotations no longer carry the quotes the reference needs at runtime,

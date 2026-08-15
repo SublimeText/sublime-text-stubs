@@ -107,9 +107,9 @@ reportUnsafeMultipleInheritance = "error"  # basedpyright only
 reportUnusedParameter = "error"  # basedpyright only
 
 # The two rules from "all" that are not reachable here: the API genuinely traffics
-# in `Any`. `ListInputItem.value` is an arbitrary value handed back to the command,
-# and `set_timeout` ignores whatever its callback returns. Narrowing either of them
-# would misdescribe the runtime.
+# in `Any`. `set_timeout` and `set_timeout_async` ignore whatever their callback
+# returns, so the callback type has to accept a callable returning anything.
+# Narrowing that would misdescribe the runtime.
 reportAny = false  # basedpyright only
 reportExplicitAny = false  # basedpyright only
 
