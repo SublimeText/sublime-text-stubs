@@ -4,14 +4,14 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
 from typing_extensions import assert_type
 
 if TYPE_CHECKING:
-    from sublime_types import FontOptions, UIInfoPalette
+    from sublime_types import FontOptions, UIInfoPalette, ValueLike
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
@@ -152,6 +152,21 @@ def make_list_input_item(value: List[sublime.Value]) -> "sublime.ListInputItem[L
     # `Value` bound: a container element type has to be `Value` itself, because
     # `list` is invariant and `List[str]` is therefore not a `Value`.
     return sublime.ListInputItem("label", value)
+
+
+def is_empty_value(value: "ValueLike") -> bool:
+    # `ValueLike` is stub-only, so it is imported under `if TYPE_CHECKING:` and the
+    # annotation is quoted.
+    return value is None
+
+
+def value_like_accepts_concrete_containers() -> Tuple[bool, bool]:
+    # The point of `ValueLike`: its containers are the covariant `Sequence` and
+    # `Mapping`, so these two pass as they are. Against `Value`, whose containers are
+    # the invariant `list` and `dict`, neither call type-checks.
+    tags: List[str] = ["draft", "review"]
+    labels: Dict[str, str] = {"draft": "Draft"}
+    return is_empty_value(tags), is_empty_value(labels)
 
 
 def phantoms(view: sublime.View) -> sublime.PhantomSet:

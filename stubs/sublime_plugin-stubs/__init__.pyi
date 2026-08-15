@@ -7,6 +7,7 @@ from typing import Generic
 import sublime
 from sublime_types import Event as Event
 from sublime_types import Value as Value
+from sublime_types import ValueLike as ValueLike
 from typing_extensions import Never, override, TypeVar
 
 _T_Value = TypeVar("_T_Value", bound=Value, default=Value)

@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable, Iterator
 from typing import Any, Generic, Literal
 
 from sublime_types import CommandArgs as CommandArgs
+from sublime_types import CommandArgsLike as CommandArgsLike
 from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
 from sublime_types import FontOptions as FontOptions
@@ -16,6 +17,7 @@ from sublime_types import Point as Point
 from sublime_types import ScopeStyle as ScopeStyle
 from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
+from sublime_types import ValueLike as ValueLike
 from sublime_types import Vector as Vector
 from sublime_types import WindowLayout as WindowLayout
 from sublime_types import WindowVariables as WindowVariables

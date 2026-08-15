@@ -24,6 +24,7 @@ MODULES = {
 SUBLIME_TYPES_REEXPORTS = {
     "sublime": [
         "CommandArgs",
+        "CommandArgsLike",
         "CompletionValue",
         "DIP",
         "FontOptions",
@@ -33,11 +34,12 @@ SUBLIME_TYPES_REEXPORTS = {
         "ScopeStyle",
         "UIInfo",
         "Value",
+        "ValueLike",
         "Vector",
         "WindowLayout",
         "WindowVariables",
     ],
-    "sublime_plugin": ["Event", "Value"],
+    "sublime_plugin": ["Event", "Value", "ValueLike"],
 }
 
 # `sublime_plugin` is mostly plugin-host machinery: module level registries, the
@@ -275,6 +277,55 @@ TYPE_ALIASES = {
     # quoting -- in a `.pyi` nothing is evaluated, so a forward reference resolves
     # regardless of where it appears; all four checkers accept it.
     "Value": "bool | str | int | float | list[Value] | dict[str, Value] | None",
+}
+
+# `sublime_types` aliases with no reference-side counterpart at all: like
+# `EXTRA_TYPE_ALIAS_CLASSES` below, nothing keys them to the reference, so they are
+# not matched against it and cannot be flagged stale. A name added here must also be
+# added to `SUBLIME_TYPES_REEXPORTS` for every module that uses it. The value is the
+# complete emitted block, so an entry can carry a leading comment.
+#
+# `Value` spells its containers `list[Value]` and `dict[str, Value]`, and both are
+# invariant, so a plugin author holding a `List[str]` cannot pass it anywhere a
+# `Value` is expected -- not to `Settings.set`, not to `encode_value`, and not as a
+# type argument to the generic input handlers. `ValueLike` is the covariant
+# companion, spelled with `Sequence` and `Mapping`, and is used for every parameter
+# through which a value enters Sublime Text. Return types keep describing what comes
+# back, which is always a real `list` or `dict`, so they stay `Value`.
+#
+# Two deliberate inaccuracies, both documented in README.md as well:
+#
+# 1. `Mapping` overshoots the runtime, which gates mappings on
+#    `isinstance(x, dict)`: a `collections.abc.Mapping` that is not a `dict` is
+#    rejected. Spelling it `dict[str, ValueLike]` would be accurate but useless,
+#    since `dict` is invariant in its value parameter and `Dict[str, str]` would
+#    keep failing -- which is the whole problem this alias exists to solve.
+#    `Settings.update` is the one place where any `Mapping` really is accepted: it
+#    is implemented in Python and iterates the mapping itself
+#    (references/python38/sublime.py:3862-3883).
+# 2. Whatever is passed in is delivered back as a plain `list` or `dict`, so a
+#    handler parameterized on a custom sequence type type-checks and then receives
+#    a `list`. That needs two type parameters to express and is documented instead.
+#
+# `Sequence` matches the runtime closely: sequences are duck-typed through
+# `__getitem__`, so a hand-rolled `collections.abc.Sequence` is accepted, and so is
+# `bytes`, which arrives back as a `list[int]`. `Region` has `__iter__`, `__len__`
+# and `__contains__` but no `__getitem__` (references/python38/sublime.py:2091-2130,
+# the run of dunders in a `class Region` that starts at :2061), so it fails
+# `PySequence_Check` at runtime and is not a nominal `Sequence` for the checkers
+# either.
+#
+# Keep the *emitted* comment free of the bare word `sublime` and of any name in the
+# generator's import tables, for the reason `EXTRA_TYPE_ALIAS_CLASSES` records below.
+EXTRA_TYPE_ALIASES = {
+    "ValueLike": (
+        "# What the value layer accepts on the way *in*, where `Value` describes\n"
+        "# what it hands back. The containers are the covariant protocols, so a\n"
+        "# `list[str]` or a `dict[str, str]` can be passed as it is.\n"
+        "ValueLike: TypeAlias ="
+        " bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None"
+    ),
+    "CommandArgsLike": "CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None",
 }
 
 # `sublime_types` aliases the generator replaces with a class declaration instead of a

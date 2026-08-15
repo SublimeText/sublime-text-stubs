@@ -116,7 +116,7 @@ TYPING_NAMES = ["Any", "Generic", "Literal", "TypedDict"]
 
 # The modern home of the abstract collection types; `typing.Callable` and friends
 # are deprecated aliases of these.
-COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
+COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Mapping", "Sequence"]
 
 # `Never` and `TypeVar` come from here rather than from `typing`: `typing.Never` only
 # exists from 3.11 on, and only `typing_extensions.TypeVar` carries the PEP 696
@@ -953,6 +953,7 @@ class ModuleGenerator:
                     _ = self.emit_assignment(node, "", None, module_level=True)
                     previous = "assignment"
 
+        previous = self.emit_extra_type_aliases(previous)
         self.emit_extra_type_alias_classes(previous)
 
         body = "\n".join(self.lines).rstrip() + "\n"
@@ -970,6 +971,22 @@ class ModuleGenerator:
         self.note(block)
         self.lines.append(block)
         return "type_vars"
+
+    def emit_extra_type_aliases(self, previous: str) -> str:
+        """Append the `sublime_types` aliases with no reference-side counterpart.
+
+        They are emitted after the reference-derived aliases and before the extra
+        classes, so that they sit among the plain aliases rather than among the
+        `TypedDict`s. Returns the `separate` kind they leave behind.
+        """
+        if self.module != "sublime_types":
+            return previous
+        for block in ov.EXTRA_TYPE_ALIASES.values():
+            self.separate(previous, "assignment")
+            self.note(block)
+            self.lines.append(block)
+            previous = "assignment"
+        return previous
 
     def emit_extra_type_alias_classes(self, previous: str) -> None:
         """Append the `sublime_types` classes with no reference-side counterpart."""
@@ -1194,7 +1211,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     # checked against the reference directly.
     for module, names in ov.SUBLIME_TYPES_REEXPORTS.items():
         for name in names:
-            known = name in reference.aliases["sublime_types"] or name in ov.EXTRA_TYPE_ALIAS_CLASSES
+            known = (
+                name in reference.aliases["sublime_types"]
+                or name in ov.EXTRA_TYPE_ALIASES
+                or name in ov.EXTRA_TYPE_ALIAS_CLASSES
+            )
             if not known:
                 problems.stale(f"stub_overrides.SUBLIME_TYPES_REEXPORTS[{module!r}][{name!r}]")
 
