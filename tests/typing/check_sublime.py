@@ -223,6 +223,32 @@ def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
     return sublime.expand_variables(template, variables)
 
 
+def widen_value_like_inputs(
+    settings: sublime.Settings, window: sublime.Window, tags: List[str], labels: Dict[str, str]
+) -> None:
+    # The inbound half of the value layer accepts the covariant containers `ValueLike`
+    # describes: none of these seven calls type-checked while their parameters were
+    # still `Value`, whose containers are the invariant `list`/`dict`.
+    settings.set("tags", tags)
+    settings["tags"] = tags
+    _ = settings.setdefault("tags", tags)
+    _ = settings.get("tags", tags)
+    settings.update(labels)
+    _ = sublime.encode_value(tags)
+    window.set_project_data(labels)
+    # The outbound half stays narrow: a value read back, or the whole store dumped,
+    # still describes what Sublime Text actually hands back, so this is unchanged.
+    _ = assert_type(settings.get("tags"), sublime.Value)
+    _ = assert_type(settings.to_dict(), Dict[str, sublime.Value])
+
+
+def widen_command_args_inputs(window: sublime.Window, tags: List[str]) -> None:
+    # `CommandArgsLike` is `Mapping[str, ValueLike] | None`, so a `Dict[str,
+    # List[str]]` literal passes here, where `CommandArgs`
+    # (`dict[str, Value] | None`) would reject it on both counts.
+    window.run_command("x", {"tags": tags})
+
+
 def pick_font(on_chosen: Callable[[str], None]) -> None:
     def chosen(options: Optional["FontOptions"]) -> None:
         # The callback receives `None` if the dialog was cancelled.

@@ -145,12 +145,34 @@ PARAMS = {
     "sublime.Sheet.close.on_close": "Callable[[bool], None]",
     "sublime.View.close.on_close": "Callable[[bool], None]",
     "sublime.View.show_popup_menu.flags": "int",
-    "sublime.Settings.update.other": "Settings | dict[str, Value] | Iterable[tuple[str, Value]]",
-    "sublime.Settings.update.kwargs": "Value",
+    # The inbound half of the value layer: every parameter from here through
+    # `CompletionItem.command_completion.args` accepts the covariant
+    # `ValueLike`/`CommandArgsLike` in place of the invariant `Value`/`CommandArgs` a
+    # plugin author would otherwise have to satisfy exactly. See `EXTRA_TYPE_ALIASES`
+    # for the rationale.
+    "sublime.encode_value.value": "ValueLike",
+    "sublime.expand_variables.value": "ValueLike",
+    "sublime.run_command.args": "CommandArgsLike",
+    "sublime.format_command.args": "CommandArgsLike",
+    "sublime.html_format_command.args": "CommandArgsLike",
+    "sublime.command_url.args": "CommandArgsLike",
+    "sublime.Window.run_command.args": "CommandArgsLike",
+    "sublime.Window.set_project_data.data": "ValueLike",
+    "sublime.View.run_command.args": "CommandArgsLike",
+    "sublime.View.begin_edit.args": "CommandArgsLike",
+    "sublime.Settings.__setitem__.value": "ValueLike",
+    "sublime.Settings.set.value": "ValueLike",
+    "sublime.Settings.setdefault.value": "ValueLike",
+    "sublime.Settings.get.default": "ValueLike",
+    # Not an overshoot like the rest of the group: `Settings.update` is implemented in
+    # Python and genuinely iterates any `Mapping`
+    # (references/python38/sublime.py:3862-3883).
+    "sublime.Settings.update.other": "Settings | Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]]",
+    "sublime.Settings.update.kwargs": "ValueLike",
+    "sublime.CompletionItem.command_completion.args": "CommandArgsLike",
     "sublime.CompletionItem.__init__.kind": "Kind",
     "sublime.CompletionItem.snippet_completion.kind": "Kind",
     "sublime.CompletionItem.command_completion.kind": "Kind",
-    "sublime.CompletionItem.command_completion.args": "CommandArgs",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
     # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
