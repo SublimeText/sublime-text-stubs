@@ -8,6 +8,36 @@ not semantic versioning; see the README.
 
 ## [Unreleased]
 
+### Added
+
+- `sublime.ui_info()` returns `UIInfo`,
+  a stub-only `TypedDict` describing its `system`, `theme` and `color_scheme` keys,
+  including the `color_scheme.palette` colors.
+  These types have no counterpart at runtime,
+  so import them under `if TYPE_CHECKING:`.
+- `View.style_for_scope()` returns `ScopeStyle`,
+  a stub-only `TypedDict` naming every key its docstring documents,
+  with the "(only if set)" ones marked `NotRequired`.
+  Its `source_line` is `int` and its `source_file` is `str`,
+  which is what the runtime returns
+  rather than what the upstream docstring claims.
+- `sublime.get_macro()` returns `list[MacroStep]`,
+  a stub-only `TypedDict` with the `command` and `args` keys
+  its docstring says every entry always carries.
+- `Window.layout()` and `Window.get_layout()` return `WindowLayout`,
+  and `Window.set_layout()` accepts one,
+  a stub-only `TypedDict` with the `cols`, `rows` and `cells` keys
+  a live call was observed to always carry.
+- `Window.extract_variables()` returns `WindowVariables`,
+  a stub-only `TypedDict` with the keys its docstring says the result may contain,
+  all of them optional.
+  `sublime.expand_variables()` now takes `dict[str, str] | WindowVariables`,
+  so the round trip its docstring recommends keeps type-checking.
+- `choose_font_dialog()` takes a `FontOptions` default
+  and calls its callback with `FontOptions | None`,
+  a stub-only `TypedDict` with the `font_face` and `font_size` keys
+  a live call was observed to pass, both optional.
+
 ### Changed
 
 - `sublime.HTML` is annotated as `Literal[1]` rather than left to inference.

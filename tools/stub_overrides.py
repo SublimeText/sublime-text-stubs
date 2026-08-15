@@ -22,7 +22,21 @@ MODULES = {
 # unconditionally and re-export them (``X as X``), because plugin authors refer
 # to them as ``sublime.Point`` and the like.
 SUBLIME_TYPES_REEXPORTS = {
-    "sublime": ["CommandArgs", "CompletionValue", "DIP", "Kind", "Point", "Value", "Vector"],
+    "sublime": [
+        "CommandArgs",
+        "CompletionValue",
+        "DIP",
+        "FontOptions",
+        "Kind",
+        "MacroStep",
+        "Point",
+        "ScopeStyle",
+        "UIInfo",
+        "Value",
+        "Vector",
+        "WindowLayout",
+        "WindowVariables",
+    ],
     "sublime_plugin": ["Event", "Value"],
 }
 
@@ -67,12 +81,28 @@ CONSTANTS = {
 # Return type overrides, taking precedence over the annotation in the reference.
 # Mostly bare generics, which `reportMissingTypeArguments` rejects under strict mode.
 RETURNS = {
-    # Bare `dict` in the reference; strict mode needs type arguments.
-    "sublime.ui_info": "dict[str, Value]",
-    # Each entry has a "command" and an "args" key.
-    "sublime.get_macro": "list[dict[str, Value]]",
+    # Bare `dict` in the reference; the API docs narrow it no further than
+    # `dict[str, Value]`, but `UIInfo` (see `EXTRA_TYPE_ALIAS_CLASSES`) spells out the
+    # `system`/`theme`/`color_scheme` keys the docstring already names.
+    "sublime.ui_info": "UIInfo",
+    # Bare `list[dict]` in the reference, whose docstring
+    # (references/python38/sublime.py:1314-1320) names both keys of every entry;
+    # see `MacroStep` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.get_macro": "list[MacroStep]",
     "sublime.Settings.to_dict": "dict[str, Value]",
-    "sublime.Window.get_layout": "dict[str, Value]",
+    # Bare `dict[str, Value]` in the reference for `layout`, and unannotated for the
+    # deprecated `get_layout` (references/python38/sublime.py:1679-1695); neither
+    # docstring names a key, see `WindowLayout` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.Window.layout": "WindowLayout",
+    "sublime.Window.get_layout": "WindowLayout",
+    # Bare `dict[str, Value]` in the reference, whose docstring
+    # (references/python38/sublime.py:3057-3080) names every key; see `ScopeStyle` in
+    # `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.View.style_for_scope": "ScopeStyle",
+    # `dict[str, str]` in the reference, whose docstring
+    # (references/python38/sublime.py:2017-2038) names every key it may contain; see
+    # `WindowVariables` in `EXTRA_TYPE_ALIAS_CLASSES`.
+    "sublime.Window.extract_variables": "WindowVariables",
     # Unannotated in the reference.
     "sublime.Window.__eq__": "bool",
     "sublime.Window.get_output_panel": "View",
@@ -129,6 +159,27 @@ PARAMS = {
     # (`references/python38/sublime_plugin.py:829` and `:838`).
     "sublime_plugin.EventListener.on_associate_buffer.buffer": "sublime.Buffer",
     "sublime_plugin.EventListener.on_associate_buffer_async.buffer": "sublime.Buffer",
+    # `layout` in the reference is `dict[str, Value]`
+    # (references/python38/sublime.py:1691), but a `WindowLayout` is not assignable
+    # to that: without this override, `window.set_layout(window.layout())` stops
+    # type-checking once `layout()` returns a `WindowLayout` instead.
+    "sublime.Window.set_layout.layout": "WindowLayout",
+    # `variables` in the reference is `dict[str, str]`
+    # (references/python38/sublime.py:1253), and sublime.py:2036 tells the user the
+    # result of `extract_variables()` is "suitable for use with `expand_variables()`".
+    # A `TypedDict` is assignable to neither `dict[str, str]` nor `Mapping[str, str]`,
+    # only to `Mapping[str, object]` -- which would wrongly accept any mapping of
+    # arbitrary values -- so the parameter has to name both types.
+    "sublime.expand_variables.variables": "dict[str, str] | WindowVariables",
+    # The reference spells these as `callback: Callable[[Value], None]` and
+    # `default: dict[str, Value]` (references/python38/sublime.py:925); see
+    # `FontOptions` in `EXTRA_TYPE_ALIAS_CLASSES`. The `| None` on the callback
+    # argument is from the docstring (sublime.py:933-934): it "will be called with
+    # ``None`` if the dialog is cancelled". `default` needs no `| None` here -- the
+    # generator already emits `FontOptions | None = ...` from the reference's
+    # `= None` default.
+    "sublime.choose_font_dialog.callback": "Callable[[FontOptions | None], None]",
+    "sublime.choose_font_dialog.default": "FontOptions",
 }
 
 # Types for instance attributes assigned without an annotation in `__init__`.
@@ -178,6 +229,219 @@ class Event(TypedDict, total=False):
     x: float
     y: float
     modifier_keys: ModifierKeys''',
+}
+
+# `sublime_types` classes with no reference-side counterpart at all: nothing to key
+# them to, so -- unlike every table above -- they are not matched against the
+# reference and cannot be flagged stale. `generate_stubs.py` appends them, in
+# order, after the reference-derived aliases in `sublime_types`.
+#
+# `sublime.ui_info` (references/python38/sublime.py:1170) returns a bare `dict`
+# documented only as "top-level keys `system`, `theme` and `color_scheme`"; the
+# official API reference and the community docs go no further than that sentence.
+# The shapes below are reverse engineered from a live `sublime.ui_info()` call
+# (ST build 4200, palette keys matching the ``--accent``/``--redish``/etc. color
+# scheme variables), not from any documented schema, so every field is optional
+# and the whole thing is a stub-only addition -- import it under
+# `if TYPE_CHECKING:`.
+EXTRA_TYPE_ALIAS_CLASSES = {
+    "UIInfo": '''\
+class UIInfoSystem(TypedDict, total=False):
+    """
+    The ``system`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoSystem`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    style: str
+    """ ``"dark"`` or ``"light"``, mirroring the OS appearance. """
+
+class UIInfoTheme(TypedDict, total=False):
+    """
+    The ``theme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoTheme`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``theme`` setting. """
+    resolved_value: str
+    """ The theme file actually in effect, after auto light/dark switching. """
+    style: str
+    """ ``"system"`` when the theme follows the OS appearance, else unset. """
+
+class UIInfoPalette(TypedDict, total=False):
+    """
+    The ``palette`` entry of `UIInfoColorScheme`: the current color scheme's
+    ``--accent``/``--redish``/etc. variables, as hex color strings.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoPalette`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    accent: str
+    background: str
+    foreground: str
+    bluish: str
+    cyanish: str
+    greenish: str
+    orangish: str
+    pinkish: str
+    purplish: str
+    redish: str
+    yellowish: str
+
+class UIInfoColorScheme(TypedDict, total=False):
+    """
+    The ``color_scheme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoColorScheme`` name at runtime, so it
+    must be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``color_scheme`` setting. """
+    resolved_value: str
+    """ The color scheme file actually in effect, after auto light/dark switching. """
+    palette: UIInfoPalette
+
+class UIInfo(TypedDict, total=False):
+    """
+    The return value of `ui_info`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfo`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    system: UIInfoSystem
+    theme: UIInfoTheme
+    color_scheme: UIInfoColorScheme''',
+    # `View.style_for_scope` (references/python38/sublime.py:3056) returns a bare
+    # `dict[str, Value]`, but its docstring lists every key it can carry, in the order
+    # below. `NotRequired` marks exactly the keys it flags "(only if set)".
+    #
+    # Two of those keys are documented with the wrong type: sublime.py:3074-3076 says
+    # `"source_line": str` and `"source_file": int`, but a live
+    # `view.style_for_scope(...)` call returns `'source_line': -1` and
+    # `'source_file': 'Packages/Theme - Nil/Tubnil_mod.tmTheme'`. The runtime wins, as
+    # it does for `QuickPanelItem.details` above.
+    #
+    # Keep prose in the emitted block free of the bare word `sublime`: the import
+    # builder scans the generated body for module names, and a stray mention would add
+    # an unused `import sublime` to `sublime_types`.
+    "ScopeStyle": '''\
+class ScopeStyle(TypedDict):
+    """
+    The return value of `View.style_for_scope`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ScopeStyle`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    foreground: str
+    """ Normalized to the six character hex form with a leading hash, e.g. ``#ff0000``. """
+    selection_foreground: NotRequired[str]
+    background: NotRequired[str]
+    """ Normalized the same way as `foreground`. """
+    bold: bool
+    italic: bool
+    glow: NotRequired[bool]
+    underline: NotRequired[bool]
+    stippled_underline: NotRequired[bool]
+    squiggly_underline: NotRequired[bool]
+    # The docstring swaps these two: it says `source_line: str` and `source_file: int`.
+    # These are the types the runtime actually returns.
+    source_line: int
+    source_column: int
+    source_file: str''',
+    # `get_macro` (references/python38/sublime.py:1314-1320) returns a bare
+    # `list[dict]`, but its docstring says each entry "will contain the keys
+    # ``"command"`` and ``"args"``", so both fields are required. `CommandArgs` is
+    # `dict[str, Value] | None`, so a command with no arguments is already covered
+    # by its `None` arm.
+    "MacroStep": '''\
+class MacroStep(TypedDict):
+    """
+    An entry of `get_macro`'s result.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``MacroStep`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    command: str
+    args: CommandArgs''',
+    # `Window.layout` (references/python38/sublime.py:1679-1695) documents no keys at
+    # all, only "Get/Set the group layout of the window". The shape below comes from a
+    # live `window.layout()` call, which returned
+    # `{'cells': [[0, 0, 1, 1]], 'cols': [0.0, 1.0], 'rows': [0.0, 1.0]}`. All three
+    # keys were present in that call, so the class is total.
+    "WindowLayout": '''\
+class WindowLayout(TypedDict):
+    """
+    The return value of `Window.layout`, and the argument to `Window.set_layout`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowLayout`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    cols: list[float]
+    """ Normalized 0.0-1.0 division positions along the x axis. """
+    rows: list[float]
+    """ Normalized 0.0-1.0 division positions along the y axis. """
+    cells: list[list[int]]
+    """
+    Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
+    into `cols` and `rows`, describing one group's rectangle.
+    """''',
+    # `Window.extract_variables` (references/python38/sublime.py:2017-2038) returns
+    # `dict[str, str]` and introduces its key list with "May contain:", so not one of
+    # them is guaranteed and the class is uniformly `total=False` rather than marking
+    # every field `NotRequired`. The key order below is the docstring's
+    # (references/python38/sublime.py:2022-2034).
+    "WindowVariables": '''\
+class WindowVariables(TypedDict, total=False):
+    """
+    The return value of `Window.extract_variables`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowVariables`` name at runtime, so it must
+    be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    packages: str
+    platform: str
+    file: str
+    file_path: str
+    file_name: str
+    file_base_name: str
+    file_extension: str
+    folder: str
+    project: str
+    project_path: str
+    project_name: str
+    project_base_name: str
+    project_extension: str''',
+    # `choose_font_dialog` (references/python38/sublime.py:925-947) documents no
+    # types at all, only the example `{ "font_face": "monospace" }` at
+    # sublime.py:932. A live `choose_font_dialog(print)` call passed
+    # `{'font_face': 'Sans', 'font_size': 10}` to the callback, which is where
+    # `font_size: int` comes from. `total=False` because the same type describes
+    # both directions and the input side reads both keys through `.get`
+    # (sublime.py:941-943: `default.get("font_face")` and
+    # `default.get("font_size")`).
+    "FontOptions": '''\
+class FontOptions(TypedDict, total=False):
+    """
+    The ``default`` argument of `choose_font_dialog`, and the value it passes to
+    its callback.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``FontOptions`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    font_face: str
+    font_size: int''',
 }
 
 # --- docstring-only event handlers -------------------------------------------

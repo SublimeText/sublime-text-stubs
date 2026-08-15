@@ -9,10 +9,16 @@ from typing import Any, Literal
 from sublime_types import CommandArgs as CommandArgs
 from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
+from sublime_types import FontOptions as FontOptions
 from sublime_types import Kind as Kind
+from sublime_types import MacroStep as MacroStep
 from sublime_types import Point as Point
+from sublime_types import ScopeStyle as ScopeStyle
+from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
 from sublime_types import Vector as Vector
+from sublime_types import WindowLayout as WindowLayout
+from sublime_types import WindowVariables as WindowVariables
 from typing_extensions import deprecated, override
 
 class HoverZone(enum.IntEnum):
@@ -735,8 +741,8 @@ def select_folder_dialog(
     """
 
 def choose_font_dialog(
-    callback: Callable[[Value], None],
-    default: dict[str, Value] | None = ...,
+    callback: Callable[[FontOptions | None], None],
+    default: FontOptions | None = ...,
 ) -> None:
     """
     Show a dialog for selecting a font.
@@ -905,7 +911,7 @@ def get_log_control_tree() -> bool:
     .. since:: 4099
     """
 
-def ui_info() -> dict[str, Value]:
+def ui_info() -> UIInfo:
     """
     .. since:: 4096
 
@@ -961,7 +967,7 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: Value, variables: dict[str, str]) -> Value:
+def expand_variables(value: Value, variables: dict[str, str] | WindowVariables) -> Value:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the
@@ -1001,7 +1007,7 @@ def active_window() -> Window:
 def windows() -> list[Window]:
     """ :returns: A list of all the open windows. """
 
-def get_macro() -> list[dict[str, Value]]:
+def get_macro() -> list[MacroStep]:
     """
     :returns: A list of the commands and args that compromise the currently
               recorded macro. Each ``dict`` will contain the keys ``"command"``
@@ -1239,14 +1245,14 @@ class Window:
         :since: 4135
         """
 
-    def layout(self) -> dict[str, Value]:
+    def layout(self) -> WindowLayout:
         """ Get the group layout of the window. """
 
     @deprecated("Use layout() instead")
-    def get_layout(self) -> dict[str, Value]:
+    def get_layout(self) -> WindowLayout:
         """ :deprecated: Use `layout()` instead """
 
-    def set_layout(self, layout: dict[str, Value]) -> None:
+    def set_layout(self, layout: WindowLayout) -> None:
         """ Set the group layout of the window. """
 
     def create_output_panel(self, name: str, unlisted: bool = ...) -> View:
@@ -1494,7 +1500,7 @@ class Window:
         :deprecated: Use `symbol_locations()` instead.
         """
 
-    def extract_variables(self) -> dict[str, str]:
+    def extract_variables(self) -> WindowVariables:
         """
         Get the ``dict`` of contextual keys of the window.
 
@@ -2237,7 +2243,7 @@ class View:
         .. since:: 3150
         """
 
-    def style_for_scope(self, scope: str) -> dict[str, Value]:
+    def style_for_scope(self, scope: str) -> ScopeStyle:
         """
         Accepts a string scope name and returns a ``dict`` of style information
         including the keys:

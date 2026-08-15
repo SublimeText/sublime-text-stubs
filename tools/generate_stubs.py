@@ -118,7 +118,7 @@ TYPING_NAMES = ["Any", "Literal", "TypedDict"]
 # are deprecated aliases of these.
 COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
 
-TYPING_EXTENSIONS_NAMES = ["TypeAlias", "deprecated", "override"]
+TYPING_EXTENSIONS_NAMES = ["NotRequired", "TypeAlias", "deprecated", "override"]
 
 # PEP 585: the `typing` aliases superseded by the builtin generics.
 BUILTIN_GENERICS = {
@@ -935,8 +935,20 @@ class ModuleGenerator:
                     _ = self.emit_assignment(node, "", None, module_level=True)
                     previous = "assignment"
 
+        self.emit_extra_type_alias_classes(previous)
+
         body = "\n".join(self.lines).rstrip() + "\n"
         return self.render_header() + body
+
+    def emit_extra_type_alias_classes(self, previous: str) -> None:
+        """Append the `sublime_types` classes with no reference-side counterpart."""
+        if self.module != "sublime_types":
+            return
+        for block in ov.EXTRA_TYPE_ALIAS_CLASSES.values():
+            self.separate(previous, "class")
+            self.note(block)
+            self.lines.append(block)
+            previous = "class"
 
     def aliases_to_class(self, node: ast.stmt) -> bool:
         """Whether `node` is a module-level alias replaced by a `TYPE_ALIAS_CLASSES` entry."""
@@ -1151,7 +1163,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # checked against the reference directly.
     for module, names in ov.SUBLIME_TYPES_REEXPORTS.items():
         for name in names:
-            if name not in reference.aliases["sublime_types"]:
+            known = name in reference.aliases["sublime_types"] or name in ov.EXTRA_TYPE_ALIAS_CLASSES
+            if not known:
                 problems.stale(f"stub_overrides.SUBLIME_TYPES_REEXPORTS[{module!r}][{name!r}]")
 
     if problems:

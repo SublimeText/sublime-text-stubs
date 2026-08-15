@@ -4,7 +4,7 @@
 from typing import TypedDict
 
 from sublime import CompletionItem, KindId
-from typing_extensions import TypeAlias
+from typing_extensions import NotRequired, TypeAlias
 
 DIP: TypeAlias = float
 Vector: TypeAlias = tuple[DIP, DIP]
@@ -38,3 +38,164 @@ class Event(TypedDict, total=False):
     modifier_keys: ModifierKeys
 
 CompletionValue: TypeAlias = str | tuple[str, str] | CompletionItem
+
+class UIInfoSystem(TypedDict, total=False):
+    """
+    The ``system`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoSystem`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    style: str
+    """ ``"dark"`` or ``"light"``, mirroring the OS appearance. """
+
+class UIInfoTheme(TypedDict, total=False):
+    """
+    The ``theme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoTheme`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``theme`` setting. """
+    resolved_value: str
+    """ The theme file actually in effect, after auto light/dark switching. """
+    style: str
+    """ ``"system"`` when the theme follows the OS appearance, else unset. """
+
+class UIInfoPalette(TypedDict, total=False):
+    """
+    The ``palette`` entry of `UIInfoColorScheme`: the current color scheme's
+    ``--accent``/``--redish``/etc. variables, as hex color strings.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoPalette`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    accent: str
+    background: str
+    foreground: str
+    bluish: str
+    cyanish: str
+    greenish: str
+    orangish: str
+    pinkish: str
+    purplish: str
+    redish: str
+    yellowish: str
+
+class UIInfoColorScheme(TypedDict, total=False):
+    """
+    The ``color_scheme`` entry of `UIInfo`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfoColorScheme`` name at runtime, so it
+    must be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    value: str
+    """ The configured ``color_scheme`` setting. """
+    resolved_value: str
+    """ The color scheme file actually in effect, after auto light/dark switching. """
+    palette: UIInfoPalette
+
+class UIInfo(TypedDict, total=False):
+    """
+    The return value of `ui_info`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``UIInfo`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    system: UIInfoSystem
+    theme: UIInfoTheme
+    color_scheme: UIInfoColorScheme
+
+class ScopeStyle(TypedDict):
+    """
+    The return value of `View.style_for_scope`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``ScopeStyle`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    foreground: str
+    """ Normalized to the six character hex form with a leading hash, e.g. ``#ff0000``. """
+    selection_foreground: NotRequired[str]
+    background: NotRequired[str]
+    """ Normalized the same way as `foreground`. """
+    bold: bool
+    italic: bool
+    glow: NotRequired[bool]
+    underline: NotRequired[bool]
+    stippled_underline: NotRequired[bool]
+    squiggly_underline: NotRequired[bool]
+    # The docstring swaps these two: it says `source_line: str` and `source_file: int`.
+    # These are the types the runtime actually returns.
+    source_line: int
+    source_column: int
+    source_file: str
+
+class MacroStep(TypedDict):
+    """
+    An entry of `get_macro`'s result.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``MacroStep`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    command: str
+    args: CommandArgs
+
+class WindowLayout(TypedDict):
+    """
+    The return value of `Window.layout`, and the argument to `Window.set_layout`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowLayout`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    cols: list[float]
+    """ Normalized 0.0-1.0 division positions along the x axis. """
+    rows: list[float]
+    """ Normalized 0.0-1.0 division positions along the y axis. """
+    cells: list[list[int]]
+    """
+    Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
+    into `cols` and `rows`, describing one group's rectangle.
+    """
+
+class WindowVariables(TypedDict, total=False):
+    """
+    The return value of `Window.extract_variables`.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``WindowVariables`` name at runtime, so it must
+    be imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    packages: str
+    platform: str
+    file: str
+    file_path: str
+    file_name: str
+    file_base_name: str
+    file_extension: str
+    folder: str
+    project: str
+    project_path: str
+    project_name: str
+    project_base_name: str
+    project_extension: str
+
+class FontOptions(TypedDict, total=False):
+    """
+    The ``default`` argument of `choose_font_dialog`, and the value it passes to
+    its callback.
+
+    This class exists only in the stubs, for type checking: the real
+    ``sublime_types`` module has no ``FontOptions`` name at runtime, so it must be
+    imported inside an ``if TYPE_CHECKING:`` block.
+    """
+    font_face: str
+    font_size: int

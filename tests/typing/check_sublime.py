@@ -4,10 +4,13 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
+
+if TYPE_CHECKING:
+    from sublime_types import FontOptions, UIInfoPalette
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
@@ -79,6 +82,30 @@ def deprecated_aliases_still_resolve() -> sublime.RegionFlags:
     return sublime.DRAW_NO_FILL | sublime.PERSISTENT
 
 
+def accent_color() -> Optional[str]:
+    # `UIInfo` and its nested TypedDicts are stub-only, so the fields have to be
+    # narrowed with `.get` rather than assumed present.
+    palette: Optional[UIInfoPalette] = sublime.ui_info().get("color_scheme", {}).get("palette")
+    return palette.get("accent") if palette is not None else None
+
+
+def scope_colors(view: sublime.View, scope: str) -> Tuple[str, Optional[str]]:
+    # A required key needs no `.get` guard; a "(only if set)" one does.
+    style = view.style_for_scope(scope)
+    return style["foreground"], style.get("background")
+
+
+def scope_origin(view: sublime.View, scope: str) -> Tuple[str, int]:
+    # The reference docstring swaps these two types; the stubs follow the runtime.
+    style = view.style_for_scope(scope)
+    return style["source_file"], style["source_line"]
+
+
+def replay_macro(window: sublime.Window) -> None:
+    for step in sublime.get_macro():
+        window.run_command(step["command"], step["args"])
+
+
 def completions() -> sublime.CompletionList:
     items: List[sublime.CompletionValue] = [
         sublime.CompletionItem(
@@ -138,3 +165,31 @@ def timeouts() -> None:
 def platform_is_known() -> bool:
     # `platform()` is annotated with a `Literal`, so this comparison is checked.
     return sublime.platform() in ("osx", "linux", "windows")
+
+
+def widen_first_column(window: sublime.Window) -> None:
+    # `set_layout` has to accept what `layout` returns.
+    layout = window.layout()
+    cols: List[float] = layout["cols"]
+    # The outer entries are the window edges; only the interior ones are dividers.
+    if cols[1:-1]:
+        cols[1] = 0.6
+    window.set_layout(layout)
+
+
+def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
+    # `extract_variables()` is documented as input to `expand_variables()`.
+    variables = window.extract_variables()
+    name = variables.get("project_name")
+    if name is None:
+        return template
+    return sublime.expand_variables(template, variables)
+
+
+def pick_font(on_chosen: Callable[[str], None]) -> None:
+    def chosen(options: Optional["FontOptions"]) -> None:
+        # The callback receives `None` if the dialog was cancelled.
+        if options is not None:
+            on_chosen(options.get("font_face", "monospace"))
+
+    sublime.choose_font_dialog(chosen, {"font_face": "monospace"})

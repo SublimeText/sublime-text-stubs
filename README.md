@@ -64,10 +64,20 @@ It is scheduled for removal and is not targeted by this package.
 - **`TextChangeListener.buffer` is `sublime.Buffer`, not `Buffer | None`.**
   The plugin host attaches the listener immediately after constructing it,
   so no handler can observe the unattached state.
-- **`sublime_types.ModifierKeys`** exists only in these stubs,
-  as the type of the `modifier_keys` entry of an `Event`.
-  Import it inside an `if TYPE_CHECKING:` block,
-  since the real module has no such name at runtime.
+- **Several `sublime_types` names exist only in these stubs**,
+  not in the real module at runtime,
+  so each must be imported inside an `if TYPE_CHECKING:` block:
+  - `ModifierKeys`, the type of the `modifier_keys` entry of an `Event`.
+  - `UIInfo` and its parts `UIInfoSystem`, `UIInfoTheme`,
+    `UIInfoColorScheme` and `UIInfoPalette`,
+    describing the return value of `sublime.ui_info()`.
+  - `ScopeStyle`, the return value of `View.style_for_scope()`.
+  - `MacroStep`, the entries of the list `sublime.get_macro()` returns.
+  - `WindowLayout`, used by `Window.layout()`, `Window.get_layout()`
+    and `Window.set_layout()`.
+  - `WindowVariables`, the return value of `Window.extract_variables()`.
+  - `FontOptions`, the default and callback argument types
+    of `choose_font_dialog()`.
 
 The stubs are validated by type-checking sample consumer code,
 not against the running editor,
