@@ -23,7 +23,7 @@ from sublime_types import WindowLayout as WindowLayout
 from sublime_types import WindowVariables as WindowVariables
 from typing_extensions import deprecated, override, TypeVar
 
-_T_Value = TypeVar("_T_Value", bound=Value, default=Value)
+_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
 
 class HoverZone(enum.IntEnum):
     """

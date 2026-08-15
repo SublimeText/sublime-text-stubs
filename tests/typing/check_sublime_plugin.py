@@ -68,11 +68,13 @@ class DemoInputCommand(sublime_plugin.WindowCommand):
 if TYPE_CHECKING:
     _StrCommandInputHandler = sublime_plugin.CommandInputHandler[str]
     _StrListInputHandler = sublime_plugin.ListInputHandler[str]
-    _TagsListInputHandler = sublime_plugin.ListInputHandler[List[sublime.Value]]
+    _TagsListInputHandler = sublime_plugin.ListInputHandler[List[str]]
+    _LabelsListInputHandler = sublime_plugin.ListInputHandler[Dict[str, str]]
 else:
     _StrCommandInputHandler = sublime_plugin.CommandInputHandler
     _StrListInputHandler = sublime_plugin.ListInputHandler
     _TagsListInputHandler = sublime_plugin.ListInputHandler
+    _LabelsListInputHandler = sublime_plugin.ListInputHandler
 
 
 class NameInputHandler(_StrListInputHandler):
@@ -100,38 +102,48 @@ class NameInputHandler(_StrListInputHandler):
 
 
 class TagsInputHandler(_TagsListInputHandler):
-    # A container value type has to have `Value` elements: `list` is invariant, so
-    # `List[str]` is not a `Value`.
-    def _items(self) -> "List[sublime.ListInputItem[List[sublime.Value]]]":
-        values: List[List[sublime.Value]] = [["red", "green"], ["blue"]]
-        return [sublime.ListInputItem(", ".join(str(tag) for tag in v), v) for v in values]
+    # The bound is structural (`ValueLike`), so a concrete `List[str]` is a valid value
+    # type even though `list` is invariant and `List[str]` is not a `Value`. What comes
+    # back from the host is nonetheless a plain `list`, whatever sequence type was
+    # handed in.
+    def _items(self) -> "List[sublime.ListInputItem[List[str]]]":
+        values: List[List[str]] = [["red", "green"], ["blue"]]
+        return [sublime.ListInputItem(", ".join(v), v) for v in values]
 
     @override
-    def list_items(self) -> "Tuple[Iterable[sublime.ListInputItem[List[sublime.Value]]], int]":
+    def list_items(self) -> "Tuple[Iterable[sublime.ListInputItem[List[str]]], int]":
         # The pre-select form accepts any `Iterable` too, not just a `list`.
         return (self._items(), 0)
 
     @override
-    def description(self, value: List[sublime.Value], text: str) -> str:
+    def description(self, value: List[str], text: str) -> str:
         return f"{text} ({len(value)})"
 
     # These three receive the *value* of the selected item, not its row text, so they
     # are typed by the handler's own value type rather than by `str`.
     @override
-    def preview(self, text: List[sublime.Value]) -> str:
-        return ", ".join(str(tag) for tag in text)
+    def preview(self, text: List[str]) -> str:
+        return ", ".join(text)
 
     @override
-    def validate(
-        self, text: List[sublime.Value], event: Optional[sublime_plugin.Event] = None
-    ) -> bool:
+    def validate(self, text: List[str], event: Optional[sublime_plugin.Event] = None) -> bool:
         return len(text) > 0
 
     @override
-    def confirm(
-        self, text: List[sublime.Value], event: Optional[sublime_plugin.Event] = None
-    ) -> None:
+    def confirm(self, text: List[str], event: Optional[sublime_plugin.Event] = None) -> None:
         sublime.status_message(str(len(text)))
+
+
+class LabelsInputHandler(_LabelsListInputHandler):
+    # The `Mapping` half of the bound: a concrete `Dict[str, str]` is a valid value type
+    # for the same reason a `List[str]` is.
+    @override
+    def list_items(self) -> "List[sublime.ListInputItem[Dict[str, str]]]":
+        return [sublime.ListInputItem("draft", {"draft": "Draft"})]
+
+    @override
+    def description(self, value: Dict[str, str], text: str) -> str:
+        return f"{text} ({len(value)})"
 
 
 class MessageInputHandler(sublime_plugin.TextInputHandler):
@@ -167,7 +179,7 @@ class DemoGenericInputCommand(sublime_plugin.WindowCommand):
             return NameInputHandler()
         return TagsInputHandler()
 
-    def run(self, message: str, name: str, tags: List[sublime.Value]) -> None:
+    def run(self, message: str, name: str, tags: List[str]) -> None:
         self.window.status_message(f"{message} {name} {len(tags)}")
 
 

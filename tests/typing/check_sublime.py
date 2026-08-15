@@ -146,11 +146,11 @@ def bare_list_input_item_value(item: sublime.ListInputItem) -> sublime.Value:
     return assert_type(item.value, sublime.Value)
 
 
-def make_list_input_item(value: List[sublime.Value]) -> "sublime.ListInputItem[List[sublime.Value]]":
+def make_list_input_item(value: List[str]) -> "sublime.ListInputItem[List[str]]":
     # The runtime class cannot be subscripted on the Python 3.8 host, so a
     # parameterized annotation has to be quoted. The argument has to satisfy the
-    # `Value` bound: a container element type has to be `Value` itself, because
-    # `list` is invariant and `List[str]` is therefore not a `Value`.
+    # `ValueLike` bound, whose containers are covariant, so a concrete `List[str]` is
+    # a valid value type even though it is not a `Value`.
     return sublime.ListInputItem("label", value)
 
 
