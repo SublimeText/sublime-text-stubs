@@ -204,7 +204,7 @@ class DemoEventListener(sublime_plugin.EventListener):
         view: sublime.View,
         key: str,
         operator: sublime.QueryOperator,
-        operand: str,
+        operand: sublime.Value,
         match_all: bool,
     ) -> Optional[bool]:
         if key != "demo.has_selection":

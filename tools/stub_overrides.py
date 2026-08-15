@@ -196,6 +196,14 @@ PARAMS = {
     "sublime_plugin.CommandInputHandler.confirm.text": "_T_Value_contra",
     # Unannotated in the reference; it is the same value the methods above receive.
     "sublime_plugin.ListInputHandler.description.value": "_T_Value",
+    # The reference spells both `operand: str` (references/python38/sublime_plugin.py:1852
+    # and :2131), but a `.sublime-keymap` context's `"operand"` may be a JSON string,
+    # number, or boolean -- e.g. `"operand": 1` for `num_selections`, `"operand": true`
+    # for a boolean setting -- and the host hands it through unconverted. `Value`, not
+    # `ValueLike`, because this is the host calling the plugin, the same outbound
+    # direction as `Command.input.args` above.
+    "sublime_plugin.EventListener.on_query_context.operand": "Value",
+    "sublime_plugin.ViewEventListener.on_query_context.operand": "Value",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
     # The `.. method::` directives for these two spell `buffer: View`, but their

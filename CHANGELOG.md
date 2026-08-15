@@ -10,6 +10,11 @@ not semantic versioning; see the README.
 
 ### Changed
 
+- `EventListener.on_query_context()` and `ViewEventListener.on_query_context()` type
+  their `operand` parameter as `Value` instead of `str`.
+  A `.sublime-keymap` context's `"operand"` may be a JSON string, number, or boolean,
+  e.g. `"operand": 1` for `num_selections` or `"operand": true` for a boolean setting,
+  and the plugin host hands it through unconverted.
 - `set_timeout()` and `set_timeout_async()` type their `callback` as
   `Callable[[], object]` instead of `Callable[[], Any]`.
   The runtime discards whatever the callback returns,
