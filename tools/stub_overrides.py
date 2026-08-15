@@ -115,6 +115,15 @@ RETURNS = {
     "sublime.View.export_to_html": "str",
     "sublime.Settings.setdefault": "Value",
     "sublime_plugin.BackInputHandler.name": "str",
+    # The reference spells a six-arm union of `list`-only forms
+    # (references/python38/sublime_plugin.py:1306-1311), but `setup_` only checks for the
+    # `(items, index)` tuple and then iterates, dispatching per item
+    # (references/python38/sublime_plugin.py:1343-1372). So any `Iterable` works, and the
+    # three item forms may be mixed in one -- hence the union over the *element* type.
+    "sublime_plugin.ListInputHandler.list_items": (
+        "Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]]"
+        " | tuple[Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]], int]"
+    ),
     "sublime_plugin.TextChangeListener.is_applicable": "bool",
 }
 
@@ -153,7 +162,14 @@ PARAMS = {
     "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str]",
     "sublime_plugin.CommandInputHandler.next_input.args": "dict[str, Value]",
     "sublime_plugin.Command.input.args": "dict[str, Value]",
-    "sublime_plugin.ListInputHandler.description.value": "Value",
+    # The reference spells all three `text: str`, but for a `ListInputHandler` the host
+    # passes the *value* of the selected item, not its row text
+    # (references/python38/sublime_plugin.py:1220-1242). See `TYPE_VARS`.
+    "sublime_plugin.CommandInputHandler.preview.text": "_T_Value_contra",
+    "sublime_plugin.CommandInputHandler.validate.text": "_T_Value_contra",
+    "sublime_plugin.CommandInputHandler.confirm.text": "_T_Value_contra",
+    # Unannotated in the reference; it is the same value the methods above receive.
+    "sublime_plugin.ListInputHandler.description.value": "_T_Value",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
     # The `.. method::` directives for these two spell `buffer: View`, but their
@@ -211,6 +227,26 @@ TYPE_VARS: dict[str, str] = {
     # Keep this justification out of the emitted block: `note()` scans the block for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
     "sublime": '_T_Value = TypeVar("_T_Value", bound=Value, default=Value)',
+    # `_T_Value` is the same declaration as `sublime`'s above, for the same reasons:
+    # `ListInputHandler` both produces its value (`list_items`) and consumes it
+    # (`description`), so its parameter is invariant and defaults to `Value`.
+    #
+    # `CommandInputHandler` only ever *consumes* a value -- the host passes the selected
+    # item's value to `preview_`, `validate_` and `confirm_`
+    # (references/python38/sublime_plugin.py:1220-1242) -- so it is contravariant.
+    # Under contravariance `CommandInputHandler[Never]` is the *top* of the handler
+    # lattice: every `CommandInputHandler[X]` is assignable to it. That is what lets
+    # `next_input` and `Command.input` keep the reference's own bare
+    # `Optional[CommandInputHandler]` return annotation, which `default=Never` resolves
+    # to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
+    # (a `CommandInputHandler[str]`) -- with no `Any` and no `RETURNS` override.
+    #
+    # Keep this justification out of the emitted block: `note()` scans the block for
+    # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
+    "sublime_plugin": (
+        '_T_Value = TypeVar("_T_Value", bound=Value, default=Value)\n'
+        '_T_Value_contra = TypeVar("_T_Value_contra", bound=Value, default=Never, contravariant=True)'
+    ),
 }
 
 # Replacements for a class's rendered base list, keyed by `module.Class`. The value is
@@ -222,6 +258,14 @@ CLASS_BASES: dict[str, str] = {
     # The reference class has no bases; `Generic[_T_Value]` is what makes its `value`
     # generic. See `TYPE_VARS` above.
     "sublime.ListInputItem": "Generic[_T_Value]",
+    # The reference class has no bases; the value it consumes is what parameterizes it.
+    "sublime_plugin.CommandInputHandler": "Generic[_T_Value_contra]",
+    # Both derive from a bare `CommandInputHandler` in the reference. A text input hands
+    # the command the entered string, so its value type is fixed; a list input's is the
+    # selected item's value. `BackInputHandler` deliberately keeps the reference's bare
+    # base: it consumes nothing, and bare resolves to `CommandInputHandler[Never]`.
+    "sublime_plugin.TextInputHandler": "CommandInputHandler[str]",
+    "sublime_plugin.ListInputHandler": "CommandInputHandler[_T_Value]",
 }
 
 # `sublime_types` aliases the generator cannot take verbatim.

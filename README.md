@@ -64,6 +64,35 @@ It is scheduled for removal and is not targeted by this package.
 - **`TextChangeListener.buffer` is `sublime.Buffer`, not `Buffer | None`.**
   The plugin host attaches the listener immediately after constructing it,
   so no handler can observe the unattached state.
+- **The input handlers are generic.**
+  `ListInputHandler` and `sublime.ListInputItem` take a type parameter
+  for the value the selected row passes to the command,
+  bounded by and defaulting to `Value`,
+  and that value type is what `list_items()`, `description()`,
+  `preview()`, `validate()` and `confirm()` traffic in.
+  `TextInputHandler` is a `CommandInputHandler[str]`.
+  A bare `CommandInputHandler` annotation,
+  as in the return types of `Command.input()` and `next_input()`,
+  accepts every kind of handler,
+  because the class is contravariant in its value type
+  and defaults to `Never`,
+  so nothing has to change
+  for authors who keep writing `Optional[sublime_plugin.CommandInputHandler]`.
+  The real classes cannot be subscripted on the Python 3.8 plugin host,
+  so parameterize a base class through an `if TYPE_CHECKING:` alias
+  and quote subscripted annotations:
+
+  ```python
+  if TYPE_CHECKING:
+      _StrListInputHandler = sublime_plugin.ListInputHandler[str]
+  else:
+      _StrListInputHandler = sublime_plugin.ListInputHandler
+
+
+  class NameInputHandler(_StrListInputHandler):
+      ...
+  ```
+
 - **Several `sublime_types` names exist only in these stubs**,
   not in the real module at runtime,
   so each must be imported inside an `if TYPE_CHECKING:` block:

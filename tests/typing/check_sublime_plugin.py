@@ -3,7 +3,7 @@
 Not executed. See the module docstring of `check_sublime.py`.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 import sublime_plugin
@@ -60,6 +60,115 @@ class DemoInputCommand(sublime_plugin.WindowCommand):
 
     def run(self, folder: str) -> None:
         self.window.status_message(folder)
+
+
+# The runtime classes carry no `__class_getitem__` on the Python 3.8 plugin host, so a
+# parameterized base has to be built under `if TYPE_CHECKING:` and the runtime has to
+# see the bare class.
+if TYPE_CHECKING:
+    _StrCommandInputHandler = sublime_plugin.CommandInputHandler[str]
+    _StrListInputHandler = sublime_plugin.ListInputHandler[str]
+    _TagsListInputHandler = sublime_plugin.ListInputHandler[List[sublime.Value]]
+else:
+    _StrCommandInputHandler = sublime_plugin.CommandInputHandler
+    _StrListInputHandler = sublime_plugin.ListInputHandler
+    _TagsListInputHandler = sublime_plugin.ListInputHandler
+
+
+class NameInputHandler(_StrListInputHandler):
+    @override
+    def list_items(self) -> Iterator[str]:
+        # Any `Iterable` is accepted, not just a `list`.
+        for window in sublime.windows():
+            yield str(window.id())
+
+    @override
+    def description(self, value: str, text: str) -> str:
+        return f"{text} ({value})"
+
+    @override
+    def preview(self, text: str) -> str:
+        return text
+
+    @override
+    def validate(self, text: str, event: Optional[sublime_plugin.Event] = None) -> bool:
+        return text != ""
+
+    @override
+    def confirm(self, text: str, event: Optional[sublime_plugin.Event] = None) -> None:
+        sublime.status_message(text)
+
+
+class TagsInputHandler(_TagsListInputHandler):
+    # A container value type has to have `Value` elements: `list` is invariant, so
+    # `List[str]` is not a `Value`.
+    def _items(self) -> "List[sublime.ListInputItem[List[sublime.Value]]]":
+        values: List[List[sublime.Value]] = [["red", "green"], ["blue"]]
+        return [sublime.ListInputItem(", ".join(str(tag) for tag in v), v) for v in values]
+
+    @override
+    def list_items(self) -> "Tuple[Iterable[sublime.ListInputItem[List[sublime.Value]]], int]":
+        # The pre-select form accepts any `Iterable` too, not just a `list`.
+        return (self._items(), 0)
+
+    @override
+    def description(self, value: List[sublime.Value], text: str) -> str:
+        return f"{text} ({len(value)})"
+
+    # These three receive the *value* of the selected item, not its row text, so they
+    # are typed by the handler's own value type rather than by `str`.
+    @override
+    def preview(self, text: List[sublime.Value]) -> str:
+        return ", ".join(str(tag) for tag in text)
+
+    @override
+    def validate(
+        self, text: List[sublime.Value], event: Optional[sublime_plugin.Event] = None
+    ) -> bool:
+        return len(text) > 0
+
+    @override
+    def confirm(
+        self, text: List[sublime.Value], event: Optional[sublime_plugin.Event] = None
+    ) -> None:
+        sublime.status_message(str(len(text)))
+
+
+class MessageInputHandler(sublime_plugin.TextInputHandler):
+    # `TextInputHandler` is a `CommandInputHandler[str]`, so `text` is `str` here.
+    @override
+    def preview(self, text: str) -> str:
+        return text.upper()
+
+    @override
+    def validate(self, text: str, event: Optional[sublime_plugin.Event] = None) -> bool:
+        return text != ""
+
+
+def preview_of(handler: "_StrCommandInputHandler", text: str) -> str:
+    # A `TextInputHandler` has to *be* a `CommandInputHandler[str]`: under
+    # contravariance the bare `CommandInputHandler[Never]` is not assignable here.
+    result = handler.preview(text)
+    return result.data if isinstance(result, sublime.Html) else result
+
+
+def message_preview() -> str:
+    return preview_of(MessageInputHandler(), "hello")
+
+
+class DemoGenericInputCommand(sublime_plugin.WindowCommand):
+    @override
+    def input(self, args: Dict[str, sublime.Value]) -> Optional[sublime_plugin.CommandInputHandler]:
+        # The bare annotation means `CommandInputHandler[Never]`, the top of the handler
+        # lattice, so every handler kind is assignable to it.
+        if "message" not in args:
+            return MessageInputHandler()
+        if "name" not in args:
+            return NameInputHandler()
+        return TagsInputHandler()
+
+    def run(self, message: str, name: str, tags: List[sublime.Value]) -> None:
+        self.window.status_message(f"{message} {name} {len(tags)}")
 
 
 class DemoEventListener(sublime_plugin.EventListener):
