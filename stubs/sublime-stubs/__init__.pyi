@@ -3,10 +3,11 @@
 
 import builtins
 import enum
-from collections.abc import Callable, Iterable, Iterator
-from typing import Any, Literal
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from typing import Generic, Literal
 
 from sublime_types import CommandArgs as CommandArgs
+from sublime_types import CommandArgsLike as CommandArgsLike
 from sublime_types import CompletionValue as CompletionValue
 from sublime_types import DIP as DIP
 from sublime_types import FontOptions as FontOptions
@@ -16,10 +17,13 @@ from sublime_types import Point as Point
 from sublime_types import ScopeStyle as ScopeStyle
 from sublime_types import UIInfo as UIInfo
 from sublime_types import Value as Value
+from sublime_types import ValueLike as ValueLike
 from sublime_types import Vector as Vector
 from sublime_types import WindowLayout as WindowLayout
 from sublime_types import WindowVariables as WindowVariables
-from typing_extensions import deprecated, override
+from typing_extensions import deprecated, override, TypeVar
+
+_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
 
 class HoverZone(enum.IntEnum):
     """
@@ -757,10 +761,10 @@ def choose_font_dialog(
                     argument passed to `callback`.
     """
 
-def run_command(cmd: str, args: CommandArgs | None = ...) -> None:
+def run_command(cmd: str, args: CommandArgsLike | None = ...) -> None:
     """ Run the named `ApplicationCommand`. """
 
-def format_command(cmd: str, args: CommandArgs | None = ...) -> str:
+def format_command(cmd: str, args: CommandArgsLike | None = ...) -> str:
     """
     Create a "command string" from a ``cmd`` name and ``args`` arguments. This
     is used when constructing a command-based `CompletionItem`.
@@ -768,14 +772,14 @@ def format_command(cmd: str, args: CommandArgs | None = ...) -> str:
     .. since:: 4075
     """
 
-def html_format_command(cmd: str, args: CommandArgs | None = ...) -> str:
+def html_format_command(cmd: str, args: CommandArgsLike | None = ...) -> str:
     """
     :returns: An escaped "command string" for usage in HTML popups and sheets.
 
     .. since:: 4075
     """
 
-def command_url(cmd: str, args: CommandArgs | None = ...) -> str:
+def command_url(cmd: str, args: CommandArgsLike | None = ...) -> str:
     """
     :returns: A HTML embeddable URL for a command.
 
@@ -945,7 +949,7 @@ def load_binary_resource(name: str) -> bytes:
 def find_resources(pattern: str) -> list[str]:
     """ Finds resources whose file name matches the given glob pattern. """
 
-def encode_value(value: Value, pretty: bool = ..., update_text: str | None = ...) -> str:
+def encode_value(value: ValueLike, pretty: bool = ..., update_text: str | None = ...) -> str:
     """
     Encode a JSON compatible `Value` into a string representation.
 
@@ -967,7 +971,7 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: Value, variables: dict[str, str] | WindowVariables) -> Value:
+def expand_variables(value: ValueLike, variables: dict[str, str] | WindowVariables) -> Value:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the
@@ -988,14 +992,14 @@ def load_settings(base_name: str) -> Settings:
 def save_settings(base_name: str) -> None:
     """ Flush any in-memory changes to the named settings object to disk. """
 
-def set_timeout(callback: Callable[[], Any], delay: int = ...) -> None:
+def set_timeout(callback: Callable[[], object], delay: int = ...) -> None:
     """
     Run the ``callback`` in the main thread after the given ``delay``
     (in milliseconds). Callbacks with an equal delay will be run in the order
     they were added.
     """
 
-def set_timeout_async(callback: Callable[[], Any], delay: int = ...) -> None:
+def set_timeout_async(callback: Callable[[], object], delay: int = ...) -> None:
     """
     Runs the callback on an alternate thread after the given delay
     (in milliseconds).
@@ -1082,7 +1086,7 @@ class Window:
         :param group: The group to add the sheet to. ``-1`` for the active group.
         """
 
-    def run_command(self, cmd: str, args: CommandArgs | None = ...) -> None:
+    def run_command(self, cmd: str, args: CommandArgsLike | None = ...) -> None:
         """
         Run the named `WindowCommand` with the (optional) given args. This
         method is able to run any sort of command, dispatching the command via
@@ -1431,7 +1435,7 @@ class Window:
                   :path:`.sublime-project` file.
         """
 
-    def set_project_data(self, data: Value) -> None:
+    def set_project_data(self, data: ValueLike) -> None:
         """
         Updates the project data associated with the current window. If the
         window is associated with a :path:`.sublime-project` file, the project
@@ -2073,7 +2077,7 @@ class View:
     def size(self) -> int:
         """ :returns: The number of character in the file. """
 
-    def begin_edit(self, edit_token: int, cmd: str, args: CommandArgs | None = ...) -> Edit: ...
+    def begin_edit(self, edit_token: int, cmd: str, args: CommandArgsLike | None = ...) -> Edit: ...
 
     def end_edit(self, edit: Edit) -> None: ...
 
@@ -2123,7 +2127,7 @@ class View:
         from.
         """
 
-    def run_command(self, cmd: str, args: CommandArgs | None = ...) -> None:
+    def run_command(self, cmd: str, args: CommandArgsLike | None = ...) -> None:
         """ Run the named `TextCommand` with the (optional) given ``args``. """
 
     def sel(self) -> Selection:
@@ -2869,7 +2873,7 @@ class Settings:
         .. since:: 4023 3.8
         """
 
-    def __setitem__(self, key: str, value: Value) -> None:
+    def __setitem__(self, key: str, value: ValueLike) -> None:
         """
         Set the named ``key`` to the provided ``value``.
 
@@ -2899,7 +2903,7 @@ class Settings:
         .. since:: 4078 3.8
         """
 
-    def setdefault(self, key: str, value: Value) -> Value:
+    def setdefault(self, key: str, value: ValueLike) -> Value:
         """
         Returns the value associated with the provided ``key``. If it's not
         present the provided ``value`` is assigned to the ``key`` and then
@@ -2910,9 +2914,9 @@ class Settings:
 
     def update(
         self,
-        other: Settings | dict[str, Value] | Iterable[tuple[str, Value]] = ...,
+        other: Settings | Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]] = ...,
         /,
-        **kwargs: Value,
+        **kwargs: ValueLike,
     ) -> None:
         """
         Update the settings from the provided argument(s).
@@ -2927,13 +2931,13 @@ class Settings:
         .. since:: 4078 3.8
         """
 
-    def get(self, key: str, default: Value | None = ...) -> Value:
+    def get(self, key: str, default: ValueLike | None = ...) -> Value:
         """ Same as `__getitem__`. """
 
     def has(self, key: str) -> bool:
         """ Same as `__contains__`. """
 
-    def set(self, key: str, value: Value) -> None:
+    def set(self, key: str, value: ValueLike) -> None:
         """ Same as `__setitem__`. """
 
     def erase(self, key: str) -> None:
@@ -3132,7 +3136,7 @@ class CompletionItem:
         cls,
         trigger: str,
         command: str,
-        args: CommandArgs | None = ...,
+        args: CommandArgsLike | None = ...,
         annotation: str = ...,
         kind: Kind = ...,
         details: str = ...,
@@ -3227,7 +3231,7 @@ class QuickPanelItem:
     ) -> None:
         ...
 
-class ListInputItem:
+class ListInputItem(Generic[_T_Value]):
     """
     Represents a row shown via `ListInputHandler`.
 
@@ -3235,7 +3239,7 @@ class ListInputItem:
     """
     text: str
     """ Text to match against the user's input. """
-    value: Any
+    value: _T_Value
     """ A `Value` passed to the command if the row is selected. """
     details: str | list[str] | tuple[str]
     """ A `minihtml` string or list of strings displayed below the trigger. """
@@ -3247,7 +3251,7 @@ class ListInputItem:
     def __init__(
         self,
         text: str,
-        value: Any,
+        value: _T_Value,
         details: str | list[str] | tuple[str] = ...,
         annotation: str = ...,
         kind: Kind = ...,

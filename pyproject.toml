@@ -79,37 +79,34 @@ typeCheckingMode = "strict"
 # Sublime Text, so `import sublime` can never resolve to a source file.
 reportMissingModuleSource = false
 
-# The "all" rules, spelled out. Rules plain pyright does not know are marked; it
-# logs them as unrecognized and carries on.
+# The "all" rules, spelled out.
 reportCallInDefaultInitializer = "error"
-reportEmptyAbstractUsage = "error"  # basedpyright only
-reportIgnoreCommentWithoutRule = "error"  # basedpyright only
-reportImplicitAbstractClass = "error"  # basedpyright only
 reportImplicitOverride = "error"
-reportImplicitRelativeImport = "error"  # basedpyright only
 reportImplicitStringConcatenation = "error"
 reportImportCycles = "error"
-reportIncompatibleUnannotatedOverride = "error"  # basedpyright only
-reportInvalidAbstractMethod = "error"  # basedpyright only
-reportInvalidCast = "error"  # basedpyright only
 reportMissingSuperCall = "error"
-reportPrivateLocalImportUsage = "error"  # basedpyright only
 reportPropertyTypeMismatch = "error"
-reportSelfClsDefault = "error"  # basedpyright only
-reportUnannotatedClassAttribute = "error"  # basedpyright only
 reportUninitializedInstanceVariable = "error"
 reportUnnecessaryTypeIgnoreComment = "error"
 reportUnreachable = "error"
-reportUnsafeMultipleInheritance = "error"  # basedpyright only
 reportUnusedCallResult = "error"
-reportUnusedParameter = "error"  # basedpyright only
 
-# The two rules from "all" that are not reachable here: the API genuinely traffics
-# in `Any`. `ListInputItem.value` is an arbitrary value handed back to the command,
-# and `set_timeout` ignores whatever its callback returns. Narrowing either of them
-# would misdescribe the runtime.
-reportAny = false  # basedpyright only
-reportExplicitAny = false  # basedpyright only
+# The following rules are known by basedpyright only.
+# pyright logs them as unrecognized and carries on.
+reportEmptyAbstractUsage = "error"  # basedpyright only
+reportIgnoreCommentWithoutRule = "error"  # basedpyright only
+reportImplicitAbstractClass = "error"  # basedpyright only
+reportImplicitRelativeImport = "error"  # basedpyright only
+reportIncompatibleUnannotatedOverride = "error"  # basedpyright only
+reportInvalidAbstractMethod = "error"  # basedpyright only
+reportInvalidCast = "error"  # basedpyright only
+reportPrivateLocalImportUsage = "error"  # basedpyright only
+reportSelfClsDefault = "error"  # basedpyright only
+reportUnannotatedClassAttribute = "error"  # basedpyright only
+reportUnsafeMultipleInheritance = "error"  # basedpyright only
+reportUnusedParameter = "error"  # basedpyright only
+reportAny = "error"  # basedpyright only
+reportExplicitAny = "error"  # basedpyright only
 
 [tool.mypy]
 # mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target

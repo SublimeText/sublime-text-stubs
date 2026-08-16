@@ -24,6 +24,7 @@ MODULES = {
 SUBLIME_TYPES_REEXPORTS = {
     "sublime": [
         "CommandArgs",
+        "CommandArgsLike",
         "CompletionValue",
         "DIP",
         "FontOptions",
@@ -33,11 +34,12 @@ SUBLIME_TYPES_REEXPORTS = {
         "ScopeStyle",
         "UIInfo",
         "Value",
+        "ValueLike",
         "Vector",
         "WindowLayout",
         "WindowVariables",
     ],
-    "sublime_plugin": ["Event", "Value"],
+    "sublime_plugin": ["Event", "Value", "ValueLike"],
 }
 
 # `sublime_plugin` is mostly plugin-host machinery: module level registries, the
@@ -115,6 +117,15 @@ RETURNS = {
     "sublime.View.export_to_html": "str",
     "sublime.Settings.setdefault": "Value",
     "sublime_plugin.BackInputHandler.name": "str",
+    # The reference spells a six-arm union of `list`-only forms
+    # (references/python38/sublime_plugin.py:1306-1311), but `setup_` only checks for the
+    # `(items, index)` tuple and then iterates, dispatching per item
+    # (references/python38/sublime_plugin.py:1343-1372). So any `Iterable` works, and the
+    # three item forms may be mixed in one -- hence the union over the *element* type.
+    "sublime_plugin.ListInputHandler.list_items": (
+        "Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]]"
+        " | tuple[Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]], int]"
+    ),
     "sublime_plugin.TextChangeListener.is_applicable": "bool",
 }
 
@@ -122,8 +133,10 @@ RETURNS = {
 PARAMS = {
     "sublime.load_binary_resource.name": "str",
     "sublime.find_syntax_for_file.path": "str",
-    "sublime.set_timeout.callback": "Callable[[], Any]",
-    "sublime.set_timeout_async.callback": "Callable[[], Any]",
+    # The callback's return value is discarded by the runtime, so `object` describes
+    # it without resorting to `Any`.
+    "sublime.set_timeout.callback": "Callable[[], object]",
+    "sublime.set_timeout_async.callback": "Callable[[], object]",
     "sublime.Window.__eq__.other": "object",
     # Every wrapper object is constructed from the id of its native counterpart.
     "sublime.Selection.__init__.id": "int",
@@ -134,14 +147,39 @@ PARAMS = {
     "sublime.Sheet.close.on_close": "Callable[[bool], None]",
     "sublime.View.close.on_close": "Callable[[bool], None]",
     "sublime.View.show_popup_menu.flags": "int",
-    "sublime.Settings.update.other": "Settings | dict[str, Value] | Iterable[tuple[str, Value]]",
-    "sublime.Settings.update.kwargs": "Value",
+    # The inbound half of the value layer: every parameter from here through
+    # `CompletionItem.command_completion.args` accepts the covariant
+    # `ValueLike`/`CommandArgsLike` in place of the invariant `Value`/`CommandArgs` a
+    # plugin author would otherwise have to satisfy exactly. See `EXTRA_TYPE_ALIASES`
+    # for the rationale.
+    "sublime.encode_value.value": "ValueLike",
+    "sublime.expand_variables.value": "ValueLike",
+    "sublime.run_command.args": "CommandArgsLike",
+    "sublime.format_command.args": "CommandArgsLike",
+    "sublime.html_format_command.args": "CommandArgsLike",
+    "sublime.command_url.args": "CommandArgsLike",
+    "sublime.Window.run_command.args": "CommandArgsLike",
+    "sublime.Window.set_project_data.data": "ValueLike",
+    "sublime.View.run_command.args": "CommandArgsLike",
+    "sublime.View.begin_edit.args": "CommandArgsLike",
+    "sublime.Settings.__setitem__.value": "ValueLike",
+    "sublime.Settings.set.value": "ValueLike",
+    "sublime.Settings.setdefault.value": "ValueLike",
+    "sublime.Settings.get.default": "ValueLike",
+    # Not an overshoot like the rest of the group: `Settings.update` is implemented in
+    # Python and genuinely iterates any `Mapping`
+    # (references/python38/sublime.py:3862-3883).
+    "sublime.Settings.update.other": "Settings | Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]]",
+    "sublime.Settings.update.kwargs": "ValueLike",
+    "sublime.CompletionItem.command_completion.args": "CommandArgsLike",
     "sublime.CompletionItem.__init__.kind": "Kind",
     "sublime.CompletionItem.snippet_completion.kind": "Kind",
     "sublime.CompletionItem.command_completion.kind": "Kind",
-    "sublime.CompletionItem.command_completion.args": "CommandArgs",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
+    # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
+    # over it instead, so the constructor argument is what fixes the item's value type.
+    "sublime.ListInputItem.__init__.value": "_T_Value",
     # Unannotated with a `details=""` default, so the generator infers `str` from
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
@@ -150,7 +188,22 @@ PARAMS = {
     "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str]",
     "sublime_plugin.CommandInputHandler.next_input.args": "dict[str, Value]",
     "sublime_plugin.Command.input.args": "dict[str, Value]",
-    "sublime_plugin.ListInputHandler.description.value": "Value",
+    # The reference spells all three `text: str`, but for a `ListInputHandler` the host
+    # passes the *value* of the selected item, not its row text
+    # (references/python38/sublime_plugin.py:1220-1242). See `TYPE_VARS`.
+    "sublime_plugin.CommandInputHandler.preview.text": "_T_Value_contra",
+    "sublime_plugin.CommandInputHandler.validate.text": "_T_Value_contra",
+    "sublime_plugin.CommandInputHandler.confirm.text": "_T_Value_contra",
+    # Unannotated in the reference; it is the same value the methods above receive.
+    "sublime_plugin.ListInputHandler.description.value": "_T_Value",
+    # The reference spells both `operand: str` (references/python38/sublime_plugin.py:1852
+    # and :2131), but a `.sublime-keymap` context's `"operand"` may be a JSON string,
+    # number, or boolean -- e.g. `"operand": 1` for `num_selections`, `"operand": true`
+    # for a boolean setting -- and the host hands it through unconverted. `Value`, not
+    # `ValueLike`, because this is the host calling the plugin, the same outbound
+    # direction as `Command.input.args` above.
+    "sublime_plugin.EventListener.on_query_context.operand": "Value",
+    "sublime_plugin.ViewEventListener.on_query_context.operand": "Value",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
     # The `.. method::` directives for these two spell `buffer: View`, but their
@@ -186,6 +239,78 @@ PARAMS = {
 ATTRIBUTES = {
     "sublime.View.settings_object": "Settings | None",
     "sublime.CompletionList.target": "int | None",
+    # Annotated `Any` in the reference (references/python38/sublime.py:4330), whose own
+    # docstring one line below calls it "A `Value` passed to the command"; see
+    # `TYPE_VARS`.
+    "sublime.ListInputItem.value": "_T_Value",
+}
+
+# Module level `TypeVar` declarations, keyed by module name. The reference has no
+# counterpart to key them to, so the value is the complete declaration block, emitted
+# at the top of the module body (after the imports, before the first declaration). A
+# module declaring more than one TypeVar spells them as one multi-line block.
+TYPE_VARS: dict[str, str] = {
+    # Bounded by `ValueLike` because the item's value is what gets delivered to the
+    # command: "A `Value` passed to the command if the row is selected"
+    # (references/python38/sublime.py:4330-4331). The bound is `ValueLike` rather than
+    # `Value` because it constrains what an author may parameterize on, and that is an
+    # inbound position: `Value`'s containers are invariant, so it would reject
+    # `ListInputItem[List[str]]`. See `EXTRA_TYPE_ALIASES` below.
+    #
+    # The `default=` deliberately stays `Value`, which is not the bound. The default is
+    # what a bare, unparameterized use resolves to, and a bare use describes what the
+    # host actually delivers -- always a real `list` or `dict` -- so it stays the narrow
+    # type. The asymmetry is intentional, not an oversight.
+    #
+    # Defaulted at all because the runtime class carries no `__class_getitem__` on the
+    # Python 3.8 host and therefore cannot be subscripted, so every bare use has to keep
+    # working; `default=Value` (rather than `Any`) makes a bare `ListInputItem` an item
+    # of an unknown `Value`, which has to be narrowed, instead of one that silently
+    # accepts anything.
+    #
+    # Keep this justification out of the emitted block: `note()` scans the block for
+    # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
+    "sublime": '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)',
+    # `_T_Value` is the same declaration as `sublime`'s above, for the same reasons:
+    # `ListInputHandler` both produces its value (`list_items`) and consumes it
+    # (`description`), so its parameter is invariant, is bounded by `ValueLike` and
+    # defaults to `Value`.
+    #
+    # `CommandInputHandler` only ever *consumes* a value -- the host passes the selected
+    # item's value to `preview_`, `validate_` and `confirm_`
+    # (references/python38/sublime_plugin.py:1220-1242) -- so it is contravariant.
+    # Under contravariance `CommandInputHandler[Never]` is the *top* of the handler
+    # lattice: every `CommandInputHandler[X]` is assignable to it. That is what lets
+    # `next_input` and `Command.input` keep the reference's own bare
+    # `Optional[CommandInputHandler]` return annotation, which `default=Never` resolves
+    # to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
+    # (a `CommandInputHandler[str]`) -- with no `Any` and no `RETURNS` override.
+    #
+    # Keep this justification out of the emitted block: `note()` scans the block for
+    # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
+    "sublime_plugin": (
+        '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)\n'
+        '_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)'
+    ),
+}
+
+# Replacements for a class's rendered base list, keyed by `module.Class`. The value is
+# used verbatim in place of everything the reference declares between the parentheses,
+# which is how a reference class is made generic (`Generic[_T]`) or is given an already
+# parameterized base (`CommandInputHandler[str]`). The `@override` and inheritance
+# bookkeeping keeps following the reference's own bases.
+CLASS_BASES: dict[str, str] = {
+    # The reference class has no bases; `Generic[_T_Value]` is what makes its `value`
+    # generic. See `TYPE_VARS` above.
+    "sublime.ListInputItem": "Generic[_T_Value]",
+    # The reference class has no bases; the value it consumes is what parameterizes it.
+    "sublime_plugin.CommandInputHandler": "Generic[_T_Value_contra]",
+    # Both derive from a bare `CommandInputHandler` in the reference. A text input hands
+    # the command the entered string, so its value type is fixed; a list input's is the
+    # selected item's value. `BackInputHandler` deliberately keeps the reference's bare
+    # base: it consumes nothing, and bare resolves to `CommandInputHandler[Never]`.
+    "sublime_plugin.TextInputHandler": "CommandInputHandler[str]",
+    "sublime_plugin.ListInputHandler": "CommandInputHandler[_T_Value]",
 }
 
 # `sublime_types` aliases the generator cannot take verbatim.
@@ -195,6 +320,75 @@ TYPE_ALIASES = {
     # quoting -- in a `.pyi` nothing is evaluated, so a forward reference resolves
     # regardless of where it appears; all four checkers accept it.
     "Value": "bool | str | int | float | list[Value] | dict[str, Value] | None",
+}
+
+# `sublime_types` aliases with no reference-side counterpart at all: like
+# `EXTRA_TYPE_ALIAS_CLASSES` below, nothing keys them to the reference, so they are
+# not matched against it and cannot be flagged stale. A name added here must also be
+# added to `SUBLIME_TYPES_REEXPORTS` for every module that uses it. The value is the
+# complete emitted block, so an entry can carry a leading comment.
+#
+# `Value` spells its containers `list[Value]` and `dict[str, Value]`, and both are
+# invariant, so a plugin author holding a `List[str]` cannot pass it anywhere a
+# `Value` is expected -- not to `Settings.set`, not to `encode_value`, and not as a
+# type argument to the generic input handlers. `ValueLike` is the covariant
+# companion, spelled with `Sequence` and `Mapping`, and is used for every parameter
+# through which a value enters Sublime Text. Return types keep describing what comes
+# back, which is always a real `list` or `dict`, so they stay `Value`.
+#
+# Two deliberate inaccuracies, both documented in README.md as well:
+#
+# 1. `Mapping` overshoots the runtime, which gates mappings on
+#    `isinstance(x, dict)`: a `collections.abc.Mapping` that is not a `dict` is
+#    rejected. Spelling it `dict[str, ValueLike]` would be accurate but useless,
+#    since `dict` is invariant in its value parameter and `Dict[str, str]` would
+#    keep failing -- which is the whole problem this alias exists to solve.
+#    `Settings.update` is the one place where any `Mapping` really is accepted: it
+#    is implemented in Python and iterates the mapping itself
+#    (references/python38/sublime.py:3862-3883).
+# 2. Whatever is passed in is delivered back as a plain `list` or `dict`, so a
+#    handler parameterized on a custom sequence type type-checks and then receives
+#    a `list`. That needs two type parameters to express and is documented instead.
+#
+# `Sequence` matches the runtime closely: sequences are duck-typed through
+# `__getitem__`, so a hand-rolled `collections.abc.Sequence` is accepted, and so is
+# `bytes`, which arrives back as a `list[int]`. `Region` has `__iter__`, `__len__`
+# and `__contains__` but no `__getitem__` (references/python38/sublime.py:2091-2130,
+# the run of dunders in a `class Region` that starts at :2061), so it fails
+# `PySequence_Check` at runtime and is not a nominal `Sequence` for the checkers
+# either.
+#
+# Keep the *emitted* docstrings free of the bare word `sublime` and of any name in the
+# generator's import tables, for the reason `EXTRA_TYPE_ALIAS_CLASSES` records below.
+# Both carry the same stub-only notice the extra classes do, because these are the only
+# `sublime_types` names that are stub-only without being a class: they sit among `Value`
+# and `CommandArgs`, which do exist at runtime, so nothing else would tell a reader that
+# importing one unguarded raises `ImportError` on the plugin host.
+EXTRA_TYPE_ALIASES = {
+    "ValueLike": (
+        "ValueLike: TypeAlias ="
+        " bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None\n"
+        '"""\n'
+        "What the value layer accepts on the way *in*, where `Value` describes what it\n"
+        "hands back. The containers are the covariant protocols, so a ``list[str]`` or a\n"
+        "``dict[str, str]`` can be passed as it is.\n"
+        "\n"
+        "This alias exists only in the stubs, for type checking: the real\n"
+        "``sublime_types`` module has no ``ValueLike`` name at runtime, so it must be\n"
+        "imported inside an ``if TYPE_CHECKING:`` block.\n"
+        '"""'
+    ),
+    "CommandArgsLike": (
+        "CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None\n"
+        '"""\n'
+        "What a command's arguments may be spelled as on the way *in*, where\n"
+        "`CommandArgs` describes what the plugin host hands back.\n"
+        "\n"
+        "This alias exists only in the stubs, for type checking: the real\n"
+        "``sublime_types`` module has no ``CommandArgsLike`` name at runtime, so it must\n"
+        "be imported inside an ``if TYPE_CHECKING:`` block.\n"
+        '"""'
+    ),
 }
 
 # `sublime_types` aliases the generator replaces with a class declaration instead of a

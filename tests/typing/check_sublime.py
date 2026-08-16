@@ -4,13 +4,14 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
+from typing_extensions import assert_type
 
 if TYPE_CHECKING:
-    from sublime_types import FontOptions, UIInfoPalette
+    from sublime_types import FontOptions, UIInfoPalette, ValueLike
 
 
 def collect_word_regions(view: sublime.View) -> List[sublime.Region]:
@@ -132,6 +133,42 @@ def quick_panel(window: sublime.Window) -> None:
     window.show_quick_panel(items, lambda _index: None, placeholder="Pick a folder")
 
 
+def list_input_item_value() -> int:
+    # `assert_type` rather than an annotated assignment: `Any` satisfies the latter,
+    # so it would not catch a regression to the pre-generic stubs.
+    item = sublime.ListInputItem("label", 42)
+    return assert_type(item.value, int)
+
+
+def bare_list_input_item_value(item: sublime.ListInputItem) -> sublime.Value:
+    # A bare, unparameterized use defaults to `Value` rather than to `Any`, so an
+    # author who does not parameterize still has to narrow before using the value.
+    return assert_type(item.value, sublime.Value)
+
+
+def make_list_input_item(value: List[str]) -> "sublime.ListInputItem[List[str]]":
+    # The runtime class cannot be subscripted on the Python 3.8 host, so a
+    # parameterized annotation has to be quoted. The argument has to satisfy the
+    # `ValueLike` bound, whose containers are covariant, so a concrete `List[str]` is
+    # a valid value type even though it is not a `Value`.
+    return sublime.ListInputItem("label", value)
+
+
+def is_empty_value(value: "ValueLike") -> bool:
+    # `ValueLike` is stub-only, so it is imported under `if TYPE_CHECKING:` and the
+    # annotation is quoted.
+    return value is None
+
+
+def value_like_accepts_concrete_containers() -> Tuple[bool, bool]:
+    # The point of `ValueLike`: its containers are the covariant `Sequence` and
+    # `Mapping`, so these two pass as they are. Against `Value`, whose containers are
+    # the invariant `list` and `dict`, neither call type-checks.
+    tags: List[str] = ["draft", "review"]
+    labels: Dict[str, str] = {"draft": "Draft"}
+    return is_empty_value(tags), is_empty_value(labels)
+
+
 def phantoms(view: sublime.View) -> sublime.PhantomSet:
     phantom_set = sublime.PhantomSet(view, "sublime-text-stubs-demo")
     phantom_set.update(
@@ -184,6 +221,32 @@ def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
     if name is None:
         return template
     return sublime.expand_variables(template, variables)
+
+
+def widen_value_like_inputs(
+    settings: sublime.Settings, window: sublime.Window, tags: List[str], labels: Dict[str, str]
+) -> None:
+    # The inbound half of the value layer accepts the covariant containers `ValueLike`
+    # describes: none of these seven calls type-checked while their parameters were
+    # still `Value`, whose containers are the invariant `list`/`dict`.
+    settings.set("tags", tags)
+    settings["tags"] = tags
+    _ = settings.setdefault("tags", tags)
+    _ = settings.get("tags", tags)
+    settings.update(labels)
+    _ = sublime.encode_value(tags)
+    window.set_project_data(labels)
+    # The outbound half stays narrow: a value read back, or the whole store dumped,
+    # still describes what Sublime Text actually hands back, so this is unchanged.
+    _ = assert_type(settings.get("tags"), sublime.Value)
+    _ = assert_type(settings.to_dict(), Dict[str, sublime.Value])
+
+
+def widen_command_args_inputs(window: sublime.Window, tags: List[str]) -> None:
+    # `CommandArgsLike` is `Mapping[str, ValueLike] | None`, so a `Dict[str,
+    # List[str]]` literal passes here, where `CommandArgs`
+    # (`dict[str, Value] | None`) would reject it on both counts.
+    window.run_command("x", {"tags": tags})
 
 
 def pick_font(on_chosen: Callable[[str], None]) -> None:

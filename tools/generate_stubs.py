@@ -112,13 +112,21 @@ SHADOWABLE_BUILTINS = {
 }
 
 # Names still worth importing from `typing`: they have no builtin equivalent.
-TYPING_NAMES = ["Any", "Literal", "TypedDict"]
+TYPING_NAMES = ["Any", "Generic", "Literal", "TypedDict"]
 
 # The modern home of the abstract collection types; `typing.Callable` and friends
 # are deprecated aliases of these.
-COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Sequence"]
+COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Mapping", "Sequence"]
 
-TYPING_EXTENSIONS_NAMES = ["NotRequired", "TypeAlias", "deprecated", "override"]
+# `Never` and `TypeVar` come from here rather than from `typing`: `typing.Never` only
+# exists from 3.11 on, and only `typing_extensions.TypeVar` carries the PEP 696
+# `default=` argument on the Python versions the checkers target.
+# The order is the emitted one, so it has to be isort's: case-insensitive, since the
+# `order-by-type = false` in the root pyproject.toml leaves ruff's default
+# `case-sensitive = false` in charge.
+TYPING_EXTENSIONS_NAMES = [
+    "deprecated", "Never", "NotRequired", "override", "TypeAlias", "TypeVar",
+]
 
 # PEP 585: the `typing` aliases superseded by the builtin generics.
 BUILTIN_GENERICS = {
@@ -139,6 +147,8 @@ VALUE_TABLES: dict[str, dict[str, str]] = {
     "ATTRIBUTES": ov.ATTRIBUTES,
     "TYPE_ALIASES": ov.TYPE_ALIASES,
     "TYPE_ALIAS_CLASSES": ov.TYPE_ALIAS_CLASSES,
+    "TYPE_VARS": ov.TYPE_VARS,
+    "CLASS_BASES": ov.CLASS_BASES,
     "EVENT_HANDLER_RETURNS": ov.EVENT_HANDLER_RETURNS,
 }
 MEMBER_TABLES: dict[str, list[str]] = {
@@ -801,8 +811,16 @@ class ModuleGenerator:
         return emitted
 
     def emit_class(self, cls: ast.ClassDef, indent: str) -> None:
-        bases = [ast.unparse(b) for b in cls.bases]
-        bases += [f"{kw.arg}={ast.unparse(kw.value)}" for kw in cls.keywords]
+        # A `CLASS_BASES` entry replaces the reference's bases wholesale, which is how a
+        # class is made generic. The `@override` and inheritance bookkeeping below keeps
+        # following `self.ref.bases`: the reference's own bases are what say which
+        # methods the class inherits, whatever the stub declares.
+        base_override = self.override("CLASS_BASES", self.key(cls.name))
+        if base_override is not None:
+            bases = [base_override]
+        else:
+            bases = [ast.unparse(b) for b in cls.bases]
+            bases += [f"{kw.arg}={ast.unparse(kw.value)}" for kw in cls.keywords]
         header = f"{indent}class {cls.name}"
         header += f"({', '.join(bases)}):" if bases else ":"
         self.note(" ".join(bases))
@@ -902,7 +920,7 @@ class ModuleGenerator:
         # `sublime_plugin` is emitted from an allowlist rather than by dropping
         # private names: most of the module is plugin host machinery.
         allowlisted = self.module == "sublime_plugin"
-        previous = ""
+        previous = self.emit_type_vars()
         for node in self.tree.body:
             if isinstance(node, ast.ClassDef):
                 if allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name):
@@ -935,10 +953,45 @@ class ModuleGenerator:
                     _ = self.emit_assignment(node, "", None, module_level=True)
                     previous = "assignment"
 
+        previous = self.emit_extra_type_aliases(previous)
         self.emit_extra_type_alias_classes(previous)
 
         body = "\n".join(self.lines).rstrip() + "\n"
         return self.render_header() + body
+
+    def emit_type_vars(self) -> str:
+        """Emit the module's TypeVar declarations; the `separate` kind they leave behind.
+
+        TypeVars have no counterpart in the reference, so they come from the override
+        table, and they lead the module body, ahead of every declaration using them.
+        """
+        block = self.override("TYPE_VARS", self.module)
+        if block is None:
+            return ""
+        self.note(block)
+        self.lines.append(block)
+        return "type_vars"
+
+    def emit_extra_type_aliases(self, previous: str) -> str:
+        """Append the `sublime_types` aliases with no reference-side counterpart.
+
+        They are emitted after the reference-derived aliases and before the extra
+        classes, so that they sit among the plain aliases rather than among the
+        `TypedDict`s. Returns the `separate` kind they leave behind.
+
+        The kind is not `"assignment"`: these blocks carry a docstring, and `separate`
+        packs consecutive assignments without a blank line, which would run the
+        docstring of one into the declaration of the next and make the first read as
+        documentation of the reference-derived alias above it.
+        """
+        if self.module != "sublime_types":
+            return previous
+        for block in ov.EXTRA_TYPE_ALIASES.values():
+            self.separate(previous, "documented alias")
+            self.note(block)
+            self.lines.append(block)
+            previous = "documented alias"
+        return previous
 
     def emit_extra_type_alias_classes(self, previous: str) -> None:
         """Append the `sublime_types` classes with no reference-side counterpart."""
@@ -1163,7 +1216,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     # checked against the reference directly.
     for module, names in ov.SUBLIME_TYPES_REEXPORTS.items():
         for name in names:
-            known = name in reference.aliases["sublime_types"] or name in ov.EXTRA_TYPE_ALIAS_CLASSES
+            known = (
+                name in reference.aliases["sublime_types"]
+                or name in ov.EXTRA_TYPE_ALIASES
+                or name in ov.EXTRA_TYPE_ALIAS_CLASSES
+            )
             if not known:
                 problems.stale(f"stub_overrides.SUBLIME_TYPES_REEXPORTS[{module!r}][{name!r}]")
 
