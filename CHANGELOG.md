@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 
-## [Unreleased]
+## 1.4200.0b2
 
 ### Added
 
