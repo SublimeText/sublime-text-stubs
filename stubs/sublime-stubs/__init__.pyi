@@ -3,7 +3,7 @@
 
 import builtins
 import enum
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from typing import Generic, Literal
 
 from sublime_types import CommandArgs as CommandArgs
@@ -3043,12 +3043,12 @@ class CompletionList:
     .. since:: 4050
     """
     target: int | None
-    completions: list[CompletionValue] | None
+    completions: Sequence[CompletionValue] | None
     flags: AutoCompleteFlags
 
     def __init__(
         self,
-        completions: list[CompletionValue] | None = ...,
+        completions: Sequence[CompletionValue] | None = ...,
         flags: AutoCompleteFlags = ...,
     ) -> None:
         """
@@ -3060,7 +3060,7 @@ class CompletionList:
 
     def set_completions(
         self,
-        completions: list[CompletionValue],
+        completions: Sequence[CompletionValue],
         flags: AutoCompleteFlags = ...,
     ) -> None:
         """

@@ -15,6 +15,13 @@ not semantic versioning; see the README.
   It is not part of the documented API
   and may change without notice.
 
+### Changed
+
+- `CompletionList()` and `CompletionList.set_completions()` take
+  `Sequence[CompletionValue]` instead of `list[CompletionValue]`,
+  so a `list[CompletionItem]` or a `list[str]` can be passed as it is.
+  The `completions` attribute is typed the same way.
+
 ## 1.4200.0b2
 
 ### Added
