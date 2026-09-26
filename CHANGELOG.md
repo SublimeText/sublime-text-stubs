@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 
+## [Unreleased]
+
+### Changed
+
+- `CompletionList()` and `CompletionList.set_completions()` take
+  `Sequence[CompletionValue]` instead of `list[CompletionValue]`,
+  so a `list[CompletionItem]` or a `list[str]` can be passed as it is.
+  The `completions` attribute is typed the same way.
+
 ## 1.4200.0
 
 ### Changed

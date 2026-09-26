@@ -198,6 +198,12 @@ PARAMS = {
     "sublime.CompletionItem.command_completion.kind": "Kind",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
+    # `list[CompletionValue]` in the reference (references/python38/sublime.py:4055 and
+    # :4069), but `list` is invariant, so a `list[CompletionItem]` or a `list[str]` is
+    # rejected. The list is only stored and handed on to `sublime_api`
+    # (sublime.py:4086-4090), which duck-types sequences; see `ValueLike`.
+    "sublime.CompletionList.__init__.completions": "Sequence[CompletionValue]",
+    "sublime.CompletionList.set_completions.completions": "Sequence[CompletionValue]",
     # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
     # over it instead, so the constructor argument is what fixes the item's value type.
     "sublime.ListInputItem.__init__.value": "_T_Value",
