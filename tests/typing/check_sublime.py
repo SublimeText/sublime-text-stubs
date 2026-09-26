@@ -4,7 +4,7 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import assert_type, TYPE_CHECKING
 
 import sublime
@@ -152,6 +152,15 @@ def make_list_input_item(value: list[str]) -> sublime.ListInputItem[list[str]]:
     # satisfy the `ValueLike` bound, whose containers are covariant, so a concrete
     # `list[str]` is a valid value type even though it is not a `Value`.
     return sublime.ListInputItem("label", value)
+
+
+def call_set_completions() -> Sequence[sublime.CompletionValue] | None:
+    # `list` is invariant: a `list[CompletionItem]` is only accepted because the
+    # parameters are typed `Sequence[CompletionValue]`.
+    completions: list[sublime.CompletionItem] = [sublime.CompletionItem("a")]
+    completion_list = sublime.CompletionList(completions)
+    completion_list.set_completions(completions)
+    return assert_type(completion_list.completions, Sequence[sublime.CompletionValue] | None)
 
 
 def is_empty_value(value: ValueLike) -> bool:

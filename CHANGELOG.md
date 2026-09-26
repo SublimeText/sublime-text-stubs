@@ -38,6 +38,10 @@ not semantic versioning; see the README.
 - Type checkers have to target Python 3.13 or newer to read the stubs,
   and mypy itself has to run on Python 3.13 or newer.
   Accordingly, `requires-python` is now `>=3.13`.
+- `CompletionList()` and `CompletionList.set_completions()` take
+  `Sequence[CompletionValue]` instead of `list[CompletionValue]`,
+  so a `list[CompletionItem]` or a `list[str]` can be passed as it is.
+  The `completions` attribute is typed the same way.
 
 ## 1.4200.0
 

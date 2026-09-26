@@ -189,6 +189,12 @@ PARAMS = {
     "sublime.Settings.update.other": "Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]]",
     "sublime.Settings.update.kwargs": "ValueLike",
     "sublime.CompletionItem.command_completion.args": "CommandArgsLike",
+    # `list[CompletionValue]` in the reference (references/python314/sublime.py:4091 and
+    # :4105), but `list` is invariant, so a `list[CompletionItem]` or a `list[str]` is
+    # rejected. The list is only stored and handed on to `sublime_api`
+    # (sublime.py:4122-4126), which duck-types sequences; see `ValueLike`.
+    "sublime.CompletionList.__init__.completions": "Sequence[CompletionValue]",
+    "sublime.CompletionList.set_completions.completions": "Sequence[CompletionValue]",
     # `Any` in the reference (references/python314/sublime.py:4371); the class is generic
     # over it instead, so the constructor argument is what fixes the item's value type.
     "sublime.ListInputItem.__init__.value": "T",
@@ -237,6 +243,10 @@ PARAMS = {
 # Types for instance attributes assigned without an annotation in `__init__`.
 ATTRIBUTES = {
     "sublime.CompletionList.target": "int | None",
+    # `list[CompletionValue] | None` in the reference
+    # (references/python314/sublime.py:4099); it holds the `Sequence` passed to
+    # `__init__` or `set_completions`, see `PARAMS`.
+    "sublime.CompletionList.completions": "Sequence[CompletionValue] | None",
     # Annotated `Any` in the reference (references/python314/sublime.py:4377), whose own
     # docstring one line below calls it "A `Value` passed to the command"; see
     # `TYPE_PARAMS`.
