@@ -10,3 +10,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # The root and `tools/` are separate uv projects, each with its own lockfile.
+  - package-ecosystem: uv
+    directories: ["/", "/tools"]
+    schedule:
+      interval: monthly
+    groups:
+      dev-tools:
+        patterns: ["*"]

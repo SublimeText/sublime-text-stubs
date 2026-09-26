@@ -114,7 +114,8 @@ are documented in `pyproject.toml`.
 
 The checker versions are pinned in `uv.lock` and `tools/uv.lock`,
 and CI installs exactly those.
-To upgrade them, run `uv lock --upgrade` in the root and in `tools/`,
+Dependabot proposes upgrades once a month;
+to upgrade by hand, run `uv lock --upgrade` in the root and in `tools/`,
 then rerun all checks.
 
 ## The `tools/` sub-project
