@@ -112,6 +112,10 @@ and never reach for `--fix` there.
 Checker and lint settings, and why each is what it is,
 are documented in `pyproject.toml`.
 
+The checker versions are pinned in `uv.lock` and `tools/uv.lock`.
+To upgrade them, run `uv lock --upgrade` in the root and in `tools/`,
+then rerun all checks.
+
 ## The `tools/` sub-project
 
 `tools/` is a separate, standalone uv project
