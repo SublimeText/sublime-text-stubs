@@ -77,6 +77,10 @@ DOCSTRING_QUOTES = 8
 # generator's understanding of the reference and is reported as unresolved.
 KEPT_DECORATORS = {"classmethod", "staticmethod", "property"}
 
+# The name tables below are packed by hand, several names per line, so that they
+# stay readable; `ruff format` would spread them out to one name per line.
+# fmt: off
+
 # Names that must never appear bare in an annotation: strict mode's
 # `reportMissingTypeArguments` rejects them.
 BARE_GENERICS = {
@@ -134,6 +138,8 @@ BUILTIN_GENERICS = {
     "Set": "set", "Tuple": "tuple", "Type": "type",
 }
 
+# fmt: on
+
 # The `stub_overrides` tables that are keyed by a name from the reference, split by
 # what a lookup yields. Every lookup goes through `ModuleGenerator.override` or
 # `ModuleGenerator.listed`, which record the key as matched, so that `main` can
@@ -173,9 +179,7 @@ class Problems:
         self.messages.append(f"{where}: {what}\n    add to stub_overrides.{hint}")
 
     def stale(self, where: str) -> None:
-        self.messages.append(
-            f"{where}: matches nothing in the reference\n    remove it from stub_overrides"
-        )
+        self.messages.append(f"{where}: matches nothing in the reference\n    remove it from stub_overrides")
 
     def __bool__(self) -> bool:
         return bool(self.messages)
@@ -207,11 +211,7 @@ def attribute_docstring(body: Sequence[ast.stmt], index: int) -> str | None:
     if index + 1 >= len(body):
         return None
     node = body[index + 1]
-    if (
-        isinstance(node, ast.Expr)
-        and isinstance(node.value, ast.Constant)
-        and isinstance(node.value.value, str)
-    ):
+    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
         return inspect.cleandoc(node.value.value)
     return None
 
@@ -265,23 +265,16 @@ class Reference:
 
         for module, tree in self.trees.items():
             names: set[str] = set()
-            self.functions[module] = {
-                n.name for n in tree.body if isinstance(n, ast.FunctionDef)
-            }
+            self.functions[module] = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
             self.aliases[module] = {
-                n.target.id for n in tree.body
-                if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+                n.target.id for n in tree.body if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
             }
             for node in tree.body:
                 if not isinstance(node, ast.ClassDef):
                     continue
                 names.add(node.name)
-                self.bases[(module, node.name)] = [
-                    b.id for b in node.bases if isinstance(b, ast.Name)
-                ]
-                self.methods[(module, node.name)] = {
-                    m.name for m in node.body if isinstance(m, ast.FunctionDef)
-                }
+                self.bases[(module, node.name)] = [b.id for b in node.bases if isinstance(b, ast.Name)]
+                self.methods[(module, node.name)] = {m.name for m in node.body if isinstance(m, ast.FunctionDef)}
                 if is_enum(node):
                     for member in node.body:
                         if isinstance(member, ast.Assign):
@@ -296,7 +289,6 @@ class Reference:
         for node in self.trees["sublime"].body:
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
                 self.sublime_names.add(node.name)
-
 
     def knows_callable(self, module: str, class_name: str | None, name: str) -> bool:
         """Whether the reference knows ``name`` as a module function or as a method."""
@@ -357,9 +349,7 @@ def accepts_none(annotation: str) -> bool:
             if base == "Optional":
                 return True
             if base == "Union":
-                elements = (
-                    expr.slice.elts if isinstance(expr.slice, ast.Tuple) else [expr.slice]
-                )
+                elements = expr.slice.elts if isinstance(expr.slice, ast.Tuple) else [expr.slice]
                 return any(check(element) for element in elements)
         return False
 
@@ -381,9 +371,7 @@ class _Modernizer(ast.NodeTransformer):
             elements = node.slice.elts if isinstance(node.slice, ast.Tuple) else [node.slice]
             return union(list(elements))
         if base in BUILTIN_GENERICS and isinstance(node.value, ast.Name):
-            return ast.Subscript(
-                value=ast.Name(id=BUILTIN_GENERICS[base]), slice=node.slice, ctx=node.ctx
-            )
+            return ast.Subscript(value=ast.Name(id=BUILTIN_GENERICS[base]), slice=node.slice, ctx=node.ctx)
         return node
 
 
@@ -597,9 +585,7 @@ class ModuleGenerator:
 
         return rendered
 
-    def resolve_arg(
-        self, qualname: str, arg: ast.arg, default: ast.expr | None
-    ) -> str | None:
+    def resolve_arg(self, qualname: str, arg: ast.arg, default: ast.expr | None) -> str | None:
         annotation = self.override("PARAMS", f"{qualname}.{arg.arg}")
         if annotation is None and arg.annotation is not None:
             annotation = ast.unparse(arg.annotation)
@@ -671,9 +657,7 @@ class ModuleGenerator:
             ),
         )
 
-    def emit_def(
-        self, indent: str, name: str, params: list[str], returns: str, doc: list[str]
-    ) -> None:
+    def emit_def(self, indent: str, name: str, params: list[str], returns: str, doc: list[str]) -> None:
         """Emit a `def` and its body, wrapping the signature if it does not fit.
 
         Every declaration is followed by a blank line, so that the one-liners read as
@@ -684,9 +668,7 @@ class ModuleGenerator:
         closing = f"{indent}) -> {returns}:"
         # A long return annotation cannot be broken up, so when it overflows on its
         # own, wrapping a lone `self` onto a line of its own only adds noise.
-        wrapped = len(header) > STUB_LINE_WIDTH and (
-            len(closing) <= STUB_LINE_WIDTH or len(params) > 1
-        )
+        wrapped = len(header) > STUB_LINE_WIDTH and (len(closing) <= STUB_LINE_WIDTH or len(params) > 1)
         if wrapped:
             # One parameter per line, as black would wrap it. Splitting the joined
             # signature instead is not an option: `Callable[[str, int], None]`
@@ -726,9 +708,7 @@ class ModuleGenerator:
         self.note("deprecated")
         self.lines.append(f'{indent}@deprecated("{message}")')
 
-    def emit_assignment(
-        self, node: ast.stmt, indent: str, doc: str | None, *, module_level: bool = False
-    ) -> bool:
+    def emit_assignment(self, node: ast.stmt, indent: str, doc: str | None, *, module_level: bool = False) -> bool:
         """Emit a class or module level assignment verbatim. False if skipped."""
         if isinstance(node, ast.AnnAssign):
             if not isinstance(node.target, ast.Name):
@@ -937,9 +917,7 @@ class ModuleGenerator:
                 self.emit_class(node, "")
                 previous = "class"
             elif isinstance(node, ast.FunctionDef):
-                if is_private(node.name) or (
-                    allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name)
-                ):
+                if is_private(node.name) or (allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name)):
                     continue
                 if self.listed("SKIP_MEMBERS", self.key(node.name)):
                     continue
@@ -1040,10 +1018,7 @@ class ModuleGenerator:
     def render_header(self) -> str:
         lines = [
             "# This file is generated by tools/generate_stubs.py -- do not edit.",
-            (
-                f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py"
-                f" (Sublime Text build {ST_BUILD})."
-            ),
+            (f"# Source: references/{REFERENCE_DIR.name}/{self.module}.py (Sublime Text build {ST_BUILD})."),
             "",
         ]
         # No `from __future__ import annotations`: it is a no-op in a stub, which a
@@ -1076,11 +1051,7 @@ class ModuleGenerator:
 
     def plain_imports(self, modules: Sequence[str]) -> list[str]:
         """`import x` for each of `modules` the generated body refers to."""
-        return [
-            f"import {module}"
-            for module in modules
-            if module in self.referenced and module != self.module
-        ]
+        return [f"import {module}" for module in modules if module in self.referenced and module != self.module]
 
 
 # --- `.. method::` directives ------------------------------------------------
@@ -1185,12 +1156,16 @@ def report_drift(outputs: dict[Path, str]) -> bool:
         if current != content:
             stale = True
             print(f"{relative} is out of date:")
-            print("".join(difflib.unified_diff(
-                current.splitlines(keepends=True),
-                content.splitlines(keepends=True),
-                fromfile=f"{relative} (committed)",
-                tofile=f"{relative} (generated)",
-            )))
+            print(
+                "".join(
+                    difflib.unified_diff(
+                        current.splitlines(keepends=True),
+                        content.splitlines(keepends=True),
+                        fromfile=f"{relative} (committed)",
+                        tofile=f"{relative} (generated)",
+                    )
+                )
+            )
     return stale
 
 
