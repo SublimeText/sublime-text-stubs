@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 
+## [Unreleased]
+
+### Added
+
+- `sublime_plugin.find_view_event_listener()`,
+  which returns the instance of the given `ViewEventListener` class attached to a view.
+  It is not part of the documented API
+  and may change without notice.
+
 ## 1.4200.0b2
 
 ### Added

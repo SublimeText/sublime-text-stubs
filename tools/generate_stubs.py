@@ -150,6 +150,7 @@ VALUE_TABLES: dict[str, dict[str, str]] = {
     "TYPE_VARS": ov.TYPE_VARS,
     "CLASS_BASES": ov.CLASS_BASES,
     "EVENT_HANDLER_RETURNS": ov.EVENT_HANDLER_RETURNS,
+    "DOCSTRINGS": ov.DOCSTRINGS,
 }
 MEMBER_TABLES: dict[str, list[str]] = {
     "SKIP_MEMBERS": ov.SKIP_MEMBERS,
@@ -664,7 +665,10 @@ class ModuleGenerator:
             fn.name,
             self.render_signature(fn, qualname, in_class),
             self.render_return(fn, qualname),
-            render_docstring(ast.get_docstring(fn, clean=True), indent + INDENT),
+            render_docstring(
+                self.override("DOCSTRINGS", qualname) or ast.get_docstring(fn, clean=True),
+                indent + INDENT,
+            ),
         )
 
     def emit_def(
@@ -933,7 +937,9 @@ class ModuleGenerator:
                 self.emit_class(node, "")
                 previous = "class"
             elif isinstance(node, ast.FunctionDef):
-                if allowlisted or is_private(node.name):
+                if is_private(node.name) or (
+                    allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name)
+                ):
                     continue
                 if self.listed("SKIP_MEMBERS", self.key(node.name)):
                     continue

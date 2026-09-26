@@ -232,6 +232,10 @@ class DemoViewEventListener(sublime_plugin.ViewEventListener):
         self.view.settings().set("demo.loaded", True)
 
 
+def find_demo_listener(view: sublime.View) -> Optional[DemoViewEventListener]:
+    return sublime_plugin.find_view_event_listener(view, DemoViewEventListener)
+
+
 class DemoTextChangeListener(sublime_plugin.TextChangeListener):
     @override
     def on_text_changed(self, changes: List[sublime.TextChange]) -> None:

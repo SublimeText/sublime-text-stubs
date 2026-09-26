@@ -44,7 +44,10 @@ SUBLIME_TYPES_REEXPORTS = {
 
 # `sublime_plugin` is mostly plugin-host machinery: module level registries, the
 # `on_*(view_id)` callbacks the host invokes, and the importlib finder/loader for
-# `.sublime-package` archives. Only the documented plugin-facing API is stubbed.
+# `.sublime-package` archives. Only the documented plugin-facing API is stubbed,
+# plus `find_view_event_listener`: undocumented, but pointed to as semi-public by the
+# Sublime HQ developers, used by plugins, and unchanged across many builds. Its
+# docstring (see `DOCSTRINGS`) warns that it carries no stability guarantee.
 SUBLIME_PLUGIN_PUBLIC_API = [
     "CommandInputHandler",
     "BackInputHandler",
@@ -57,7 +60,22 @@ SUBLIME_PLUGIN_PUBLIC_API = [
     "EventListener",
     "ViewEventListener",
     "TextChangeListener",
+    "find_view_event_listener",
 ]
+
+# Docstrings for members the reference leaves undocumented, taking precedence over
+# the reference's own. Kept free of the bare word `sublime` and of any name in the
+# generator's import tables, since `note()` scans them like any other emitted text.
+DOCSTRINGS = {
+    "sublime_plugin.find_view_event_listener": (
+        "Return the instance of the ``ViewEventListener`` subclass ``cls`` that is\n"
+        "attached to ``view``, or ``None`` if there is none. The class has to match\n"
+        "exactly; an instance of a subclass of ``cls`` is not found.\n"
+        "\n"
+        "This function is not part of the documented API. It has been stable for many\n"
+        "builds and is used by plugins, but it may change or disappear without notice."
+    ),
+}
 
 # Internal members that are neither underscore-prefixed nor underscore-suffixed,
 # so the naming conventions do not catch them. None of these are documented API.
@@ -127,6 +145,9 @@ RETURNS = {
         " | tuple[Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]], int]"
     ),
     "sublime_plugin.TextChangeListener.is_applicable": "bool",
+    # It compares `vel.__class__ == cls` (references/python38/sublime_plugin.py:668-673),
+    # so the instance found is exactly of the class asked for.
+    "sublime_plugin.find_view_event_listener": "_T_ViewEventListener | None",
 }
 
 # Parameter type overrides / annotations the generator cannot infer.
@@ -204,6 +225,8 @@ PARAMS = {
     # direction as `Command.input.args` above.
     "sublime_plugin.EventListener.on_query_context.operand": "Value",
     "sublime_plugin.ViewEventListener.on_query_context.operand": "Value",
+    "sublime_plugin.find_view_event_listener.view": "sublime.View",
+    "sublime_plugin.find_view_event_listener.cls": "type[_T_ViewEventListener]",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
     # The `.. method::` directives for these two spell `buffer: View`, but their
@@ -286,11 +309,15 @@ TYPE_VARS: dict[str, str] = {
     # to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
     # (a `CommandInputHandler[str]`) -- with no `Any` and no `RETURNS` override.
     #
+    # `_T_ViewEventListener` lets `find_view_event_listener` return the class it is
+    # given. The bound is a forward reference, which a stub permits.
+    #
     # Keep this justification out of the emitted block: `note()` scans the block for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
     "sublime_plugin": (
         '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)\n'
-        '_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)'
+        '_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)\n'
+        '_T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)'
     ),
 }
 

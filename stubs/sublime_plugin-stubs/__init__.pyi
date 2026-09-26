@@ -12,6 +12,20 @@ from typing_extensions import Never, override, TypeVar
 
 _T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
 _T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)
+_T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)
+
+def find_view_event_listener(
+    view: sublime.View,
+    cls: type[_T_ViewEventListener],
+) -> _T_ViewEventListener | None:
+    """
+    Return the instance of the ``ViewEventListener`` subclass ``cls`` that is
+    attached to ``view``, or ``None`` if there is none. The class has to match
+    exactly; an instance of a subclass of ``cls`` is not found.
+
+    This function is not part of the documented API. It has been stable for many
+    builds and is used by plugins, but it may change or disappear without notice.
+    """
 
 class CommandInputHandler(Generic[_T_Value_contra]):
     def name(self) -> str:
