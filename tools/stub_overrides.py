@@ -157,6 +157,10 @@ PARAMS = {
     "sublime.set_timeout.callback": "Callable[[], object]",
     "sublime.set_timeout_async.callback": "Callable[[], object]",
     "sublime.Window.__eq__.other": "object",
+    # The reference spells it `x: Point`, but the body is `return x in self`
+    # (references/python314/sublime.py:2208-2210), and `__contains__` takes a
+    # `Region | Point`, testing a `Region` for full containment (sublime.py:2158-2166).
+    "sublime.Region.contains.x": "Region | Point",
     "sublime.Sheet.close.on_close": "Callable[[bool], None]",
     "sublime.View.close.on_close": "Callable[[bool], None]",
     # The inbound half of the value layer: every parameter from here through

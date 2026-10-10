@@ -78,6 +78,13 @@ def region_arithmetic() -> int:
     return a.cover(b).size() - a.intersection(b).size()
 
 
+def region_contains() -> bool:
+    # `contains` delegates to `__contains__`, so it accepts a `Region` as well as a
+    # `Point`.
+    outer = sublime.Region(0, 10)
+    return outer.contains(5) and outer.contains(sublime.Region(2, 4)) and sublime.Region(2, 4) in outer
+
+
 def deprecated_aliases_still_resolve() -> sublime.RegionFlags:
     # The module level constants predating the enums are part of the API.
     return sublime.DRAW_NO_FILL | sublime.PERSISTENT
