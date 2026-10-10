@@ -273,17 +273,18 @@ ATTRIBUTES = {
 # at the top of the module body (after the imports, before the first declaration). A
 # module declaring more than one TypeVar spells them as one multi-line block.
 TYPE_VARS: dict[str, str] = {
-    # Bounded by `ValueLike` because the item's value is what gets delivered to the
-    # command: "A `Value` passed to the command if the row is selected"
-    # (references/python38/sublime.py:4330-4331). The bound is `ValueLike` rather than
-    # `Value` because it constrains what an author may parameterize on, and that is an
-    # inbound position: `Value`'s containers are invariant, so it would reject
-    # `ListInputItem[List[str]]`. See `EXTRA_TYPE_ALIASES` below.
+    # Unbounded. The item's value is what gets delivered to the command: "A `Value`
+    # passed to the command if the row is selected"
+    # (references/python38/sublime.py:4330-4331), so `ValueLike` would be the accurate
+    # bound -- but it rejects every `TypedDict`, since a `TypedDict` is assignable to no
+    # `Mapping` other than `Mapping[str, object]`, however JSON-shaped its fields. A
+    # `TypedDict` is the natural way to type the dict an item carries to its command,
+    # so the bound is dropped and the value type is left to the author, the same way
+    # the reference's own `value: Any` leaves it.
     #
-    # The `default=` deliberately stays `Value`, which is not the bound. The default is
-    # what a bare, unparameterized use resolves to, and a bare use describes what the
-    # host actually delivers -- always a real `list` or `dict` -- so it stays the narrow
-    # type. The asymmetry is intentional, not an oversight.
+    # The `default=` is still `Value`. The default is what a bare, unparameterized use
+    # resolves to, and a bare use describes what the host actually delivers -- always a
+    # real `list` or `dict` -- so it stays the narrow type.
     #
     # Defaulted at all because the runtime class carries no `__class_getitem__` on the
     # Python 3.8 host and therefore cannot be subscripted, so every bare use has to keep
@@ -293,11 +294,12 @@ TYPE_VARS: dict[str, str] = {
     #
     # Keep this justification out of the emitted block: `note()` scans the block for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
-    "sublime": '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)',
+    "sublime": '_T_Value = TypeVar("_T_Value", default=Value)',
     # `_T_Value` is the same declaration as `sublime`'s above, for the same reasons:
     # `ListInputHandler` both produces its value (`list_items`) and consumes it
-    # (`description`), so its parameter is invariant, is bounded by `ValueLike` and
-    # defaults to `Value`.
+    # (`description`), so its parameter is invariant, is unbounded and defaults to
+    # `Value`. `_T_Value_contra` is unbounded too, so a handler's value type can be a
+    # `TypedDict` just like an item's.
     #
     # `CommandInputHandler` only ever *consumes* a value -- the host passes the selected
     # item's value to `preview_`, `validate_` and `confirm_`
@@ -315,8 +317,8 @@ TYPE_VARS: dict[str, str] = {
     # Keep this justification out of the emitted block: `note()` scans the block for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
     "sublime_plugin": (
-        '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)\n'
-        '_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)\n'
+        '_T_Value = TypeVar("_T_Value", default=Value)\n'
+        '_T_Value_contra = TypeVar("_T_Value_contra", default=Never, contravariant=True)\n'
         '_T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)'
     ),
 }

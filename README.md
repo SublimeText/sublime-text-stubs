@@ -88,9 +88,14 @@ It is scheduled for removal and is not targeted by this package.
   for the value the selected row passes to the command,
   and that value type is what `list_items()`, `description()`,
   `preview()`, `validate()` and `confirm()` traffic in.
-  You may parameterize on anything a `ValueLike` allows,
+  The type parameter is unbounded,
   so `ListInputHandler[List[str]]` type-checks,
-  while a bare annotation resolves to `Value`,
+  and so does one parameterized on a `TypedDict`,
+  which lets an item carry a typed dict to its command.
+  It is up to you to pick a type Sublime Text can pass to the command,
+  that is, one that is JSON-serializable:
+  `ListInputItem[sublime.Region]` type-checks but fails at runtime.
+  A bare annotation resolves to `Value`,
   which is what the runtime actually delivers.
   `TextInputHandler` is a `CommandInputHandler[str]`.
   A bare `CommandInputHandler`,

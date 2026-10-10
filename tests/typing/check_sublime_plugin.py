@@ -3,7 +3,7 @@
 Not executed. See the module docstring of `check_sublime.py`.
 """
 
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, TypedDict
 
 import sublime
 import sublime_plugin
@@ -62,6 +62,11 @@ class DemoInputCommand(sublime_plugin.WindowCommand):
         self.window.status_message(folder)
 
 
+class LocationValue(TypedDict):
+    path: str
+    row: int
+
+
 # The runtime classes carry no `__class_getitem__` on the Python 3.8 plugin host, so a
 # parameterized base has to be built under `if TYPE_CHECKING:` and the runtime has to
 # see the bare class.
@@ -70,11 +75,13 @@ if TYPE_CHECKING:
     _StrListInputHandler = sublime_plugin.ListInputHandler[str]
     _TagsListInputHandler = sublime_plugin.ListInputHandler[List[str]]
     _LabelsListInputHandler = sublime_plugin.ListInputHandler[Dict[str, str]]
+    _LocationListInputHandler = sublime_plugin.ListInputHandler[LocationValue]
 else:
     _StrCommandInputHandler = sublime_plugin.CommandInputHandler
     _StrListInputHandler = sublime_plugin.ListInputHandler
     _TagsListInputHandler = sublime_plugin.ListInputHandler
     _LabelsListInputHandler = sublime_plugin.ListInputHandler
+    _LocationListInputHandler = sublime_plugin.ListInputHandler
 
 
 class NameInputHandler(_StrListInputHandler):
@@ -102,8 +109,8 @@ class NameInputHandler(_StrListInputHandler):
 
 
 class TagsInputHandler(_TagsListInputHandler):
-    # The bound is structural (`ValueLike`), so a concrete `List[str]` is a valid value
-    # type even though `list` is invariant and `List[str]` is not a `Value`. What comes
+    # The value type is unbounded, so a concrete `List[str]` is a valid value type even
+    # though `list` is invariant and `List[str]` is not a `Value`. What comes
     # back from the host is nonetheless a plain `list`, whatever sequence type was
     # handed in.
     def _items(self) -> "List[sublime.ListInputItem[List[str]]]":
@@ -135,8 +142,8 @@ class TagsInputHandler(_TagsListInputHandler):
 
 
 class LabelsInputHandler(_LabelsListInputHandler):
-    # The `Mapping` half of the bound: a concrete `Dict[str, str]` is a valid value type
-    # for the same reason a `List[str]` is.
+    # A concrete `Dict[str, str]` is a valid value type for the same reason a
+    # `List[str]` is.
     @override
     def list_items(self) -> "List[sublime.ListInputItem[Dict[str, str]]]":
         return [sublime.ListInputItem("draft", {"draft": "Draft"})]
@@ -144,6 +151,26 @@ class LabelsInputHandler(_LabelsListInputHandler):
     @override
     def description(self, value: Dict[str, str], text: str) -> str:
         return f"{text} ({len(value)})"
+
+
+class LocationInputHandler(_LocationListInputHandler):
+    # A `TypedDict` is a valid value type too, although `Mapping[str, object]` is the
+    # only `Mapping` it is assignable to.
+    @override
+    def list_items(self) -> "List[sublime.ListInputItem[LocationValue]]":
+        return [sublime.ListInputItem("main.py:1", {"path": "main.py", "row": 1})]
+
+    @override
+    def description(self, value: LocationValue, text: str) -> str:
+        return f"{value['path']}:{value['row']}"
+
+    @override
+    def preview(self, text: LocationValue) -> str:
+        return text["path"]
+
+    @override
+    def confirm(self, text: LocationValue, event: Optional[sublime_plugin.Event] = None) -> None:
+        sublime.status_message(str(text["row"]))
 
 
 class MessageInputHandler(sublime_plugin.TextInputHandler):

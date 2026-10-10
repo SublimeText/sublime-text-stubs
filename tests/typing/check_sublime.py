@@ -4,7 +4,7 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, TypedDict
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
@@ -148,10 +148,23 @@ def bare_list_input_item_value(item: sublime.ListInputItem) -> sublime.Value:
 
 def make_list_input_item(value: List[str]) -> "sublime.ListInputItem[List[str]]":
     # The runtime class cannot be subscripted on the Python 3.8 host, so a
-    # parameterized annotation has to be quoted. The argument has to satisfy the
-    # `ValueLike` bound, whose containers are covariant, so a concrete `List[str]` is
-    # a valid value type even though it is not a `Value`.
+    # parameterized annotation has to be quoted. The value type is unbounded, so a
+    # concrete `List[str]` is a valid value type even though it is not a `Value`.
     return sublime.ListInputItem("label", value)
+
+
+class SymbolValue(TypedDict):
+    name: str
+    line: int
+
+
+def make_typed_dict_list_input_item(value: SymbolValue) -> "sublime.ListInputItem[SymbolValue]":
+    # A `TypedDict` is assignable to no `Mapping` but `Mapping[str, object]`, so a
+    # `ValueLike` bound would reject it; the value type is unbounded, so it is a valid
+    # value type and keeps its fields.
+    item = sublime.ListInputItem(value["name"], value)
+    _ = assert_type(item.value["line"], int)
+    return item
 
 
 def is_empty_value(value: "ValueLike") -> bool:

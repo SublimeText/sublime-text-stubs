@@ -10,8 +10,8 @@ from sublime_types import Value as Value
 from sublime_types import ValueLike as ValueLike
 from typing_extensions import Never, override, TypeVar
 
-_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
-_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)
+_T_Value = TypeVar("_T_Value", default=Value)
+_T_Value_contra = TypeVar("_T_Value_contra", default=Never, contravariant=True)
 _T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)
 
 def find_view_event_listener(

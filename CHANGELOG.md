@@ -15,6 +15,14 @@ not semantic versioning; see the README.
   It is not part of the documented API
   and may change without notice.
 
+### Fixed
+
+- `sublime.ListInputItem`, `ListInputHandler` and `CommandInputHandler`
+  can be parameterized on a `TypedDict`.
+  Their value type is no longer bounded by `ValueLike`,
+  which rejected every `TypedDict`,
+  because a `TypedDict` is only assignable to `Mapping[str, object]`.
+
 ## 1.4200.0b2
 
 ### Added
