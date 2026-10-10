@@ -159,6 +159,10 @@ PARAMS = {
     "sublime.set_timeout.callback": "Callable[[], object]",
     "sublime.set_timeout_async.callback": "Callable[[], object]",
     "sublime.Window.__eq__.other": "object",
+    # The reference spells it `x: Point`, but the body is `return x in self`
+    # (references/python38/sublime.py:2180-2182), and `__contains__` takes a
+    # `Region | Point`, testing a `Region` for full containment (sublime.py:2130-2138).
+    "sublime.Region.contains.x": "Region | Point",
     # Every wrapper object is constructed from the id of its native counterpart.
     "sublime.Selection.__init__.id": "int",
     "sublime.Sheet.__init__.id": "int",

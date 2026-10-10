@@ -15,6 +15,11 @@ not semantic versioning; see the README.
   so a `list[CompletionItem]` or a `list[str]` can be passed as it is.
   The `completions` attribute is typed the same way.
 
+### Fixed
+
+- `Region.contains()` accepts a `Region` as well as a `Point`,
+  like the `in` operator it delegates to.
+
 ## 1.4200.0
 
 ### Changed

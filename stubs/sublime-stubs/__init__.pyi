@@ -1612,7 +1612,7 @@ class Region:
     def size(self) -> int:
         """ Equivalent to `__len__`. """
 
-    def contains(self, x: Point) -> bool:
+    def contains(self, x: Region | Point) -> bool:
         """ Equivalent to `__contains__`. """
 
     def cover(self, region: Region) -> Region:
