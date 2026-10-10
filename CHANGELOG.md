@@ -15,6 +15,11 @@ not semantic versioning; see the README.
   It is not part of the documented API
   and may change without notice.
 
+### Fixed
+
+- `Region.contains()` accepts a `Region` as well as a `Point`,
+  like the `in` operator it delegates to.
+
 ## 1.4200.0b2
 
 ### Added
