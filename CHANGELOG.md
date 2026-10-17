@@ -39,7 +39,7 @@ not semantic versioning; see the README.
   and mypy itself has to run on Python 3.13 or newer.
   Accordingly, `requires-python` is now `>=3.13`.
 
-## 1.4200.1
+## 1.4200.1 (2026-10-17)
 
 ### Changed
 
@@ -53,7 +53,7 @@ not semantic versioning; see the README.
 - `Region.contains()` accepts a `Region` as well as a `Point`,
   like the `in` operator it delegates to.
 
-## 1.4200.0
+## 1.4200.0 (2026-10-17)
 
 ### Changed
 
@@ -66,7 +66,7 @@ not semantic versioning; see the README.
   It is not part of the documented API
   and may change without notice.
 
-## 1.4200.0b2
+## 1.4200.0b2 (2026-08-16)
 
 ### Added
 
@@ -141,7 +141,7 @@ not semantic versioning; see the README.
 - The `__repr__` and `__str__` declarations,
   which only restated what `object` already says.
 
-## 1.4200.0b1
+## 1.4200.0b1 (2026-08-02)
 
 Initial version
 with stubs generated from upstream files of build 4200
