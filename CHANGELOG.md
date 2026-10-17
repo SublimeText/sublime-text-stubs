@@ -8,6 +8,10 @@ not semantic versioning; see the README.
 
 ## [Unreleased]
 
+### Changed
+
+- The project is now licensed under the MIT License.
+
 ### Added
 
 - `sublime_plugin.find_view_event_listener()`,

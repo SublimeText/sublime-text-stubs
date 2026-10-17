@@ -144,4 +144,7 @@ and how to correct them.
 
 ## License
 
-Not yet chosen. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
+The stubs are derived from the API sources shipped with Sublime Text,
+(c) Sublime HQ Pty Ltd,
+and used with permission under the same license.
