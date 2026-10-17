@@ -23,21 +23,22 @@ pip install --upgrade sublime-text-stubs
 
 ## Versioning
 
-Versions follow the scheme `1.${st_build_version}.${patch}`:
+Versions follow the scheme `${st_build_version}.${patch}`:
 
-| Version     | Sublime Text build | Embedded Python |
-| ----------- | ------------------ | --------------- |
-| `1.4200.*`  | 4200 (stable)      | 3.8             |
+| Version   | Sublime Text build | Embedded Python |
+| --------- | ------------------ | --------------- |
+| `4200.*`  | 4200 (stable)      | 3.8             |
 
-The leading `1` is the schema version of this package itself,
-the middle segment is the Sublime Text build the stubs describe,
-and the trailing segment is the patch level within that build.
+The first segment is the Sublime Text build the stubs describe,
+and the second is the patch level within that build.
 This is deliberately not semantic versioning.
+Releases up to `1.4200.1`
+were numbered `1.${st_build_version}.${patch}`.
 
 Pin the build you target:
 
 ```toml
-sublime-text-stubs = "==1.4200.*"
+sublime-text-stubs = "==4200.*"
 ```
 
 Sublime Text 4 also still ships a legacy Python 3.3 runtime.

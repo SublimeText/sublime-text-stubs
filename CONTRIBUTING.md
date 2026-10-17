@@ -29,9 +29,8 @@ Each supported Sublime Text build line lives on its own branch,
 because the build lines target different Python versions
 and therefore need different stub syntax and type checker settings:
 
-- `main` -- ST build 4200, Python 3.8, tagged `v1.4200.x`
-- (planned) `main` moves on to ST build 4213, Python 3.14, tagged `v1.4213.x`,
-  and build 4200 continues on `st-4200`
+- `main` -- ST build 4213, Python 3.14, tagged `v4213.x`
+- `st-4200` -- ST build 4200, Python 3.8, tagged `v4200.x`
 
 Fixes that apply to more than one build line
 are cherry-picked between branches,
@@ -149,7 +148,7 @@ See `tools/pyproject.toml` for the settings and the reasons behind them.
 
 ## Releasing
 
-Tag `v1.${st_build_version}.${patch}` on the branch for that build line.
+Tag `v${st_build_version}.${patch}` on the branch for that build line.
 hatch-vcs derives the distribution version from the tag,
 and the `Release` workflow publishes to PyPI via trusted publishing.
 Add the changes to `CHANGELOG.md` before tagging.

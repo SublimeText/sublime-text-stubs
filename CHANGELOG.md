@@ -3,8 +3,9 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versions follow `1.${st_build_version}.${patch}`,
+Versions follow `${st_build_version}.${patch}`,
 not semantic versioning; see the README.
+Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 
 ## 1.4200.1
 
