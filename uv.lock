@@ -308,6 +308,7 @@ dev = [
     { name = "pyright" },
     { name = "ruff" },
     { name = "ty" },
+    { name = "typing-extensions" },
 ]
 
 [package.metadata]
@@ -319,6 +320,7 @@ dev = [
     { name = "pyright" },
     { name = "ruff" },
     { name = "ty" },
+    { name = "typing-extensions" },
 ]
 
 [[package]]

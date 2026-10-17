@@ -90,6 +90,33 @@ This package does not target it.
   `bytes` in particular is accepted and arrives back as `list[int]`.
 
   `sublime.Region` is rejected by both the checkers and the runtime.
+
+  A `TypedDict` is only a `ValueLike` when it is declared with `closed=True`
+  ([PEP 728](https://peps.python.org/pep-0728/)),
+  because an open one may carry further keys of any type.
+  This applies to the type parameter of the input handlers as well.
+  `typing.TypedDict` accepts `closed` only from Python 3.15 on,
+  so import `TypedDict` from `typing_extensions` instead.
+  Define the class inside the `if TYPE_CHECKING:` block
+  unless `typing_extensions` is available at runtime;
+  its values are plain `dict` literals either way:
+
+  ```python
+  if TYPE_CHECKING:
+      from typing_extensions import TypedDict
+
+      class Entry(TypedDict, closed=True):
+          name: str
+          tags: list[str]
+
+
+  def store_entry(settings: sublime.Settings, entry: Entry) -> None:
+      settings.set("entry", entry)
+  ```
+
+  pyright, basedpyright and ty accept this.
+  mypy, as of version 2.4.0, does not implement PEP 728
+  and rejects every `TypedDict` as a `ValueLike`.
 - **The input handlers are generic.**
   `ListInputHandler` and `sublime.ListInputItem` take a type parameter
   for the value the selected row passes to the command,

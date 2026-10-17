@@ -35,6 +35,7 @@ dev = [
     "pyright",
     "ruff",
     "ty",
+    "typing-extensions",
 ]
 
 [tool.hatch.version]
