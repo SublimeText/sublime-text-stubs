@@ -37,7 +37,7 @@ not semantic versioning; see the README.
   They no longer import `typing_extensions`.
 - Type checkers have to target Python 3.13 or newer to read the stubs,
   and mypy itself has to run on Python 3.13 or newer.
-- `requires-python` is now `>=3.13`.
+  Accordingly, `requires-python` is now `>=3.13`.
 
 ## 1.4200.0
 
