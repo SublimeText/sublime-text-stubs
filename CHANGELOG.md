@@ -23,6 +23,10 @@ not semantic versioning; see the README.
 - The stubs are generated from Sublime Text build 4213.
 - `sublime.Window.project_data()` returns `dict[str, Value] | None`
   instead of `Value`.
+- `sublime.Window.set_project_data()` takes a `Mapping[str, ValueLike]`
+  instead of any `ValueLike`.
+- `sublime.Settings.update()` no longer accepts another `Settings` object,
+  which it cannot iterate at runtime.
 - The `sublime.KIND_*` constants are declared as `Kind`
   instead of leaving their type to inference from the value.
 - The stubs use native Python 3.14 typing syntax:

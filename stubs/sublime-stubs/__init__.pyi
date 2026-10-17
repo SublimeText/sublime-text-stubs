@@ -1457,7 +1457,7 @@ class Window:
                   :path:`.sublime-project` file.
         """
 
-    def set_project_data(self, data: ValueLike) -> None:
+    def set_project_data(self, data: Mapping[str, ValueLike]) -> None:
         """
         Updates the project data associated with the current window. If the
         window is associated with a :path:`.sublime-project` file, the project
@@ -1587,7 +1587,7 @@ class Region:
 
     def __init__(self, a: Point, b: Point | None = ..., xpos: DIP = ...) -> None: ...
 
-    def __iter__(self) -> Iterator[Point]:
+    def __iter__(self) -> Iterator[int]:
         """
         Iterate through all the points in the region.
 
@@ -2936,7 +2936,7 @@ class Settings:
 
     def update(
         self,
-        other: Settings | Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]] = ...,
+        other: Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]] = ...,
         /,
         **kwargs: ValueLike,
     ) -> None:

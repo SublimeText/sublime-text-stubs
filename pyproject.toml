@@ -186,9 +186,8 @@ ignore = [
     # typeshed's house style forbids docstrings in a stub. These stubs exist to carry
     # the reference documentation to the editor, so every declaration keeps its own.
     "PYI021",
-    # The rule wants `KIND_AMBIGUOUS = ...` instead of the tuple the constant really
-    # holds. That would erase both its value and its exact type, and annotating it
-    # does not satisfy the rule either.
+    # The rule wants `KIND_AMBIGUOUS: Kind = ...` instead of the tuple the constant
+    # really holds, which would hide its value from the editor.
     "PYI015",
 ]
 

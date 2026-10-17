@@ -742,7 +742,7 @@ class EventListener:
         view: sublime.View,
         key: str,
         operator: sublime.QueryOperator,
-        operand: Value,
+        operand: sublime.Value,
         match_all: bool,
     ) -> bool | None:
         """
@@ -1269,7 +1269,7 @@ class ViewEventListener:
         self,
         key: str,
         operator: sublime.QueryOperator,
-        operand: Value,
+        operand: sublime.Value,
         match_all: bool,
     ) -> bool | None:
         """

@@ -199,6 +199,11 @@ def timeouts() -> None:
     sublime.set_timeout_async(lambda: sublime.status_message("later, off thread"))
 
 
+def timeout_callback_may_return_something(view: sublime.View) -> None:
+    # The runtime discards the callback's return value, so a `bool` one is fine.
+    sublime.set_timeout(view.is_dirty)
+
+
 def platform_is_known() -> bool:
     # `platform()` is annotated with a `Literal`, so this comparison is checked.
     return sublime.platform() in ("osx", "linux", "windows")
@@ -247,6 +252,30 @@ def widen_command_args_inputs(window: sublime.Window, tags: list[str]) -> None:
     # list[str]]` literal passes here, where `CommandArgs`
     # (`dict[str, Value] | None`) would reject it on both counts.
     window.run_command("x", {"tags": tags})
+
+
+def bundled_library_dir() -> str:
+    return sublime.lib_path()
+
+
+def read_bounded_resource(name: str) -> tuple[str, bytes] | None:
+    try:
+        text = sublime.load_resource(name, max_size=1 << 20)
+        data = sublime.load_binary_resource(name, max_size=1 << 20)
+    except sublime.FileTooLargeError:
+        return None
+    return text, data
+
+
+def too_large_is_not_found(error: sublime.FileTooLargeError) -> FileNotFoundError:
+    # So code that already catches `FileNotFoundError` keeps handling it.
+    return error
+
+
+def rename_sheet(sheet: sublime.Sheet) -> str | None:
+    # Both live on `Sheet` itself, so no narrowing to `TextSheet` or `HtmlSheet`.
+    sheet.set_name("Scratch")
+    return sheet.name()
 
 
 def pick_font(on_chosen: Callable[[str], None]) -> None:
