@@ -1,23 +1,28 @@
 # Don't evaluate type annotations at runtime
 from __future__ import annotations
 
-import importlib
+import importlib.abc
+import importlib.machinery
+import importlib.util
 import io
-import marshal
 import os
 import sys
 import threading
 import time
 import traceback
-import zipfile
+import site
 
 import sublime
 import sublime_api
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from collections.abc import Callable, Generator
+from types import ModuleType
 
 if TYPE_CHECKING:
-    from sublime_types import Value, Event
+    from sublime import AutoCompleteFlags
+    from sublime_types import Value, Event, Point, CommandArgs, CompletionValue
+
 
 api_ready = False
 
@@ -140,7 +145,7 @@ text_change_listeners = {}
 profile = {}
 
 
-def add_profiling(event_handler):
+def add_profiling(event_handler: Callable[..., None]) -> Callable[..., None]:
     """
     Decorator to measure blocking event handler methods. Also prevents
     exceptions from interrupting other events handlers.
@@ -155,7 +160,6 @@ def add_profiling(event_handler):
     """
 
     def profiler(*args):
-        global profile
         t0 = time.time()
         try:
             return event_handler(*args)
@@ -183,7 +187,7 @@ def add_profiling(event_handler):
     return profiler
 
 
-def trap_exceptions(event_handler):
+def trap_exceptions(event_handler: Callable[..., None]) -> Callable[..., None]:
     """
     Decorator to prevent exceptions from interrupting other events handlers.
 
@@ -213,13 +217,13 @@ def trap_exceptions(event_handler):
     exception_handler.__doc__ = event_handler.__doc__
     exception_handler.__name__ = event_handler.__name__
     exception_handler.__module__ = event_handler.__module__
-    event_handler.__name__ = '_wrapped_%s' % event_handler.__name__
+    event_handler.__name__ = '_wrapped_' + event_handler.__name__
     # Follow the pattern of decorators like @classmethod and @staticmethod
     exception_handler.__func__ = event_handler
     return exception_handler
 
 
-def decorate_handler(cls, method_name):
+def decorate_handler(cls: type, method_name: str):
     """
     Decorates an event handler method with exception trapping, and in the case
     of blocking calls, profiling.
@@ -249,32 +253,35 @@ def decorate_handler(cls, method_name):
     setattr(cls, method_name, wrapped)
 
 
-def unload_module(module):
-    if "plugin_unloaded" in module.__dict__:
+def unload_module(module: ModuleType):
+    plugin_unloaded = getattr(module, 'plugin_unloaded', None)
+    if plugin_unloaded is not None:
         try:
-            module.plugin_unloaded()
+            plugin_unloaded()
         except:
             traceback.print_exc()
 
     # Unload the old plugins
-    if "__plugins__" in module.__dict__:
-        for view_id, listener_instances in view_event_listeners.items():
-            for vel in listener_instances[:]:
-                if vel.__class__ in module.__plugins__:
-                    listener_instances.remove(vel)
+    plugins = module.__dict__.pop('__plugins__', None)
+    if plugins is not None:
+        for listener_instances in view_event_listeners.values():
+            for instance in listener_instances[:]:
+                if type(instance) in plugins:
+                    listener_instances.remove(instance)
 
-        for buffer_id, listener_instances in text_change_listeners.items():
+        for listener_instances in text_change_listeners.values():
             for tcl in listener_instances[:]:
-                if tcl.__class__ in module.__plugins__:
+                if type(tcl) in plugins:
                     tcl.detach()
                     listener_instances.remove(tcl)
 
-        for p in module.__plugins__:
+        for p in plugins:
             for cmd_cls_list in all_command_classes:
                 try:
                     cmd_cls_list.remove(p)
                 except ValueError:
                     pass
+
             for c in all_callbacks.values():
                 try:
                     c.remove(p)
@@ -292,41 +299,26 @@ def unload_module(module):
                 pass
 
 
-def unload_plugin(modulename):
+def unload_plugin(modulename: str):
     print(f"unloading plugin {modulename}")
 
-    was_loaded = modulename in sys.modules
-    if was_loaded:
-        m = sys.modules[modulename]
-        unload_module(m)
-        del sys.modules[modulename]
+    if modulename in sys.modules:
+        unload_module(sys.modules.pop(modulename))
 
 
-def reload_plugin(modulename):
+def reload_plugin(modulename: str):
     print(f"reloading plugin {modulename}")
 
-    loaded = False
-    if modulename in sys.modules:
-        m = sys.modules[modulename]
+    if m := sys.modules.get(modulename, None):
         unload_module(m)
-
-        # In the situation that the module was previously loaded using
-        # ZipLoader, but now the .sublime-package is gone, we can't use the
-        # ZipLoader to reload, so we erase all traces and do a fresh import
-        l = m.__spec__.loader
-        if not isinstance(l, ZipLoader) or l in multi_importer.loaders:
-            m = importlib.reload(m)
-            loaded = True
-        else:
-            del sys.modules[modulename]
-
-    if not loaded:
+        m = importlib.reload(m)
+    else:
         m = importlib.import_module(modulename)
 
     load_module(m)
 
 
-def load_module(m):
+def load_module(m: ModuleType):
     module_plugins = []
     on_activated_targets = []
     vel_on_activated_classes = []
@@ -335,83 +327,74 @@ def load_module(m):
     module_view_event_listener_classes = []
     module_text_change_listener_classes = []
 
-    objs = dir(m)
-    # We build a set of allowed imports, but iterate over the
-    # module itself so that the classes are added in order
-    if '__all__' in objs:
-        importable_objs = m.__all__
+    module_exports = getattr(m, '__all__', None)
+    # We build a set of allowed imports, but iterate over the module itself so
+    # that the classes are added in order
+    if module_exports is not None:
+        module_exports = set(module_exports)
+        objects = (o for name, o in m.__dict__.items() if name in module_exports)
     else:
-        # When the plugin doesn't define __all__, we ignore
-        # "private" entries
-        importable_objs = set()
-        for type_name in objs:
-            if type_name[0] != '_':
-                importable_objs.add(type_name)
+        # When the plugin doesn't define __all__, we ignore "private" entries
+        objects = (o for name, o in m.__dict__.items() if name[0] != '_')
 
-    for type_name in objs:
-        if type_name not in importable_objs:
+    for t in objects:
+        if not isinstance(t, type):
             continue
 
-        try:
-            t = m.__dict__[type_name]
-            if t.__bases__:
-                is_plugin = False
-                if issubclass(t, ApplicationCommand) and t is not ApplicationCommand:
-                    application_command_classes.append(t)
-                    is_plugin = True
-                if issubclass(t, WindowCommand) and t is not WindowCommand:
-                    window_command_classes.append(t)
-                    is_plugin = True
-                if issubclass(t, TextCommand) and t is not TextCommand:
-                    text_command_classes.append(t)
-                    is_plugin = True
+        if issubclass(t, ApplicationCommand) and t is not ApplicationCommand:
+            application_command_classes.append(t)
+            module_plugins.append(t)
 
-                if is_plugin:
-                    module_plugins.append(t)
+        elif issubclass(t, WindowCommand) and t is not WindowCommand:
+            window_command_classes.append(t)
+            module_plugins.append(t)
 
-                if issubclass(t, EventListener) and t is not EventListener:
-                    for method_name, _ in all_callbacks.items():
-                        if method_name in dir(t):
-                            decorate_handler(t, method_name)
+        elif issubclass(t, TextCommand) and t is not TextCommand:
+            text_command_classes.append(t)
+            module_plugins.append(t)
 
-                    obj = t()
+        elif issubclass(t, EventListener) and t is not EventListener:
+            for method_name in all_callbacks:
+                if hasattr(t, method_name):
+                    decorate_handler(t, method_name)
 
-                    for method_name, listeners in all_callbacks.items():
-                        if method_name in dir(t):
-                            listeners.append(obj)
+            obj = t()
 
-                    if "on_activated" in dir(obj):
-                        on_activated_targets.append(obj)
+            for method_name, listeners in all_callbacks.items():
+                if hasattr(t, method_name):
+                    listeners.append(obj)
 
-                    if "on_activated_async" in dir(obj):
-                        el_on_activated_async_targets.append(obj)
+            if hasattr(obj, 'on_activated'):
+                on_activated_targets.append(obj)
+            if hasattr(obj, 'on_activated_async'):
+                el_on_activated_async_targets.append(obj)
 
-                    module_plugins.append(obj)
+            module_plugins.append(obj)
 
-                if issubclass(t, ViewEventListener) and t is not ViewEventListener:
-                    for method_name, _ in all_callbacks.items():
-                        if method_name in view_event_listener_excluded_callbacks:
-                            continue
-                        if method_name in dir(t):
-                            decorate_handler(t, method_name)
-                    view_event_listener_classes.append(t)
-                    module_view_event_listener_classes.append(t)
-                    if "on_activated" in dir(t):
-                        vel_on_activated_classes.append(t)
-                    if "on_activated_async" in dir(t):
-                        vel_on_activated_async_targets.append(t)
-                    module_plugins.append(t)
+        elif issubclass(t, ViewEventListener) and t is not ViewEventListener:
+            for method_name in all_callbacks:
+                if hasattr(t, method_name) and method_name not in view_event_listener_excluded_callbacks:
+                    decorate_handler(t, method_name)
 
-                if issubclass(t, TextChangeListener) and t is not TextChangeListener:
-                    for name in text_change_listener_callbacks:
-                        if name in dir(t):
-                            decorate_handler(t, name)
+            view_event_listener_classes.append(t)
+            module_view_event_listener_classes.append(t)
 
-                    module_plugins.append(t)
-                    text_change_listener_classes.append(t)
-                    module_text_change_listener_classes.append(t)
-        except AttributeError:
-            pass
+            if hasattr(t, 'on_activated'):
+                vel_on_activated_classes.append(t)
+            if hasattr(t, 'on_activated_async'):
+                vel_on_activated_async_targets.append(t)
+
+            module_plugins.append(t)
+
+        elif issubclass(t, TextChangeListener) and t is not TextChangeListener:
+            for method_name in text_change_listener_callbacks:
+                if hasattr(t, method_name):
+                    decorate_handler(t, method_name)
+
+            text_change_listener_classes.append(t)
+            module_text_change_listener_classes.append(t)
+
+            module_plugins.append(t)
 
     if el_on_activated_async_targets or vel_on_activated_async_targets:
         with pending_on_activated_async_lock:
@@ -422,25 +405,27 @@ def load_module(m):
                 vel_on_activated_async_targets
             )
 
-    if len(module_plugins) > 0:
+    if module_plugins:
         m.__plugins__ = module_plugins
 
+    plugin_loaded = getattr(m, 'plugin_loaded', None)
+
     if api_ready:
-        if "plugin_loaded" in m.__dict__:
+        if plugin_loaded is not None:
             try:
-                m.plugin_loaded()
+                plugin_loaded()
             except:
                 traceback.print_exc()
 
         # Create any require ViewEventListener objects
-        if len(module_view_event_listener_classes) > 0:
+        if module_view_event_listener_classes:
             for w in sublime.windows():
                 for v in w.views(include_transient=True):
                     create_view_event_listeners(
                         module_view_event_listener_classes, v)
 
         # Create any required TextChangeListener objects
-        if len(module_text_change_listener_classes) > 0:
+        if module_text_change_listener_classes:
             for b in sublime._buffers():
                 attach_buffer(b)
 
@@ -458,16 +443,14 @@ def load_module(m):
                         traceback.print_exc()
 
                 for vel_cls in vel_on_activated_classes:
-                    vel = find_view_event_listener(v, vel_cls)
-                    if not vel:
-                        continue
-                    try:
-                        vel.on_activated()
-                    except:
-                        traceback.print_exc()
+                    if vel := find_view_event_listener(v, vel_cls):
+                        try:
+                            vel.on_activated()
+                        except:
+                            traceback.print_exc()
 
-    elif "plugin_loaded" in m.__dict__:
-        deferred_plugin_loadeds.append(m.plugin_loaded)
+    elif plugin_loaded is not None:
+        deferred_plugin_loadeds.append(plugin_loaded)
 
 
 def synthesize_on_activated_async():
@@ -480,33 +463,31 @@ def synthesize_on_activated_async():
         pending_on_activated_async_callbacks['EventListener'] = []
         pending_on_activated_async_callbacks['ViewEventListener'] = []
 
+    window = sublime.active_window()
+    if not window:
+        return
+
+    view = window.active_view()
+    if not view:
+        return
+
     for el in els:
-        w = sublime.active_window()
-        if not w:
-            continue
-        v = w.active_view()
-        if not v:
-            continue
-        el.on_activated_async(v)
+        el.on_activated_async(view)
+
+        if not view.is_valid():
+            return
 
     for vel_cls in vels:
-        w = sublime.active_window()
-        if not w:
-            continue
-        v = w.active_view()
-        if not v:
-            continue
-        vel = find_view_event_listener(v, vel_cls)
-        if not vel:
-            continue
-        vel.on_activated_async()
+        vel = find_view_event_listener(view, vel_cls)
+        if vel:
+            vel.on_activated_async()
+
+            if not view.is_valid():
+                return
 
 
-def _instantiation_error(cls, e):
-    rex = RuntimeError(
-        "unable to instantiate "
-        f"'{cls.__module__}.{cls.__name__}'"
-    )
+def _instantiation_error(cls: type, e: Exception):
+    rex = RuntimeError(f"unable to instantiate '{cls.__module__}.{cls.__name__}'")
     rex.__cause__ = e
     traceback.print_exception(None, rex, None)
 
@@ -515,7 +496,7 @@ def notify_application_commands():
     sublime_api.notify_application_commands(create_application_commands())
 
 
-def create_application_commands():
+def create_application_commands() -> list[tuple[ApplicationCommand, str]]:
     cmds = []
     for cls in application_command_classes:
         try:
@@ -526,7 +507,7 @@ def create_application_commands():
     return cmds
 
 
-def create_window_commands(window_id):
+def create_window_commands(window_id: int) -> list[tuple[WindowCommand, str]]:
     window = sublime.Window(window_id)
     cmds = []
     for cls in window_command_classes:
@@ -538,7 +519,7 @@ def create_window_commands(window_id):
     return cmds
 
 
-def create_text_commands(view_id):
+def create_text_commands(view_id: int) -> list[tuple[TextCommand, str]]:
     view = sublime.View(view_id)
     cmds = []
     for cls in text_command_classes:
@@ -562,13 +543,13 @@ def on_api_ready():
     deferred_plugin_loadeds.clear()
 
     # Create ViewEventListener instances
-    if len(view_event_listener_classes) > 0:
+    if view_event_listener_classes:
         for w in sublime.windows():
             for v in w.views(include_transient=True):
                 attach_view(v)
 
     # Create TextEventListener instances
-    if len(text_change_listener_classes) > 0:
+    if text_change_listener_classes:
         for buf in sublime._buffers():
             attach_buffer(buf)
 
@@ -585,7 +566,7 @@ def on_api_ready():
     sublime.set_timeout(init)
 
 
-def is_view_event_listener_applicable(cls, view):
+def is_view_event_listener_applicable(cls: type[ViewEventListener], view: sublime.View) -> bool:
     if not cls.is_applicable(view.settings()):
         return False
 
@@ -595,8 +576,8 @@ def is_view_event_listener_applicable(cls, view):
     return True
 
 
-def create_view_event_listeners(classes, view):
-    if len(classes) > 0:
+def create_view_event_listeners(classes: list[type[ViewEventListener]], view: sublime.View):
+    if classes:
         if view.view_id not in view_event_listeners:
             view_event_listeners[view.view_id] = []
 
@@ -605,31 +586,29 @@ def create_view_event_listeners(classes, view):
                 view_event_listeners[view.view_id].append(c(view))
 
 
-def check_view_event_listeners(view):
-    if len(view_event_listener_classes) > 0:
+def check_view_event_listeners(view: sublime.View):
+    if view_event_listener_classes:
         if view.view_id not in view_event_listeners:
             view_event_listeners[view.view_id] = []
 
         listeners = view_event_listeners[view.view_id]
 
         for cls in view_event_listener_classes:
-            found = False
             instance = None
             for l in listeners:
-                if l.__class__ == cls:
-                    found = True
+                if l.__class__ is cls:
                     instance = l
                     break
 
             want = is_view_event_listener_applicable(cls, view)
 
-            if want and not found:
+            if want and instance is None:
                 listeners.append(cls(view))
-            elif found and not want:
+            elif instance is not None and not want:
                 listeners.remove(instance)
 
 
-def attach_view(view):
+def attach_view(view: sublime.View):
     if isinstance(view, int):
         view = sublime.View(view)
 
@@ -646,12 +625,13 @@ check_all_view_event_listeners_scheduled = False
 def check_all_view_event_listeners():
     global check_all_view_event_listeners_scheduled
     check_all_view_event_listeners_scheduled = False
+
     for w in sublime.windows():
         for v in w.views(include_transient=True):
             check_view_event_listeners(v)
 
 
-def detach_view(view_id):
+def detach_view(view_id: int):
     if view_id in view_event_listeners:
         del view_event_listeners[view_id]
 
@@ -665,45 +645,43 @@ def detach_view(view_id):
         sublime.set_timeout(check_all_view_event_listeners)
 
 
-def find_view_event_listener(view, cls):
+def find_view_event_listener(view: sublime.View, cls: type) -> ViewEventListener | None:
     if view.view_id in view_event_listeners:
         for vel in view_event_listeners[view.view_id]:
-            if vel.__class__ == cls:
+            if vel.__class__ is cls:
                 return vel
     return None
 
 
-def attach_buffer(buf):
+def attach_buffer(buf: sublime.Buffer):
     for cls in text_change_listener_classes:
         if cls.is_applicable(buf):
             cls().attach(buf)
 
 
-def check_text_change_listeners(buf):
-    if len(text_change_listener_classes) > 0:
+def check_text_change_listeners(buf: sublime.Buffer):
+    if text_change_listener_classes:
         if buf.buffer_id not in text_change_listeners:
             text_change_listeners[buf.buffer_id] = []
 
         listeners = text_change_listeners[buf.buffer_id]
 
         for cls in text_change_listener_classes:
-            found = False
             instance = None
             for l in listeners:
-                if l.__class__ == cls:
-                    found = True
+                if l.__class__ is cls:
                     instance = l
                     break
 
             want = cls.is_applicable(buf)
 
-            if want and not found:
+            if want and instance is None:
                 cls().attach(buf)
-            elif found and not want:
+            elif instance is not None and not want:
                 instance.detach()
 
 
-def detach_buffer(buf):
+def detach_buffer(buf: sublime.Buffer):
     if buf.buffer_id in text_change_listeners:
         listeners = text_change_listeners[buf.buffer_id]
         for tcl in listeners:
@@ -711,7 +689,7 @@ def detach_buffer(buf):
         del text_change_listeners[buf.buffer_id]
 
 
-def plugin_module_for_obj(obj):
+def plugin_module_for_obj(obj: object) -> str:
     # Since objects in plugins may be defined deep in a sub-module, if we want
     # to filter by a module, we must make sure we are only looking at the
     # first two module labels
@@ -721,19 +699,16 @@ def plugin_module_for_obj(obj):
     return cm
 
 
-def el_callbacks(name, listener_only=False):
-    for el in all_callbacks[name]:
-        yield el if listener_only else getattr(el, name)
+def el_callbacks(name: str) -> Generator[Callable[..., None]]:
+    return (getattr(el, name) for el in all_callbacks[name])
 
 
-def vel_callbacks(v, name, listener_only=False):
-    for vel in view_event_listeners.get(v.view_id, []):
-        if not hasattr(vel, name):
-            continue
-        yield vel if listener_only else getattr(vel, name)
+def vel_callbacks(view: sublime.View, name: str) -> Generator[Callable[..., None]]:
+    return (getattr(vel, name) for vel in view_event_listeners.get(view.view_id, [])
+            if hasattr(vel, name))
 
 
-def run_view_callbacks(name, view_id, *args, el_only=False):
+def run_view_callbacks(name: str, view_id: int, *args: object, el_only: bool = False):
     v = sublime.View(view_id)
 
     for callback in el_callbacks(name):
@@ -746,14 +721,14 @@ def run_view_callbacks(name, view_id, *args, el_only=False):
         callback(*args)
 
 
-def run_window_callbacks(name, window_id, *args):
+def run_window_callbacks(name: str, window_id: int, *args: object):
     w = sublime.Window(window_id)
 
     for callback in el_callbacks(name):
         callback(w, *args)
 
 
-def on_init(module):
+def on_init(module: str | None):
     """
     Trigger the on_init() methods on EventListener and ViewEventListener
     objects. This is method that allows event listeners to run something
@@ -768,13 +743,13 @@ def on_init(module):
 
     buffers = sublime._buffers()
 
-    for listener in el_callbacks('on_new_buffer', listener_only=True):
+    for listener in all_callbacks['on_new_buffer']:
         if module is not None and plugin_module_for_obj(listener) != module:
             continue
         for b in buffers:
             listener.on_new_buffer(b)
 
-    for listener in el_callbacks('on_new_buffer_async', listener_only=True):
+    for listener in all_callbacks['on_new_buffer_async']:
         if module is not None and plugin_module_for_obj(listener) != module:
             continue
 
@@ -783,34 +758,36 @@ def on_init(module):
                 l.on_new_buffer_async(b)
         sublime.set_timeout_async(on_new_buffers_async, 0)
 
-    views = []
+    views = [
+        v
+        for w in sublime.windows()
+        for v in w.views(include_transient=True)
+        if not v.is_loading()
+    ]
 
-    for w in sublime.windows():
-        for v in w.views(include_transient=True):
-            if not v.is_loading():
-                views.append(v)
-
-    for listener in el_callbacks('on_init', listener_only=True):
+    for listener in all_callbacks['on_init']:
         if module is not None and plugin_module_for_obj(listener) != module:
             continue
         listener.on_init(views)
 
     for v in views:
-        for listener in vel_callbacks(v, 'on_init', listener_only=True):
+        for listener in view_event_listeners.get(v.view_id, []):
+            if not hasattr(listener, 'on_init'):
+                continue
             if module is not None and plugin_module_for_obj(listener) != module:
                 continue
             listener.on_init()
 
 
-def on_new(view_id):
+def on_new(view_id: int):
     run_view_callbacks('on_new', view_id, el_only=True)
 
 
-def on_new_async(view_id):
+def on_new_async(view_id: int):
     run_view_callbacks('on_new_async', view_id, el_only=True)
 
 
-def on_new_buffer(buffer_id):
+def on_new_buffer(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     attach_buffer(buf)
@@ -819,14 +796,14 @@ def on_new_buffer(buffer_id):
         callback(buf)
 
 
-def on_new_buffer_async(buffer_id):
+def on_new_buffer_async(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     for callback in el_callbacks('on_new_buffer_async'):
         callback(buf)
 
 
-def on_associate_buffer(buffer_id):
+def on_associate_buffer(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     check_text_change_listeners(buf)
@@ -835,14 +812,14 @@ def on_associate_buffer(buffer_id):
         callback(buf)
 
 
-def on_associate_buffer_async(buffer_id):
+def on_associate_buffer_async(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     for callback in el_callbacks('on_associate_buffer_async'):
         callback(buf)
 
 
-def on_close_buffer(buffer_id):
+def on_close_buffer(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     detach_buffer(buf)
@@ -851,137 +828,134 @@ def on_close_buffer(buffer_id):
         callback(buf)
 
 
-def on_close_buffer_async(buffer_id):
+def on_close_buffer_async(buffer_id: int):
     buf = sublime.Buffer(buffer_id)
 
     for callback in el_callbacks('on_close_buffer_async'):
         callback(buf)
 
 
-def on_clone(view_id):
+def on_clone(view_id: int):
     run_view_callbacks('on_clone', view_id, el_only=True)
 
 
-def on_clone_async(view_id):
+def on_clone_async(view_id: int):
     run_view_callbacks('on_clone_async', view_id, el_only=True)
 
 
 class Summary:
     def __init__(self):
-        self.max = 0.0
-        self.sum = 0.0
-        self.count = 0
+        self.max: float = 0.0
+        self.sum: float = 0.0
+        self.count: int = 0
 
-    def record(self, x):
+    def record(self, x: float):
         self.count += 1
         self.sum += x
         self.max = max(self.max, x)
 
 
-def get_profiling_data():
-    global profile
-    out = []
-    for event in profile:
-        data = profile[event]
-        for plugin in data:
-            s = data[plugin]
-            out.append((event, plugin, s.count, s.max, s.sum))
-    return out
+def get_profiling_data() -> list[tuple[str, str, int, float, float]]:
+    return [
+        (event, plugin, s.count, s.max, s.sum)
+        for event, data in profile.items()
+        for plugin, s in data.items()
+    ]
 
 
-def on_load(view_id):
+def on_load(view_id: int):
     run_view_callbacks('on_load', view_id)
 
 
-def on_load_async(view_id):
+def on_load_async(view_id: int):
     run_view_callbacks('on_load_async', view_id)
 
 
-def on_revert(view_id):
+def on_revert(view_id: int):
     run_view_callbacks('on_revert', view_id)
 
 
-def on_revert_async(view_id):
+def on_revert_async(view_id: int):
     run_view_callbacks('on_revert_async', view_id)
 
 
-def on_reload(view_id):
+def on_reload(view_id: int):
     run_view_callbacks('on_reload', view_id)
 
 
-def on_reload_async(view_id):
+def on_reload_async(view_id: int):
     run_view_callbacks('on_reload_async', view_id)
 
 
-def on_pre_close(view_id):
+def on_pre_close(view_id: int):
     run_view_callbacks('on_pre_close', view_id)
 
 
-def on_close(view_id):
+def on_close(view_id: int):
     run_view_callbacks('on_close', view_id)
 
 
-def on_pre_save(view_id):
+def on_pre_save(view_id: int):
     run_view_callbacks('on_pre_save', view_id)
 
 
-def on_pre_save_async(view_id):
+def on_pre_save_async(view_id: int):
     run_view_callbacks('on_pre_save_async', view_id)
 
 
-def on_post_save(view_id):
+def on_post_save(view_id: int):
     run_view_callbacks('on_post_save', view_id)
 
 
-def on_post_save_async(view_id):
+def on_post_save_async(view_id: int):
     run_view_callbacks('on_post_save_async', view_id)
 
 
-def on_pre_move(view_id):
+def on_pre_move(view_id: int):
     run_view_callbacks('on_pre_move', view_id)
 
 
-def on_post_move(view_id):
+def on_post_move(view_id: int):
     run_view_callbacks('on_post_move', view_id)
 
 
-def on_post_move_async(view_id):
+def on_post_move_async(view_id: int):
     run_view_callbacks('on_post_move_async', view_id)
 
 
-def on_modified(view_id):
+def on_modified(view_id: int):
     run_view_callbacks('on_modified', view_id)
 
 
-def on_modified_async(view_id):
+def on_modified_async(view_id: int):
     run_view_callbacks('on_modified_async', view_id)
 
 
-def on_selection_modified(view_id):
+def on_selection_modified(view_id: int):
     run_view_callbacks('on_selection_modified', view_id)
 
 
-def on_selection_modified_async(view_id):
+def on_selection_modified_async(view_id: int):
     run_view_callbacks('on_selection_modified_async', view_id)
 
 
-def on_activated(view_id):
+def on_activated(view_id: int):
     run_view_callbacks('on_activated', view_id)
 
 
-def on_activated_async(view_id):
+def on_activated_async(view_id: int):
     run_view_callbacks('on_activated_async', view_id)
 
 
-def on_deactivated(view_id):
+def on_deactivated(view_id: int):
     run_view_callbacks('on_deactivated', view_id)
 
 
-def on_deactivated_async(view_id):
+def on_deactivated_async(view_id: int):
     run_view_callbacks('on_deactivated_async', view_id)
 
 
-def on_query_context(view_id, key, operator, operand, match_all):
+def on_query_context(view_id: int, key: str, operator: str, operand: str, match_all: bool) -> bool:
     v = sublime.View(view_id)
     for callback in el_callbacks('on_query_context'):
         val = callback(v, key, operator, operand, match_all)
@@ -994,7 +968,7 @@ def on_query_context(view_id, key, operator, operand, match_all):
     return False
 
 
-def split_trigger(trigger):
+def split_trigger(trigger: str) -> tuple[str, str]:
     idx = trigger.find("\t")
     if idx < 0:
         return (trigger, "")
@@ -1002,18 +976,22 @@ def split_trigger(trigger):
         return (trigger[0:idx], trigger[idx + 1:])
 
 
-def on_query_completions(view_id, req_id, prefix, locations):
+def on_query_completions(view_id: int, req_id: int, prefix: str, locations: Point):
     v = sublime.View(view_id)
 
     mlist = sublime_api.MultiCompletionList(view_id, req_id)
 
-    def norm_res(res):
-        if isinstance(res, tuple):
+    def norm_res(
+        res: list[CompletionValue] | tuple[list[CompletionValue], AutoCompleteFlags] | sublime.CompletionList | None
+    ) -> sublime.CompletionList:
+        if isinstance(res, sublime.CompletionList):
+            return res
+        elif isinstance(res, tuple):
             return sublime.CompletionList(res[0], flags=res[1])
         elif isinstance(res, list):
             return sublime.CompletionList(res)
-        elif isinstance(res, sublime.CompletionList):
-            return res
+        else:
+            return sublime.CompletionList([])
 
     for callback in el_callbacks('on_query_completions'):
         mlist.append(norm_res(callback(v, prefix, locations)))
@@ -1024,11 +1002,11 @@ def on_query_completions(view_id, req_id, prefix, locations):
     mlist.ready()
 
 
-def on_hover(view_id, point, hover_zone):
+def on_hover(view_id: int, point: Point, hover_zone: sublime.HoverZone):
     run_view_callbacks('on_hover', view_id, point, hover_zone)
 
 
-def on_text_command(view_id, name, args):
+def on_text_command(view_id: int, name: str, args: CommandArgs) -> tuple[str, Value]:
     v = sublime.View(view_id)
 
     for callback in vel_callbacks(v, 'on_text_command'):
@@ -1048,7 +1026,7 @@ def on_text_command(view_id, name, args):
     return ("", None)
 
 
-def on_window_command(window_id, name, args):
+def on_window_command(window_id: int, name: str, args: CommandArgs) -> tuple[str, Value]:
     w = sublime.Window(window_id)
     for callback in el_callbacks('on_window_command'):
         res = callback(w, name, args)
@@ -1060,59 +1038,59 @@ def on_window_command(window_id, name, args):
     return ("", None)
 
 
-def on_post_text_command(view_id, name, args):
+def on_post_text_command(view_id: int, name: str, args: CommandArgs):
     run_view_callbacks('on_post_text_command', view_id, name, args)
 
 
-def on_post_window_command(window_id, name, args):
+def on_post_window_command(window_id: int, name: str, args: CommandArgs):
     run_window_callbacks('on_post_window_command', window_id, name, args)
 
 
-def on_new_project(window_id):
+def on_new_project(window_id: int):
     run_window_callbacks('on_new_project', window_id)
 
 
-def on_new_project_async(window_id):
+def on_new_project_async(window_id: int):
     run_window_callbacks('on_new_project_async', window_id)
 
 
-def on_load_project(window_id):
+def on_load_project(window_id: int):
     run_window_callbacks('on_load_project', window_id)
 
 
-def on_load_project_async(window_id):
+def on_load_project_async(window_id: int):
     run_window_callbacks('on_load_project_async', window_id)
 
 
-def on_pre_save_project(window_id):
+def on_pre_save_project(window_id: int):
     run_window_callbacks('on_pre_save_project', window_id)
 
 
-def on_post_save_project(window_id):
+def on_post_save_project(window_id: int):
     run_window_callbacks('on_post_save_project', window_id)
 
 
-def on_post_save_project_async(window_id):
+def on_post_save_project_async(window_id: int):
     run_window_callbacks('on_post_save_project_async', window_id)
 
 
-def on_pre_close_project(window_id):
+def on_pre_close_project(window_id: int):
     run_window_callbacks('on_pre_close_project', window_id)
 
 
-def on_new_window(window_id):
+def on_new_window(window_id: int):
     run_window_callbacks('on_new_window', window_id)
 
 
-def on_new_window_async(window_id):
+def on_new_window_async(window_id: int):
     run_window_callbacks('on_new_window_async', window_id)
 
 
-def on_pre_close_window(window_id):
+def on_pre_close_window(window_id: int):
     run_window_callbacks('on_pre_close_window', window_id)
 
 
-def on_exit(log_path):
+def on_exit(log_path: str):
     # on_exit() is called once the API it shutdown, which means that stdout
     # will not be visible for debugging. Thus we write to a log file.
     stdout = io.StringIO()
@@ -1129,6 +1107,42 @@ def on_exit(log_path):
         os.unlink(log_path)
 
 
+def split_identifier(s):
+    part_start = 0
+
+    for i, c in enumerate(s):
+        if i == part_start:
+            is_upper = c.isupper()
+
+        if c.isupper():
+            # If an upper-case follows a lower-case then that's a split
+            if not is_upper:
+                yield s[part_start:i]
+                part_start = i
+                is_upper = True
+
+        elif c.islower():
+            # If a lower-case follows a series of upper-case that's a split
+            if is_upper and i - part_start > 1:
+                yield s[part_start:i - 1]
+                part_start = i - 1
+
+            is_upper = False
+
+        elif c in (' ', '\t', '_', '-'):
+            yield s[part_start:i]
+            part_start = i + 1
+
+        else:
+            # Numbers/symbols are treated as a lower-case sequence, so
+            # that "A1B" gets split as "A1","B". But they do not cause a split,
+            # so that "HTTP1" and "A11y" are not split.
+            is_upper = False
+
+    if part_start < len(s):
+        yield s[part_start:]
+
+
 class CommandInputHandler:
     """
     """
@@ -1139,15 +1153,7 @@ class CommandInputHandler:
         ``foo_bar`` for an input handler named ``FooBarInputHandler``.
         """
         clsname = self.__class__.__name__
-        name = clsname[0].lower()
-        last_upper = False
-        for c in clsname[1:]:
-            if c.isupper() and not last_upper:
-                name += '_'
-                name += c.lower()
-            else:
-                name += c
-            last_upper = c.isupper()
+        name = '_'.join(n.lower() for n in split_identifier(clsname))
         if name.endswith("_input_handler"):
             name = name[0:-14]
         return name
@@ -1182,7 +1188,7 @@ class CommandInputHandler:
         """
         return ""
 
-    def validate(self, text: str, event: Optional[Event] = None) -> bool:
+    def validate(self, text: str, event: Event | None = None) -> bool:
         """
         Called whenever the user presses enter in the text entry box.
         Return :py:`False` to disallow the current value.
@@ -1197,7 +1203,7 @@ class CommandInputHandler:
         backspace or escape.
         """
 
-    def confirm(self, text: str, event: Optional[Event] = None):
+    def confirm(self, text: str, event: Event | None = None):
         """
         Called when the input is accepted, after the user has pressed enter and
         the text has been validated.
@@ -1205,7 +1211,7 @@ class CommandInputHandler:
         :param event: Only passed when `want_event` returns ``True``.
         """
 
-    def next_input(self, args) -> Optional[CommandInputHandler]:
+    def next_input(self, args) -> CommandInputHandler | None:
         """
         Return the next input after the user has completed this one. May return
         :py:`None` to indicate no more input is required, or
@@ -1214,10 +1220,10 @@ class CommandInputHandler:
         """
         return None
 
-    def create_input_handler_(self, args):
+    def create_input_handler_(self, args: CommandArgs) -> CommandInputHandler | None:
         return self.next_input(args)
 
-    def preview_(self, v):
+    def preview_(self, v: str) -> tuple[str | sublime.Html, int]:
         ret = self.preview(v)
 
         if ret is None:
@@ -1227,7 +1233,7 @@ class CommandInputHandler:
         else:
             return (ret, 0)
 
-    def validate_(self, v, event):
+    def validate_(self, v: str, event: Event | None) -> bool:
         if self.want_event():
             return self.validate(v, event)
         return self.validate(v)
@@ -1235,7 +1241,7 @@ class CommandInputHandler:
     def cancel_(self):
         self.cancel()
 
-    def confirm_(self, v, event):
+    def confirm_(self, v: str, event: Event | None):
         if self.want_event():
             self.confirm(v, event)
         else:
@@ -1255,7 +1261,7 @@ class BackInputHandler(CommandInputHandler):
     """
     """
 
-    def name(self):
+    def name(self) -> str:
         return "_Back"
 
 
@@ -1276,7 +1282,7 @@ class TextInputHandler(CommandInputHandler):
         """
         return text
 
-    def setup_(self, args):
+    def setup_(self, args: CommandArgs) -> tuple[list[object], dict[str, Value]]:
         props = {
             "initial_text": self.initial_text(),
             "initial_selection": self.initial_selection(),
@@ -1286,7 +1292,7 @@ class TextInputHandler(CommandInputHandler):
 
         return ([], props)
 
-    def description_(self, v, text):
+    def description_(self, value: Value, text: str) -> str:
         res = self.description(text)
         if res is None:
             return ""
@@ -1327,7 +1333,7 @@ class ListInputHandler(CommandInputHandler):
         """
         return []
 
-    def description(self, value, text: str) -> str:
+    def description(self, value: Value, text: str) -> str:
         """
         The text to show in the *Command Palette* when this input handler is not
         at the top of the input handler stack. Defaults to the text of the list
@@ -1335,7 +1341,7 @@ class ListInputHandler(CommandInputHandler):
         """
         return text
 
-    def setup_(self, args):
+    def setup_(self, args: CommandArgs) -> tuple[list[object], dict[str, Value]]:
         items = self.list_items()
 
         selected_item_index = -1
@@ -1381,8 +1387,8 @@ class ListInputHandler(CommandInputHandler):
 
         return (item_tuples, props)
 
-    def description_(self, v, text):
-        res = self.description(v, text)
+    def description_(self, value: Value, text: str) -> str:
+        res = self.description(value, text)
         if res is None:
             return ""
         return res
@@ -1398,20 +1404,12 @@ class Command:
         of the class.
         """
         clsname = self.__class__.__name__
-        name = clsname[0].lower()
-        last_upper = False
-        for c in clsname[1:]:
-            if c.isupper() and not last_upper:
-                name += '_'
-                name += c.lower()
-            else:
-                name += c
-            last_upper = c.isupper()
+        name = '_'.join(n.lower() for n in split_identifier(clsname))
         if name.endswith("_command"):
             name = name[0:-8]
         return name
 
-    def is_enabled_(self, args):
+    def is_enabled_(self, args: CommandArgs) -> bool:
         ret = None
         try:
             args = self.filter_args(args)
@@ -1435,7 +1433,7 @@ class Command:
         """
         return True
 
-    def is_visible_(self, args):
+    def is_visible_(self, args: CommandArgs) -> bool:
         ret = None
         try:
             args = self.filter_args(args)
@@ -1459,7 +1457,7 @@ class Command:
         """
         return True
 
-    def is_checked_(self, args):
+    def is_checked_(self, args: CommandArgs) -> bool:
         ret = None
         try:
             args = self.filter_args(args)
@@ -1484,7 +1482,7 @@ class Command:
         """
         return False
 
-    def description_(self, args):
+    def description_(self, args: CommandArgs) -> str:
         try:
             args = self.filter_args(args)
             if args is not None:
@@ -1497,7 +1495,7 @@ class Command:
         except TypeError:
             return ""
 
-    def description(self) -> Optional[str]:
+    def description(self) -> str | None:
         """
         Return a description of the command with the given arguments. Command
         arguments are passed as keyword arguments. Used in the menu, if no
@@ -1505,7 +1503,7 @@ class Command:
         """
         return ""
 
-    def filter_args(self, args):
+    def filter_args(self, args: CommandArgs) -> CommandArgs:
         if args:
             if 'event' in args and not self.want_event():
                 args = args.copy()
@@ -1522,7 +1520,7 @@ class Command:
         """
         return False
 
-    def input(self, args: dict) -> Optional[CommandInputHandler]:
+    def input(self, args: dict) -> CommandInputHandler | None:
         """
         If this returns something other than :py:`None`, the user will be
         prompted for an input before the command is run in the *Command
@@ -1541,10 +1539,10 @@ class Command:
         """
         return ""
 
-    def create_input_handler_(self, args):
+    def create_input_handler_(self, args: CommandArgs) -> CommandInputHandler | None:
         return self.input(args)
 
-    def run(self):
+    def run(self, **kwargs: Value):
         """
         Called when the command is run. Command arguments are passed as keyword
         arguments.
@@ -1555,7 +1553,7 @@ class ApplicationCommand(Command):
     """
     A `Command` instantiated just once.
     """
-    def run_(self, edit_token, args):
+    def run_(self, edit_token: int, args: CommandArgs):
         args = self.filter_args(args)
         try:
             if args:
@@ -1576,8 +1574,11 @@ class ApplicationCommand(Command):
                     return
             raise
 
-    def run(self):
-        """ :meta private: """
+    def run(self, **kwargs: Value):
+        """
+        Called when the command is run. Command arguments are passed as keyword
+        arguments.
+        """
 
 
 class WindowCommand(Command):
@@ -1586,13 +1587,14 @@ class WindowCommand(Command):
     retrieved via `self.window <window>`.
     """
 
-    def __init__(self, window):
+    def __init__(self, window: sublime.Window):
         """ :meta private: """
+        super().__init__()
 
         self.window: sublime.Window = window
         """ The `Window` this command is attached to. """
 
-    def run_(self, edit_token, args):
+    def run_(self, edit_token: int, args: CommandArgs):
         args = self.filter_args(args)
         try:
             if args:
@@ -1614,8 +1616,11 @@ class WindowCommand(Command):
                     return
             raise
 
-    def run(self):
-        """ :meta private: """
+    def run(self, **kwargs: Value):
+        """
+        Called when the command is run. Command arguments are passed as keyword
+        arguments.
+        """
 
 
 class TextCommand(Command):
@@ -1624,13 +1629,14 @@ class TextCommand(Command):
     via `self.view <view>`.
     """
 
-    def __init__(self, view):
+    def __init__(self, view: sublime.View):
         """ :meta private: """
+        super().__init__()
 
         self.view: sublime.View = view
         """ The `View` this command is attached to. """
 
-    def run_(self, edit_token, args):
+    def run_(self, edit_token: int, args: CommandArgs):
         args = self.filter_args(args)
         try:
             if args:
@@ -1660,7 +1666,7 @@ class TextCommand(Command):
                     return
             raise
 
-    def run(self, edit: sublime.Edit):
+    def run(self, edit: sublime.Edit, **kwargs: Value):
         """
         Called when the command is run. Command arguments are passed as keyword
         arguments.
@@ -1849,7 +1855,7 @@ class EventListener:
             Which element in Sublime Text the mouse has hovered over.
 
     .. method:: on_query_context(\
-            view: View, key: str, operator: QueryOperator, operand: str, match_all: bool) -> Optional[bool]
+            view: View, key: str, operator: QueryOperator, operand: Value, match_all: bool) -> bool | None
 
         Called when determining to trigger a key binding with the given context
         key. If the plugin knows how to respond to the context, it should
@@ -1873,7 +1879,7 @@ class EventListener:
             ``None``.
 
     .. method:: on_query_completions(view: View, prefix: str, locations: List[Point]) -> Union[\
-            None, List[CompletionValue], Tuple[List[CompletionValue], AutoCompleteFlags], CompletionList]
+            None, List[CompletionValue], tuple[List[CompletionValue], AutoCompleteFlags], CompletionList]
 
         Called whenever completions are to be presented to the user.
 
@@ -2128,7 +2134,7 @@ class ViewEventListener:
         :param hover_zone:
             Which element in Sublime Text the mouse has hovered over.
 
-    .. method:: on_query_context(key: str, operator: QueryOperator, operand: str, match_all: bool) -> Optional[bool]
+    .. method:: on_query_context(key: str, operator: QueryOperator, operand: Value, match_all: bool) -> bool | None
 
         Called when determining to trigger a key binding with the given context
         key. If the plugin knows how to respond to the context, it should
@@ -2149,7 +2155,7 @@ class ViewEventListener:
                   return ``None``.
 
     .. method:: on_query_completions(prefix: str, locations: List[Point]) -> Union[\
-            None, List[CompletionValue], Tuple[List[CompletionValue], AutoCompleteFlags], CompletionList]
+            None, List[CompletionValue], tuple[List[CompletionValue], AutoCompleteFlags], CompletionList]
 
         Called whenever completions are to be presented to the user.
 
@@ -2161,7 +2167,7 @@ class ViewEventListener:
                           relevant.
         :returns: A list of completions in one of the valid formats or ``None`` if no completions are provided.
 
-    .. method:: on_text_command(command_name: str, args: CommandArgs) -> Tuple[str, CommandArgs]
+    .. method:: on_text_command(command_name: str, args: CommandArgs) -> tuple[str, CommandArgs]
 
         Called when a text command is issued. The listener may return a
         `` (command, arguments)`` tuple to rewrite the command, or ``None`` to
@@ -2190,6 +2196,8 @@ class ViewEventListener:
         return True
 
     def __init__(self, view: sublime.View):
+        super().__init__()
+
         self.view: sublime.View = view
 
 
@@ -2237,7 +2245,7 @@ class TextChangeListener:
     """
 
     @classmethod
-    def is_applicable(cls, buffer: sublime.Buffer):
+    def is_applicable(cls, buffer: sublime.Buffer) -> bool:
         """
         :returns: Whether this listener should apply to the provided buffer.
         """
@@ -2245,8 +2253,10 @@ class TextChangeListener:
 
     def __init__(self):
         """ """
-        self.__key = None
-        self.buffer: sublime.Buffer = None
+        super().__init__()
+
+        self.__key: str | None = None
+        self.buffer: sublime.Buffer | None = None
 
     def detach(self):
         """
@@ -2262,10 +2272,11 @@ class TextChangeListener:
 
         sublime_api.buffer_clear_text_listener(self.buffer.buffer_id, self.__key)
         if self.buffer.buffer_id in text_change_listeners:
-            new_listeners = []
-            for listener in text_change_listeners[self.buffer.buffer_id]:
-                if listener is not self:
-                    new_listeners.append(listener)
+            new_listeners = [
+                listener
+                for listener in text_change_listeners[self.buffer.buffer_id]
+                if listener is not self
+            ]
             text_change_listeners[self.buffer.buffer_id] = new_listeners
         self.__key = None
 
@@ -2296,471 +2307,139 @@ class TextChangeListener:
         return self.__key is not None
 
 
-class MultizipImporter(importlib.abc.MetaPathFinder):
+class PackagePathFinder(importlib.abc.MetaPathFinder):
     """ :meta private: """
 
     def __init__(self):
-        self.loaders = []
+        self.packages = {}
 
-    def _make_spec(self, loader, fullname):
-        """
-        :param loader:
-            The importlib.abc.Loader to create the ModuleSpec from
+    def add_package(self, package):
+        name = os.path.splitext(os.path.basename(package))[0]
+        self.packages[name] = package
 
-        :param fullname:
-            A unicode string of the module name
+    def update_packages(self, pkgs):
+        self.packages = {}
 
-        :return:
-            An instance of importlib.machinery.ModuleSpec()
-        """
+        for p in pkgs:
+            self.add_package(p)
 
-        origin, is_package = loader._spec_info(fullname)
+    def find_spec(self, fullname, path, target=None):
+        parts = fullname.partition('.')
+        archive = parts[0]
+
+        package = self.packages.get(archive)
+        if not package:
+            return None
+
+        res_path = f'Packages/{fullname.replace('.', '/')}'
+
+        paths = [
+            (f'{res_path}/__init__.pyc', True, True),
+            (f'{res_path}/__init__.py', False, True),
+            (f'{res_path}.pyc', True, False),
+            (f'{res_path}.py', False, False),
+        ]
+
+        make_loader = True
+
+        for (path, is_bytecode, is_package) in paths:
+            if file_stats := sublime_api.stat_resource_file(path):
+                break
+        else:
+            if file_stats := sublime_api.stat_resource_dir(res_path):
+                path = res_path
+                is_bytecode = False
+                is_package = True
+                make_loader = False
+            else:
+                return None
+
+        fullpath, size, write_time = file_stats
+
+        if make_loader:
+            path_stats = {'size': size, 'mtime': write_time}
+
+            loader_t = (PackageSourcelessFileLoader if is_bytecode else PackageSourceFileLoader)
+            loader = loader_t(fullname, fullpath, path, path_stats)
+        else:
+            loader = None
+
         spec = importlib.util.spec_from_loader(
             fullname,
             loader,
-            origin=origin,
+            origin=fullpath,
             is_package=is_package
         )
+        spec.has_location = True
         if is_package:
-            spec.submodule_search_locations = [loader.zippath]
+            spec.submodule_search_locations = [package]
         return spec
 
-    def find_spec(self, fullname, path, target=None):
-        """
-        :param fullname:
-            A unicode string of the module name
 
-        :param path:
-            None or a list with a single unicode string of the __path__ of
-            the parent module if importing a submodule
+class PackageSourceFileLoader(importlib.machinery.SourceFileLoader):
+    """ :meta private: """
 
-        :param target:
-            Unused - extra info that importlib may provide?
+    def __init__(self, fullname, path, resource_path, path_stats):
+        super().__init__(fullname, path)
 
-        :return:
-            An importlib.machinery.ModuleSpec() object
-        """
+        self.resource_path = resource_path
+        self._path_stats = path_stats
 
-        if not path:
-            for l in self.loaders:
-                if l.has(fullname):
-                    return self._make_spec(l, fullname)
+    def path_stats(self, path):
+        return self._path_stats
 
-        for l in self.loaders:
-            if path == [l.zippath] and l.has(fullname):
-                return self._make_spec(l, fullname)
+    def get_data(self, path):
+        ext = os.path.splitext(path)[1]
+        if ext not in ('.pyc', '.py'):
+            return b''
 
-        return None
+        # .pyc files can end up outside our packages path if they're contained
+        # in __pycache__, so first try to load them from the filesystem.
+        if ext == '.pyc':
+            try:
+                with io.open_code(path) as f:
+                    return f.read()
+            except:
+                pass
 
+        res = sublime_api.load_binary_resource(self.resource_path, -1)
+        if isinstance(res, type):
+            # Ignore errors, just return empty.
+            return b''
+        return res
 
-class ZipResourceReader(importlib.abc.ResourceReader):
-    """
-    Implements the resource reader interface introduced in Python 3.7
 
-    :meta private:
-    """
+class PackageSourcelessFileLoader(importlib.machinery.SourcelessFileLoader):
+    """ :meta private: """
 
-    def __init__(self, loader, fullname):
-        """
-        :param loader:
-            The source ZipLoader() object
+    def __init__(self, fullname, path, resource_path, path_stats):
+        super().__init__(fullname, path)
 
-        :param fullname:
-            A unicode string of the module name to load resources for
-        """
+        self.resource_path = resource_path
+        self._path_stats = path_stats
 
-        self.loader = loader
-        self.fullname = fullname
+    def path_stats(self, path):
+        return self._path_stats
 
-    def open_resource(self, resource):
-        """
-        :param resource:
-            A unicode string of a resource name - should not contain a path
-            separator
+    # This has all the same logic as PackageSourceFileLoader, but with a
+    # different parent
+    get_data = PackageSourceFileLoader.get_data
 
-        :raises:
-            FileNotFoundError - when the resource doesn't exist
 
-        :return:
-            An io.BytesIO() object
-        """
-
-        rel_zip_path = self.loader.resources.get(self.fullname, {}).get(resource)
-        if not rel_zip_path:
-            raise FileNotFoundError()
-        with zipfile.ZipFile(self.loader.zippath, 'r') as z:
-            return io.BytesIO(z.read(rel_zip_path))
-
-    def resource_path(self, resource):
-        """
-        :param resource:
-            A unicode string of a resource name - should not contain a path
-            separator
-
-        :raises:
-            FileNotFoundError - always, since there is no normal filesystem access
-        """
-
-        raise FileNotFoundError()
-
-    def is_resource(self, name):
-        """
-        :param name:
-            A unicode string of a file name to check if it is a resource
-
-        :return:
-            A boolean indicating if the file is a resource
-        """
-
-        return name in self.loader.resources.get(self.fullname, {})
-
-    def contents(self):
-        """
-        :return:
-            A list of the resources for this module
-        """
-
-        return sorted([k for k in self.loader.resources.get(self.fullname, {})])
-
-
-class ZipLoader(importlib.abc.InspectLoader):
-    """
-    A custom Python loader that handles loading .py and .pyc files from
-    .sublime-package zip files, and supports overrides where a loose file in
-    the Packages/ folder of the data dir may be loaded instead of a file in
-    the .sublime-package file.
-
-    :meta private:
-    """
-
-    def __init__(self, zippath):
-        """
-        :param zippath:
-            A unicode string of the full filesystem path to the zip file
-        """
-
-        self.zippath = zippath
-        self.name = os.path.splitext(os.path.basename(zippath))[0]
-        self._scan_zip()
-
-    def _get_name_key(self, fullname):
-        """
-        Converts a module name into a pair of package name and key. The
-        key is used to access the various data structures in this object.
-
-        :param fullname:
-            A unicode string of a module name
-
-        :return:
-            If the fullname is not a module in this package, (None, None),
-            otherwise a 2-element tuple of unicode strings. The first element
-            being the package name, and the second being a sub-module, e.g.
-            ("Default", "indentation").
-        """
-
-        if '.' not in fullname:
-            if fullname == self.name:
-                return (self.name, '')
-            return (None, None)
-
-        name, key = fullname.split('.', 1)
-        if name != self.name:
-            return (None, None)
-        return (self.name, key)
-
-    def has(self, fullname):
-        """
-        Checks if the module is handled by this loader
-
-        :param fullname:
-            A unicode string of the module to check
-
-        :return:
-            A boolean if the module is handled by this loader
-        """
-
-        name, key = self._get_name_key(fullname)
-        if name is None:
-            return False
-
-        # We can check this first before overrides since if this exists we
-        # know at the very least it will be loaded from the zip
-        if name == self.name and key in self.contents:
-            return True
-
-        rel_base = os.sep.join(fullname.split('.'))
-        override_file = os.path.join(override_path, rel_base + '.py')
-        if os.path.isfile(override_file):
-            return True
-
-        # Here we check to see if an override dir exists, in general, even if
-        # there is no __init__.py. We do this since we allow users to override
-        # a sub-module without ensuring there is a perfect filesystem
-        # heirarchy of __init__.py files when traversing upwards.
-        override_package = os.path.join(override_path, rel_base)
-        if os.path.isdir(override_package):
-            return True
-
-        return False
-
-    def get_resource_reader(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module name to get the resource reader for
-
-        :return:
-            None if the module is not a package, otherwise an object that
-            implements the importlib.abc.ResourceReader() interface
-        """
-
-        if not self.is_package(fullname):
-            return None
-        return ZipResourceReader(self, fullname)
-
-    def get_filename(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module name
-
-        :raises:
-            ImportError - when the module has no file path
-
-        :return:
-            A unicode string of the file path to the module
-        """
-
-        info = self._spec_info(fullname)
-        if info[0] is None:
-            raise ImportError()
-        return info[0]
-
-    def get_code(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module to get the code for
-
-        :raises:
-            ModuleNotFoundError - when the module is not part of this zip file
-            ImportError - when there is an error loading the code
-
-        :return:
-            A code object for the module
-        """
-
-        info = self._spec_info(fullname)
-        if info[0] is None:
-            raise ModuleNotFoundError(f'No module named {repr(fullname)}')
-
-        if not info[0].endswith('.pyc'):
-            return importlib.abc.InspectLoader.source_to_code(
-                self._load_source(fullname, info[0]),
-                info[0]
-            )
-
-        _, key = self._get_name_key(fullname)
-        data = self.contents[key]
-        magic = data[0:4]
-        if importlib.util.MAGIC_NUMBER != magic:
-            raise ImportError(f'bad magic number in {repr(fullname)}: {repr(magic)}')
-        # From importlib._bootstrap_external._code_to_timestamp_pyc()
-        return marshal.loads(data[16:])
-
-    def get_source(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module to get the source for
-
-        :raises:
-            ModuleNotFoundError - when the module is not part of this zip file
-            ImportError - when there is an error loading the source file
-
-        :return:
-            A unicode string of the source code, or None if there is no source
-            for the module (i.e. a .pyc file)
-        """
-
-        info = self._spec_info(fullname)
-        if info[0] is None:
-            raise ModuleNotFoundError(f'No module named {repr(fullname)}')
-
-        # If a sourceless file is loaded from the file, there is no source
-        if info[0].endswith('.pyc'):
-            return None
-
-        return self._load_source(fullname, info[0])
-
-    def _load_source(self, fullname, path):
-        """
-        Loads the source code to the module
-
-        :param fullname:
-            A unicode string of the module name
-
-        :param path:
-            A filesystem path to the module - may be a path into s
-            .sublime-package file
-
-        :return:
-            A unicode string
-        """
-
-        if path == self.zippath or path.startswith(self.zippath + os.sep):
-            _, key = self._get_name_key(fullname)
-            if key in self.contents:
-                return self.contents[key]
-            raise ModuleNotFoundError(f'No module named {repr(fullname)}')
-
-        if os.path.isdir(path):
-            return ''
-
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except (Exception) as e:
-            print(f'Error reading {path}: {e}')
-            raise ImportError(f'Unable to load {repr(fullname)}')
-
-    def is_package(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module to see if it is a package
-
-        :return:
-            A boolean if the module is a package
-        """
-
-        info = self._spec_info(fullname)
-        if info[1] is None:
-            raise ModuleNotFoundError(f'No module named {repr(fullname)}')
-        return info[1]
-
-    def _spec_info(self, fullname):
-        """
-        :param fullname:
-            A unicode string of the module that an
-            importlib.machinery.ModuleSpec() object is going to be created for
-
-        :return:
-            A 2-element tuple of:
-             - (None, None) if the loader does not know about the module
-             - (unicode string, bool) of the origin and is_package params to
-               pass to importlib.machinery.ModuleSpec()
-        """
-
-        rel_base = os.sep.join(fullname.split('.'))
-        name, key = self._get_name_key(fullname)
-        if name is None:
-            return (None, None)
-
-        if key != '':
-            rel_py_path = rel_base + '.py'
-            override_py_file = os.path.join(override_path, rel_py_path)
-            if os.path.isfile(override_py_file):
-                return (override_py_file, False)
-
-        in_zip = name == self.name and key in self.contents
-        zip_filename = None if not in_zip else self.filenames[key]
-
-        # We don't return files named __init__.py here to ensure that any
-        # override that exists gets picked up instead.
-        if in_zip and os.path.basename(zip_filename) != '__init__.py':
-            return (
-                os.path.join(self.zippath, zip_filename).rstrip(os.sep),
-                key in self.packages
-            )
-
-        rel_init_path = rel_base + os.sep + '__init__.py'
-        override_init_file = os.path.join(override_path, rel_init_path)
-        if os.path.isfile(override_init_file):
-            return (override_init_file, True)
-
-        # This only handle __init__.py in the zip. It has to be placed after
-        # the check for the override file.
-        if in_zip:
-            return (
-                os.path.join(self.zippath, zip_filename),
-                key in self.packages
-            )
-
-        # This is necessary to support overrides in a subdir of a package
-        # when there is no __init__.py file in one of the parents
-        override_dir = os.path.join(override_path, rel_base)
-        if os.path.isdir(override_dir):
-            return (override_dir, True)
-
-        return (None, None)
-
-    def _scan_zip(self):
-        """
-        Rebuild the internal cached info about the contents of the zip
-        """
-
-        self.contents = {'': ''}
-        self.filenames = {'': ''}
-        self.packages = {''}
-        self.resources = {}
-        self.refreshed = time.time()
-
-        try:
-            with zipfile.ZipFile(self.zippath, 'r') as z:
-                files = [i.filename for i in z.infolist()]
-
-                for f in files:
-                    base, ext = os.path.splitext(f)
-
-                    if ext != '.py' and ext != '.pyc':
-                        rmod, rname = os.path.split(f)
-                        rmod = rmod.replace('/', '.').replace('\\', '.')
-                        rmod = (self.name + '.' + rmod).rstrip('.')
-                        if rmod not in self.resources:
-                            self.resources[rmod] = {}
-                        self.resources[rmod][rname] = f
-                        continue
-
-                    paths = base.split('/')
-                    if len(paths) > 0 and paths[len(paths) - 1] == '__init__':
-                        paths.pop()
-                        self.packages.add('.'.join(paths))
-
-                    pkg_path = '.'.join(paths)
-                    if f.endswith('.pyc'):
-                        self.contents[pkg_path] = z.read(f)
-                    else:
-                        try:
-                            self.contents[pkg_path] = z.read(f).decode('utf-8')
-                        except UnicodeDecodeError:
-                            print(
-                                f'{os.path.join(self.zippath, f)} is not '
-                                'utf-8 encoded, unable to load plugin'
-                            )
-                            continue
-                    self.filenames[pkg_path] = f
-
-                    while len(paths) > 1:
-                        paths.pop()
-                        parent = '.'.join(paths)
-                        if parent not in self.contents:
-                            self.contents[parent] = ''
-                            self.filenames[parent] = parent
-                            self.packages.add(parent)
-        except (Exception) as e:
-            print(f'Error loading {self.zippath}: {e}')
-
-
-override_path = None
-multi_importer = MultizipImporter()
+multi_importer = PackagePathFinder()
 sys.meta_path.insert(0, multi_importer)
 
 
 def update_compressed_packages(pkgs):
-    multi_importer.loaders = []
-    for p in pkgs:
-        try:
-            multi_importer.loaders.append(ZipLoader(p))
-        except (FileNotFoundError, zipfile.BadZipFile) as e:
-            print("error loading " + p + ": " + str(e))
+    multi_importer.update_packages(pkgs)
 
 
-def set_override_path(path):
-    global override_path
-    override_path = path
+# Setup site packages to process pth files. We check for existence of the API
+# function to catch import mocks, such as when generating docs.
+if sublime_api.lib_path:
+    # setup site and handle .pth files.
+    site.addsitedir(os.path.join(sublime.lib_path(), "python314"))
+
+    if not os.environ.get('SSL_CERT_FILE'):
+        import certifi
+        os.environ['SSL_CERT_FILE'] = certifi.where()

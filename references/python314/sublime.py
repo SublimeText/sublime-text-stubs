@@ -1,16 +1,13 @@
 """
 """
 
-# Don't evaluate type annotations at runtime
-from __future__ import annotations
-
-import collections
 import html
 import json
 import sys
 import io
 import enum
-from typing import Callable, Optional, Any, Iterator, Iterable, Literal, Tuple, TYPE_CHECKING
+from typing import Any, Literal, TYPE_CHECKING
+from collections.abc import Callable, Mapping, Iterator, Iterable
 
 import sublime_api
 
@@ -25,7 +22,7 @@ class _LogWriter(io.TextIOBase):
     def flush(self):
         b = self.buf
         self.buf = None
-        if b is not None and len(b):
+        if b is not None and b:
             sublime_api.log_message(b)
 
     def write(self, s):
@@ -35,10 +32,16 @@ class _LogWriter(io.TextIOBase):
             self.buf += s
         if '\n' in s or '\r' in s:
             self.flush()
+        return len(s)
 
 
 sys.stdout = _LogWriter()  # type: ignore
 sys.stderr = _LogWriter()  # type: ignore
+
+
+class FileTooLargeError(FileNotFoundError):
+    """ Raised when a resource exceeds file size limits. """
+    pass
 
 
 class HoverZone(enum.IntEnum):
@@ -576,39 +579,39 @@ KIND_ID_COLOR_PINKISH = KindId.COLOR_PINKISH
 KIND_ID_COLOR_DARK = KindId.COLOR_DARK
 KIND_ID_COLOR_LIGHT = KindId.COLOR_LIGHT
 
-KIND_AMBIGUOUS = (KindId.AMBIGUOUS, "", "")
+KIND_AMBIGUOUS: Kind = (KindId.AMBIGUOUS, "", "")
 """
 .. since:: 4052
 """
-KIND_KEYWORD = (KindId.KEYWORD, "", "")
+KIND_KEYWORD: Kind = (KindId.KEYWORD, "", "")
 """
 .. since:: 4052
 """
-KIND_TYPE = (KindId.TYPE, "", "")
+KIND_TYPE: Kind = (KindId.TYPE, "", "")
 """
 .. since:: 4052
 """
-KIND_FUNCTION = (KindId.FUNCTION, "", "")
+KIND_FUNCTION: Kind = (KindId.FUNCTION, "", "")
 """
 .. since:: 4052
 """
-KIND_NAMESPACE = (KindId.NAMESPACE, "", "")
+KIND_NAMESPACE: Kind = (KindId.NAMESPACE, "", "")
 """
 .. since:: 4052
 """
-KIND_NAVIGATION = (KindId.NAVIGATION, "", "")
+KIND_NAVIGATION: Kind = (KindId.NAVIGATION, "", "")
 """
 .. since:: 4052
 """
-KIND_MARKUP = (KindId.MARKUP, "", "")
+KIND_MARKUP: Kind = (KindId.MARKUP, "", "")
 """
 .. since:: 4052
 """
-KIND_VARIABLE = (KindId.VARIABLE, "", "")
+KIND_VARIABLE: Kind = (KindId.VARIABLE, "", "")
 """
 .. since:: 4052
 """
-KIND_SNIPPET = (KindId.SNIPPET, "s", "Snippet")
+KIND_SNIPPET: Kind = (KindId.SNIPPET, "s", "Snippet")
 """
 .. since:: 4052
 """
@@ -765,7 +768,7 @@ def executable_hash() -> tuple[str, str, str]:
     """
     import hashlib
     return (
-        version(), platform() + '_' + arch(),
+        version(), f"{platform()}_{arch()}",
         hashlib.md5(open(executable_path(), 'rb').read()).hexdigest())
 
 
@@ -797,6 +800,15 @@ def cache_path() -> str:
     :returns: The path where Sublime Text stores cache files.
     """
     return sublime_api.cache_path()
+
+
+def lib_path() -> str:
+    """
+    .. since:: 4201
+
+    :returns: The path to the "Lib" folder.
+    """
+    return sublime_api.lib_path()
 
 
 def status_message(msg: str):
@@ -842,7 +854,7 @@ def yes_no_cancel_dialog(msg: str, yes_title="", no_title="", title="") -> Dialo
 def open_dialog(
         callback: Callable[[str | list[str] | None], None],
         file_types: list[tuple[str, list[str]]] = [],
-        directory: Optional[str] = None,
+        directory: str | None = None,
         multi_select=False,
         allow_folders=False):
     """
@@ -879,9 +891,9 @@ def open_dialog(
 def save_dialog(
         callback: Callable[[str | None], None],
         file_types: list[tuple[str, list[str]]] = [],
-        directory: Optional[str] = None,
-        name: Optional[str] = None,
-        extension: Optional[str] = None):
+        directory: str | None = None,
+        name: str | None = None,
+        extension: str | None = None):
     """
     Show the save file dialog
 
@@ -900,7 +912,7 @@ def save_dialog(
 
 def select_folder_dialog(
         callback: Callable[[str | list[str] | None], None],
-        directory: Optional[str] = None,
+        directory: str | None = None,
         multi_select=False):
     """
     Show the select folder dialog.
@@ -922,7 +934,7 @@ def select_folder_dialog(
     sublime_api.select_folder_dialog(directory or '', multi_select, cb)
 
 
-def choose_font_dialog(callback: Callable[[Value], None], default: dict[str, Value] = None):
+def choose_font_dialog(callback: Callable[[Value], None], default: dict[str, Value] | None = None):
     """
     Show a dialog for selecting a font.
 
@@ -1020,7 +1032,7 @@ def set_clipboard(text: str):
     sublime_api.set_clipboard(text)
 
 
-def log_commands(flag: Optional[bool] = None):
+def log_commands(flag: bool | None = None):
     """
     Control whether commands are logged to the console when run.
 
@@ -1040,7 +1052,7 @@ def get_log_commands() -> bool:
     return sublime_api.get_log_commands()
 
 
-def log_input(flag: Optional[bool] = None):
+def log_input(flag: bool | None = None):
     """
     Control whether all key presses will be logged to the console. Use this to
     find the names of certain keys on the keyboard.
@@ -1061,7 +1073,7 @@ def get_log_input() -> bool:
     return sublime_api.get_log_input()
 
 
-def log_fps(flag: Optional[bool] = None):
+def log_fps(flag: bool | None = None):
     """
     Control whether rendering timings like frames per second get logged.
 
@@ -1083,7 +1095,7 @@ def get_log_fps() -> bool:
     return sublime_api.get_log_fps()
 
 
-def log_result_regex(flag: Optional[bool] = None):
+def log_result_regex(flag: bool | None = None):
     """
     Control whether result regex logging is enabled. Use this to debug
     ``"file_regex"`` and ``"line_regex"`` in build systems.
@@ -1104,7 +1116,7 @@ def get_log_result_regex() -> bool:
     return sublime_api.get_log_result_regex()
 
 
-def log_indexing(flag: Optional[bool] = None):
+def log_indexing(flag: bool | None = None):
     """
     Control whether indexing logs are printed to the console.
 
@@ -1124,7 +1136,7 @@ def get_log_indexing() -> bool:
     return sublime_api.get_log_indexing()
 
 
-def log_build_systems(flag: Optional[bool] = None):
+def log_build_systems(flag: bool | None = None):
     """
     Control whether build system logs are printed to the console.
 
@@ -1144,7 +1156,7 @@ def get_log_build_systems() -> bool:
     return sublime_api.get_log_build_systems()
 
 
-def log_control_tree(flag: Optional[bool] = None):
+def log_control_tree(flag: bool | None = None):
     """
     Control whether control tree logging is enabled. When enabled clicking with
     ctrl+alt will log the control tree under the mouse to the console.
@@ -1167,7 +1179,7 @@ def get_log_control_tree() -> bool:
     return sublime_api.get_log_control_tree()
 
 
-def ui_info() -> dict:
+def ui_info() -> dict[str, Value]:
     """
     .. since:: 4096
 
@@ -1188,28 +1200,42 @@ def score_selector(scope_name: str, selector: str) -> int:
     return sublime_api.score_selector(scope_name, selector)
 
 
-def load_resource(name: str) -> str:
+def load_resource(name: str, max_size=(1 << 24)) -> str:
     """
     Loads the given resource. The name should be in the format "Packages/Default/Main.sublime-menu".
 
-    :raises FileNotFoundError: if resource is not found
+    Resources are loaded synchronously. Loading large resources can cause the
+    application to stutter or not respond.
+
+    :param max_size: The maximum size of the resource to load. :since:`4201`
+
+    :raises FileNotFoundError: if resource is not found.
+    :raises FileTooLargeError: if resource exceeds ``max_size``.
+    :raises IsADirectoryError: if resource is not a file, but a directory.
     """
-    s = sublime_api.load_resource(name)
-    if s is None:
-        raise FileNotFoundError(f'resource "{name}" not found')
-    return s
+    r = sublime_api.load_resource(name, max_size)
+    if isinstance(r, type):
+        raise r(name)
+    return r
 
 
-def load_binary_resource(name) -> bytes:
+def load_binary_resource(name: str, max_size=(1 << 24)) -> bytes:
     """
     Loads the given resource. The name should be in the format "Packages/Default/Main.sublime-menu".
 
-    :raises FileNotFoundError: if resource is not found
+    Resources are loaded synchronously. Loading large resources can cause the
+    application to stutter or not respond.
+
+    :param max_size: The maximum size of the resource to load. :since:`4201`
+
+    :raises FileNotFoundError: if resource is not found.
+    :raises FileTooLargeError: if resource exceeds ``max_size``.
+    :raises IsADirectoryError: if resource is not a file, but a directory.
     """
-    bytes = sublime_api.load_binary_resource(name)
-    if bytes is None:
-        raise FileNotFoundError(f'resource "{name}" not found')
-    return bytes
+    r = sublime_api.load_binary_resource(name, max_size)
+    if isinstance(r, type):
+        raise r(name)
+    return r
 
 
 def find_resources(pattern: str) -> list[str]:
@@ -1219,7 +1245,7 @@ def find_resources(pattern: str) -> list[str]:
     return sublime_api.find_resources(pattern)
 
 
-def encode_value(value: Value, pretty=False, update_text: str = None) -> str:
+def encode_value(value: Value, pretty=False, update_text: str | None = None) -> str:
     """
     Encode a JSON compatible `Value` into a string representation.
 
@@ -1280,21 +1306,21 @@ def save_settings(base_name: str):
     sublime_api.save_settings(base_name)
 
 
-def set_timeout(callback: Callable, delay: int = 0):
+def set_timeout(callback: Callable[[], None], delay: int = 0):
     """
     Run the ``callback`` in the main thread after the given ``delay``
     (in milliseconds). Callbacks with an equal delay will be run in the order
     they were added.
     """
-    sublime_api.set_timeout(callback, delay)
+    sublime_api.set_timeout(callback, int(delay))
 
 
-def set_timeout_async(callback: Callable, delay: int = 0):
+def set_timeout_async(callback: Callable[[], None], delay: int = 0):
     """
     Runs the callback on an alternate thread after the given delay
     (in milliseconds).
     """
-    sublime_api.set_timeout_async(callback, delay)
+    sublime_api.set_timeout_async(callback, int(delay))
 
 
 def active_window() -> Window:
@@ -1311,7 +1337,7 @@ def windows() -> list[Window]:
     return [Window(id) for id in sublime_api.windows()]
 
 
-def get_macro() -> list[dict]:
+def get_macro() -> list[dict[str, str | CommandArgs]]:
     """
     :returns: A list of the commands and args that compromise the currently
               recorded macro. Each ``dict`` will contain the keys ``"command"``
@@ -1345,9 +1371,9 @@ class Window:
     """
 
     def __init__(self, id: int):
-        self.window_id = id
-        self.settings_object: Optional[Settings] = None
-        self.template_settings_object: Optional[Settings] = None
+        self.window_id: int = id
+        self.settings_object: Settings | None = None
+        self.template_settings_object: Settings | None = None
 
     def __hash__(self) -> int:
         return self.window_id
@@ -1380,7 +1406,7 @@ class Window:
         """
         return sublime_api.window_system_handle(self.window_id)
 
-    def active_sheet(self) -> Optional[Sheet]:
+    def active_sheet(self) -> Sheet | None:
         """
         :returns: The currently focused `Sheet`.
         """
@@ -1390,7 +1416,7 @@ class Window:
         else:
             return make_sheet(sheet_id)
 
-    def active_view(self) -> Optional[View]:
+    def active_view(self) -> View | None:
         """
         :returns: The currently edited `View`.
         """
@@ -1446,7 +1472,7 @@ class Window:
         """
         return View(sublime_api.window_open_file(self.window_id, fname, flags, group))
 
-    def find_open_file(self, fname: str, group=-1) -> Optional[View]:
+    def find_open_file(self, fname: str, group=-1) -> View | None:
         """
         Find a opened file by file name.
 
@@ -1602,7 +1628,7 @@ class Window:
         sheet_ids = sublime_api.window_selected_sheets_in_group(self.window_id, group)
         return [make_sheet(s) for s in sheet_ids]
 
-    def active_sheet_in_group(self, group: int) -> Optional[Sheet]:
+    def active_sheet_in_group(self, group: int) -> Sheet | None:
         """
         :returns: The currently focused `Sheet` in the given group.
         """
@@ -1612,7 +1638,7 @@ class Window:
         else:
             return make_sheet(sheet_id)
 
-    def active_view_in_group(self, group: int) -> Optional[View]:
+    def active_view_in_group(self, group: int) -> View | None:
         """
         :returns: The currently focused `View` in the given group.
         """
@@ -1648,7 +1674,7 @@ class Window:
         """
         return sublime_api.window_num_views_in_group(self.window_id, group)
 
-    def transient_sheet_in_group(self, group: int) -> Optional[Sheet]:
+    def transient_sheet_in_group(self, group: int) -> Sheet | None:
         """
         :returns: The transient sheet in the specified group.
         """
@@ -1658,7 +1684,7 @@ class Window:
         else:
             return None
 
-    def transient_view_in_group(self, group: int) -> Optional[View]:
+    def transient_view_in_group(self, group: int) -> View | None:
         """
         :returns: The transient view in the specified group.
         """
@@ -1682,7 +1708,7 @@ class Window:
         """
         return sublime_api.window_get_layout(self.window_id)
 
-    def get_layout(self):
+    def get_layout(self) -> dict[str, Value]:
         """
         :deprecated: Use `layout()` instead
         """
@@ -1706,7 +1732,7 @@ class Window:
         """
         return View(sublime_api.window_create_output_panel(self.window_id, name, unlisted, None)[0])
 
-    def find_output_panel(self, name: str) -> Optional[View]:
+    def find_output_panel(self, name: str) -> View | None:
         """
         :returns:
             The `View` associated with the named output panel, or ``None`` if
@@ -1721,7 +1747,7 @@ class Window:
         """
         sublime_api.window_destroy_output_panel(self.window_id, name)
 
-    def create_io_panel(self, name: str, on_input: Callable[[str], None], unlisted=False) -> Tuple[View, View]:
+    def create_io_panel(self, name: str, on_input: Callable[[str], None], unlisted=False) -> tuple[View, View]:
         """
         Just like `create_output_panel`, find the view(s) associated with the
         named output panel, creating it if required. The output panel will
@@ -1741,7 +1767,7 @@ class Window:
         output_view_id, input_view_id = sublime_api.window_create_output_panel(self.window_id, name, unlisted, on_input)
         return View(output_view_id), View(input_view_id)
 
-    def find_io_panel(self, name: str) -> Tuple[Optional[View], Optional[View]]:
+    def find_io_panel(self, name: str) -> tuple[View | None, View | None]:
         """
         :returns:
             The output `View` associated with the named output panel and if the
@@ -1754,7 +1780,7 @@ class Window:
             View(input_view_id) if input_view_id else None,
         )
 
-    def active_panel(self) -> Optional[str]:
+    def active_panel(self) -> str | None:
         """
         Returns the name of the currently open panel, or None if no panel is
         open. Will return built-in panel names (e.g. ``"console"``, ``"find"``,
@@ -1771,14 +1797,14 @@ class Window:
         """
         return sublime_api.window_panels(self.window_id)
 
-    def get_output_panel(self, name: str):
+    def get_output_panel(self, name: str) -> View:
         """ :deprecated: Use `create_output_panel` instead. """
         return self.create_output_panel(name)
 
     def show_input_panel(self, caption: str, initial_text: str,
-                         on_done: Optional[Callable[[str], None]],
-                         on_change: Optional[Callable[[str], None]],
-                         on_cancel: Optional[Callable[[], None]]):
+                         on_done: Callable[[str], None] | None,
+                         on_change: Callable[[str], None] | None,
+                         on_cancel: Callable[[], None] | None):
         """
         Shows the input panel, to collect a line of input from the user.
 
@@ -1797,8 +1823,8 @@ class Window:
                          on_select: Callable[[int], None],
                          flags=QuickPanelFlags.NONE,
                          selected_index=-1,
-                         on_highlight: Optional[Callable[[int], None]] = None,
-                         placeholder: Optional[str] = None):
+                         on_highlight: Callable[[int], None] | None = None,
+                         placeholder: str | None = None):
         """
         Show a quick panel to select an item in a list. on_select will be called
         once, with the index of the selected item. If the quick panel was
@@ -1901,7 +1927,7 @@ class Window:
         """ :returns: A list of the currently open folders in this `Window`. """
         return sublime_api.window_folders(self.window_id)
 
-    def project_file_name(self) -> Optional[str]:
+    def project_file_name(self) -> str | None:
         """ :returns: The name of the currently opened project file, if any. """
         name = sublime_api.window_project_file_name(self.window_id)
         if len(name) == 0:
@@ -1909,7 +1935,7 @@ class Window:
         else:
             return name
 
-    def workspace_file_name(self) -> Optional[str]:
+    def workspace_file_name(self) -> str | None:
         """
         .. since:: 4050
 
@@ -1920,7 +1946,7 @@ class Window:
             return None
         return name
 
-    def project_data(self) -> Value:
+    def project_data(self) -> dict[str, Value] | None:
         """
         :returns: The project data associated with the current window. The data
                   is in the same format as the contents of a
@@ -1928,7 +1954,7 @@ class Window:
         """
         return sublime_api.window_get_project_data(self.window_id)
 
-    def set_project_data(self, data: Value):
+    def set_project_data(self, data: dict[str, Value]):
         """
         Updates the project data associated with the current window. If the
         window is associated with a :path:`.sublime-project` file, the project
@@ -2051,6 +2077,8 @@ class Edit:
     `View`, will cause the functions that require them to fail.
     """
 
+    __slots__ = ['edit_token']
+
     def __init__(self, token: int):
         self.edit_token: int = token
 
@@ -2069,7 +2097,7 @@ class Region:
 
     __slots__ = ['a', 'b', 'xpos']
 
-    def __init__(self, a: Point, b: Optional[Point] = None, xpos: DIP = -1):
+    def __init__(self, a: Point, b: Point | None = None, xpos: DIP = -1):
         """ """
         if b is None:
             b = a
@@ -2088,7 +2116,7 @@ class Region:
         undefined.
         """
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         """
         Iterate through all the points in the region.
 
@@ -2097,7 +2125,7 @@ class Region:
         return iter((self.a, self.b))
 
     def __str__(self) -> str:
-        return "(" + str(self.a) + ", " + str(self.b) + ")"
+        return f"({self.a}, {self.b})"
 
     def __repr__(self) -> str:
         if self.xpos == -1:
@@ -2137,7 +2165,7 @@ class Region:
         if isinstance(v, Region):
             return v.a in self and v.b in self
         elif isinstance(v, int):
-            return v >= self.begin() and v <= self.end()
+            return self.begin() <= v <= self.end()
         else:
             fq_name = ""
             if v.__class__.__module__ not in {'builtins', '__builtin__'}:
@@ -2244,7 +2272,7 @@ class HistoricPosition:
         .. since:: 4075
         """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f'HistoricPosition(pt={self.pt!r}, row={self.row!r}, '
                 f'col={self.col!r}, col_utf16={self.col_utf16!r}, '
                 f'col_utf8={self.col_utf8!r})')
@@ -2284,7 +2312,7 @@ class TextChange:
         :meta noindex:
         """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f'TextChange({self.a!r}, {self.b!r}, '
                 f'len_utf16={self.len_utf16!r}, len_utf8={self.len_utf8!r}, '
                 f'str={self.str!r})')
@@ -2298,8 +2326,10 @@ class Selection:
     This is primarily used to represent the textual selection.
     """
 
-    def __init__(self, id):
-        self.view_id = id
+    __slots__ = ['view_id']
+
+    def __init__(self, id: int):
+        self.view_id: int = id
 
     def __iter__(self) -> Iterator[Region]:
         """
@@ -2307,11 +2337,8 @@ class Selection:
 
         .. since:: 4023 3.8
         """
-        i = 0
-        n = len(self)
-        while i < n:
+        for i in range(len(self)):
             yield sublime_api.view_selection_get(self.view_id, i)
-            i += 1
 
     def __len__(self) -> int:
         """ :returns: The number of regions in the selection. """
@@ -2332,7 +2359,7 @@ class Selection:
         """ :returns: Whether the selections are identical. """
         return rhs is not None and isinstance(rhs, Selection) and list(self) == list(rhs)
 
-    def __lt__(self, rhs: Optional[Selection]) -> bool:
+    def __lt__(self, rhs: Selection | None) -> bool:
         """ """
         return rhs is not None and list(self) < list(rhs)
 
@@ -2405,7 +2432,7 @@ class Selection:
         return sublime_api.view_selection_has_multiple_non_empty_regions(self.view_id)
 
 
-def make_sheet(sheet_id):
+def make_sheet(sheet_id: int) -> Sheet:
     if (sheet_id & 3) == 0:
         return TextSheet(sheet_id)
     elif (sheet_id & 3) == 1:
@@ -2413,7 +2440,7 @@ def make_sheet(sheet_id):
     elif (sheet_id & 3) == 2:
         return HtmlSheet(sheet_id)
     else:
-        return None
+        raise ValueError("Invalid sheet_id")
 
 
 class Sheet:
@@ -2422,8 +2449,8 @@ class Sheet:
     contain a View, or an image preview.
     """
 
-    def __init__(self, id):
-        self.sheet_id = id
+    def __init__(self, id: int):
+        self.sheet_id: int = id
 
     def __hash__(self) -> int:
         return self.sheet_id
@@ -2438,7 +2465,7 @@ class Sheet:
         """ :returns: A number that uniquely identifies this sheet. """
         return self.sheet_id
 
-    def window(self) -> Optional[Window]:
+    def window(self) -> Window | None:
         """
         :returns: The `Window` containing this sheet. May be ``None`` if the
                   sheet has been closed.
@@ -2449,7 +2476,7 @@ class Sheet:
         else:
             return Window(window_id)
 
-    def view(self) -> Optional[View]:
+    def view(self) -> View | None:
         """
         :returns: The `View` contained within the sheet if any.
         """
@@ -2459,7 +2486,17 @@ class Sheet:
         else:
             return View(view_id)
 
-    def file_name(self) -> Optional[str]:
+    def name(self) -> str | None:
+        """:returns: The name assigned to the sheet, if any. """
+        return sublime_api.sheet_get_name(self.sheet_id)
+
+    def set_name(self, name: str):
+        """
+        Set the name displayed in the tab. Doesn't affect saved TextSheets.
+        """
+        sublime_api.sheet_set_name(self.sheet_id, name)
+
+    def file_name(self) -> str | None:
         """
         :returns:
             The full name of the file associated with the sheet, or ``None``
@@ -2500,7 +2537,7 @@ class Sheet:
         """
         return sublime_api.sheet_is_selected(self.sheet_id)
 
-    def group(self) -> Optional[int]:
+    def group(self) -> int | None:
         """
         :returns: The (layout) group that the sheet is contained within.
 
@@ -2529,12 +2566,8 @@ class TextSheet(Sheet):
     .. since:: 4065
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'TextSheet({self.sheet_id!r})'
-
-    def set_name(self, name: str):
-        """ Set the name displayed in the tab. Only affects unsaved files. """
-        sublime_api.sheet_set_name(self.sheet_id, name)
 
 
 class ImageSheet(Sheet):
@@ -2544,7 +2577,7 @@ class ImageSheet(Sheet):
     .. since:: 4065
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'ImageSheet({self.sheet_id!r})'
 
 
@@ -2555,12 +2588,8 @@ class HtmlSheet(Sheet):
     .. since:: 4065
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'HtmlSheet({self.sheet_id!r})'
-
-    def set_name(self, name: str):
-        """ Set the name displayed in the tab. """
-        sublime_api.sheet_set_name(self.sheet_id, name)
 
     def set_contents(self, contents: str):
         """ Set the HTML content of the sheet. """
@@ -2603,10 +2632,10 @@ class View:
     `View.clones()` or `Buffer.views()`.
     """
 
-    def __init__(self, id):
-        self.view_id = id
+    def __init__(self, id: int):
+        self.view_id: int = id
         self.selection = Selection(id)
-        self.settings_object = None
+        self.settings_object: Settings | None = None
 
     def __len__(self) -> int:
         return self.size()
@@ -2647,7 +2676,7 @@ class View:
         """
         return sublime_api.view_sheet_id(self.view_id)
 
-    def sheet(self) -> Optional[Sheet]:
+    def sheet(self) -> Sheet | None:
         """
         .. since:: 4083
 
@@ -2655,7 +2684,7 @@ class View:
         """
         return make_sheet(self.sheet_id())
 
-    def element(self) -> Optional[str]:
+    def element(self) -> str | None:
         """
         .. since:: 4050
 
@@ -2701,7 +2730,7 @@ class View:
         """
         return sublime_api.view_is_primary(self.view_id)
 
-    def window(self) -> Optional[Window]:
+    def window(self) -> Window | None:
         """
         :returns: A reference to the window containing the view, if any.
         """
@@ -2715,7 +2744,7 @@ class View:
         """ :returns: All the other views into the same `Buffer`. See `View`. """
         return list(map(View, sublime_api.view_clones(self.view_id)))
 
-    def file_name(self) -> Optional[str]:
+    def file_name(self) -> str | None:
         """
         :returns: The full name of the file associated with the sheet, or
                   ``None`` if it doesn't exist on disk.
@@ -2741,7 +2770,7 @@ class View:
 
     def set_name(self, name: str):
         """
-        Assign a name to the buffer. Displayed as in the tab for unsaved files.
+        Assign a name to the buffer. Displayed as in the tab.
         """
         sublime_api.view_set_name(self.view_id, name)
 
@@ -2923,9 +2952,9 @@ class View:
     def find_all(self,
                  pattern: str,
                  flags=FindFlags.NONE,
-                 fmt: Optional[str] = None,
-                 extractions: Optional[list[str]] = None,
-                 within: Optional[Region | list[Region]] = None) -> list[Region]:
+                 fmt: str | None = None,
+                 extractions: list[str] | None = None,
+                 within: Region | list[Region] | None = None) -> list[Region]:
         """
         :param pattern: The regex or literal pattern to search by.
         :param flags: Controls various behaviors of find. See `FindFlags`.
@@ -2989,7 +3018,7 @@ class View:
         """
         return sublime_api.view_extract_scope(self.view_id, pt)
 
-    def expand_to_scope(self, pt: Point, selector: str) -> Optional[Region]:
+    def expand_to_scope(self, pt: Point, selector: str) -> Region | None:
         """
         Expand by the provided scope selector from the `Point`.
 
@@ -3232,7 +3261,7 @@ class View:
         """
         return sublime_api.view_text_point_utf16(self.view_id, row, col, clamp_column)
 
-    def utf8_code_units(self, tp: Point = None) -> int:
+    def utf8_code_units(self, tp: Point | None = None) -> int:
         """
         Calculates the utf8 code unit offset at the given text point.
 
@@ -3246,7 +3275,7 @@ class View:
             return sublime_api.view_code_units_at(self.view_id, tp)[0]
         return sublime_api.view_total_code_units(self.view_id)[0]
 
-    def utf16_code_units(self, tp: Point = None) -> int:
+    def utf16_code_units(self, tp: Point | None = None) -> int:
         """
         Calculates the utf16 code unit offset at the given text point.
 
@@ -3381,8 +3410,8 @@ class View:
     def add_regions(self, key: str, regions: list[Region], scope="",
                     icon="", flags=RegionFlags.NONE, annotations: list[str] = [],
                     annotation_color="",
-                    on_navigate: Optional[Callable[[str], None]] = None,
-                    on_close: Optional[Callable[[], None]] = None):
+                    on_navigate: Callable[[str], None] | None = None,
+                    on_close: Callable[[], None] | None = None):
         """
         Adds visual indicators to regions of text in the view. Indicators
         include icons in the gutter, underlines under the text, borders around
@@ -3465,7 +3494,7 @@ class View:
         sublime_api.view_erase_regions(self.view_id, key)
 
     def add_phantom(self, key: str, region: Region, content: str, layout: PhantomLayout,
-                    on_navigate: Optional[Callable[[str], None]] = None) -> int:
+                    on_navigate: Callable[[str], None] | None = None) -> int:
         return sublime_api.view_add_phantom(self.view_id, key, region, content, layout, on_navigate)
 
     def erase_phantoms(self, key: str):
@@ -3497,12 +3526,9 @@ class View:
         """ :deprecated: Use `assign_syntax()` instead. """
         self.assign_syntax(syntax_file)
 
-    def syntax(self) -> Optional[Syntax]:
+    def syntax(self) -> Syntax | None:
         """ :returns: The syntax assigned to the buffer. """
-        path = self.settings().get('syntax')
-        if not path or not isinstance(path, str):
-            return None
-        return syntax_from_path(path)
+        return sublime_api.view_syntax(self.view_id)
 
     def symbols(self) -> list[tuple[Region, str]]:
         """
@@ -3628,8 +3654,8 @@ class View:
 
     def show_popup(self, content: str, flags=PopupFlags.NONE, location: Point = -1,
                    max_width: DIP = 320, max_height: DIP = 240,
-                   on_navigate: Optional[Callable[[str], None]] = None,
-                   on_hide: Optional[Callable[[], None]] = None):
+                   on_navigate: Callable[[str], None] | None = None,
+                   on_hide: Callable[[], None] | None = None):
         """
         Show a popup displaying HTML content.
 
@@ -3684,7 +3710,7 @@ class View:
         sublime_api.view_preserve_auto_complete_on_focus_lost(self.view_id)
 
     def export_to_html(self,
-                       regions: Optional[Region | list[Region]] = None,
+                       regions: Region | list[Region] | None = None,
                        minihtml=False, enclosing_tags=False,
                        font_size=True, font_family=True):
         """
@@ -3744,8 +3770,8 @@ class Buffer:
     .. since:: 4081
     """
 
-    def __init__(self, id):
-        self.buffer_id = id
+    def __init__(self, id: int):
+        self.buffer_id: int = id
 
     def __hash__(self) -> int:
         return self.buffer_id
@@ -3764,7 +3790,7 @@ class Buffer:
         """
         return self.buffer_id
 
-    def file_name(self) -> Optional[str]:
+    def file_name(self) -> str | None:
         """
         The full name file the file associated with the buffer, or ``None`` if
         it doesn't exist on disk.
@@ -3795,8 +3821,10 @@ class Settings:
     A ``dict`` like object that a settings hierarchy.
     """
 
-    def __init__(self, id):
-        self.settings_id = id
+    __slots__ = ['settings_id']
+
+    def __init__(self, id: int):
+        self.settings_id: int = id
 
     def __getitem__(self, key: str) -> Value:
         """
@@ -3838,7 +3866,7 @@ class Settings:
     def __repr__(self) -> str:
         return f'Settings({self.settings_id!r})'
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Value]:
         """
         Return the settings as a dict. This is not very fast.
 
@@ -3846,7 +3874,7 @@ class Settings:
         """
         return sublime_api.settings_to_dict(self.settings_id)
 
-    def setdefault(self, key: str, value: Value):
+    def setdefault(self, key: str, value: Value) -> Value:
         """
         Returns the value associated with the provided ``key``. If it's not
         present the provided ``value`` is assigned to the ``key`` and then
@@ -3859,7 +3887,7 @@ class Settings:
         sublime_api.settings_set(self.settings_id, key, value)
         return value
 
-    def update(self, other=(), /, **kwargs):
+    def update(self, other: Mapping[str, Value] | Iterable[tuple[str, Value]] = (), /, **kwargs):
         """
         Update the settings from the provided argument(s).
 
@@ -3872,10 +3900,10 @@ class Settings:
 
         .. since:: 4078 3.8
         """
-        if isinstance(other, collections.abc.Mapping):
-            for key in other:
-                self[key] = other[key]
-        elif hasattr(other, 'keys'):
+        if isinstance(other, Mapping):
+            for key, value in other.items():
+                self[key] = value
+        elif hasattr(other, 'keys') and hasattr(other, '__getitem__'):
             for key in other.keys():
                 self[key] = other[key]
         else:
@@ -3930,7 +3958,12 @@ class Phantom:
     the `View`, changes to the attributes will have no effect.
     """
 
-    def __init__(self, region: Region, content: str, layout: PhantomLayout, on_navigate: Callable[[str], None] = None):
+    def __init__(
+            self,
+            region: Region,
+            content: str,
+            layout: PhantomLayout,
+            on_navigate: Callable[[str], None] | None = None):
         self.region: Region = region
         """
         The `Region` associated with the phantom. The phantom is displayed at
@@ -3940,7 +3973,7 @@ class Phantom:
         """ The HTML content of the phantom. """
         self.layout: PhantomLayout = layout
         """ How the phantom should be placed relative to the ``region``. """
-        self.on_navigate: Optional[Callable[[str], None]] = on_navigate
+        self.on_navigate: Callable[[str], None] | None = on_navigate
         """
         Called when a link in the HTML is clicked. The value of the ``href``
         attribute is passed.
@@ -3957,7 +3990,7 @@ class Phantom:
         return (f'Phantom({self.region!r}, {self.content!r}, '
                 f'{self.layout!r}, on_navigate={self.on_navigate!r})')
 
-    def to_tuple(self) -> tuple[tuple[Point, Point], str, PhantomLayout, Optional[Callable[[str], None]]]:
+    def to_tuple(self) -> tuple[tuple[Point, Point], str, PhantomLayout, Callable[[str], None] | None]:
         """
         Returns a tuple of this phantom containing the region, content, layout
         and callback.
@@ -3974,6 +4007,8 @@ class PhantomSet:
     updating them and removing them from a `View`.
     """
 
+    __slots__ = ['view', 'key', 'phantoms']
+
     def __init__(self, view: View, key=""):
         """
         """
@@ -3989,7 +4024,8 @@ class PhantomSet:
 
     def __del__(self):
         for p in self.phantoms:
-            self.view.erase_phantom_by_id(p.id)
+            if p.id is not None:
+                self.view.erase_phantom_by_id(p.id)
 
     def __repr__(self) -> str:
         return f'PhantomSet({self.view!r}, key={self.key!r})'
@@ -4004,7 +4040,7 @@ class PhantomSet:
 
         # Update the list of phantoms that exist in the text buffer with their
         # current location
-        regions = self.view.query_phantoms([p.id for p in self.phantoms])  # type: ignore
+        regions = self.view.query_phantoms([p.id for p in self.phantoms if p.id is not None])
         for phantom, region in zip(self.phantoms, regions):
             phantom.region = region
 
@@ -4023,8 +4059,8 @@ class PhantomSet:
         for p in self.phantoms:
             # if the region is -1, then it's already been deleted, no need to
             # call erase
-            if p.id not in new_phantom_ids and p.region != Region(-1):
-                self.view.erase_phantom_by_id(p.id)  # type: ignore
+            if p.id is not None and p.id not in new_phantom_ids and p.region != Region(-1):
+                self.view.erase_phantom_by_id(p.id)
 
         self.phantoms = [p for p in new_phantoms.values()]
 
@@ -4052,16 +4088,16 @@ class CompletionList:
     .. since:: 4050
     """
 
-    def __init__(self, completions: Optional[list[CompletionValue]] = None, flags=AutoCompleteFlags.NONE):
+    def __init__(self, completions: list[CompletionValue] | None = None, flags=AutoCompleteFlags.NONE):
         """
         :param completions:
             If ``None`` is passed, the method `set_completions()` must be called
             before the completions will be displayed to the user.
         :param flags: Flags controlling auto-complete behavior. See `AutoCompleteFlags`.
         """
-        self.target = None
-        self.completions = completions
-        self.flags = flags
+        self.target: sublime_api.MultiCompletionList | None = None
+        self.completions: list[CompletionValue] | None = completions
+        self.flags: AutoCompleteFlags = flags
 
     def __repr__(self) -> str:
         return f'CompletionList(completions={self.completions!r}, flags={self.flags!r})'
@@ -4113,7 +4149,7 @@ class CompletionItem:
             annotation="",
             completion="",
             completion_format=CompletionFormat.TEXT,
-            kind=KIND_AMBIGUOUS,
+            kind: Kind = KIND_AMBIGUOUS,
             details="",
             flags=CompletionItemFlags.NONE):
 
@@ -4137,7 +4173,7 @@ class CompletionItem:
 
         .. since:: 4073
         """
-        self.flags = flags
+        self.flags: CompletionItemFlags = flags
 
     def __eq__(self, rhs: object) -> bool:
         if not isinstance(rhs, CompletionItem):
@@ -4172,7 +4208,7 @@ class CompletionItem:
             trigger: str,
             snippet: str,
             annotation="",
-            kind=KIND_SNIPPET,
+            kind: Kind = KIND_SNIPPET,
             details="") -> 'CompletionItem':
         """
         Specialized constructor for snippet completions. The `completion_format`
@@ -4193,7 +4229,7 @@ class CompletionItem:
             command: str,
             args: CommandArgs = None,
             annotation="",
-            kind=KIND_AMBIGUOUS,
+            kind: Kind = KIND_AMBIGUOUS,
             details="") -> 'CompletionItem':
         """
         Specialized constructor for command completions. The `completion_format`
@@ -4216,7 +4252,7 @@ def list_syntaxes() -> list[Syntax]:
     return sublime_api.list_syntaxes()
 
 
-def syntax_from_path(path: str) -> Optional[Syntax]:
+def syntax_from_path(path: str) -> Syntax | None:
     """ Get the syntax for a specific path.
 
     Returns a Syntax or None.
@@ -4240,7 +4276,7 @@ def find_syntax_by_scope(scope: str) -> list[Syntax]:
     return [syntax for syntax in list_syntaxes() if syntax.scope == scope]
 
 
-def find_syntax_for_file(path, first_line="") -> Optional[Syntax]:
+def find_syntax_for_file(path: str, first_line="") -> Syntax | None:
     """ Find the syntax to use for a path.
 
     Uses the file extension, various application settings and optionally the
@@ -4296,7 +4332,12 @@ class QuickPanelItem:
 
     __slots__ = ['trigger', 'details', 'annotation', 'kind']
 
-    def __init__(self, trigger: str, details="", annotation="", kind=KIND_AMBIGUOUS):
+    def __init__(
+            self,
+            trigger: str,
+            details: str | list[str] | tuple[str] = "",
+            annotation="",
+            kind: Kind = KIND_AMBIGUOUS):
         self.trigger: str = trigger
         """ Text to match against user's input. """
         self.details: str | list[str] | tuple[str] = details
@@ -4324,7 +4365,13 @@ class ListInputItem:
 
     __slots__ = ['text', 'value', 'details', 'annotation', 'kind']
 
-    def __init__(self, text: str, value: Any, details="", annotation="", kind=KIND_AMBIGUOUS):
+    def __init__(
+            self,
+            text: str,
+            value: Any,
+            details: str | list[str] | tuple[str] = "",
+            annotation="",
+            kind: Kind = KIND_AMBIGUOUS):
         self.text: str = text
         """ Text to match against the user's input. """
         self.value: Any = value
@@ -4404,4 +4451,4 @@ class SymbolLocation:
                 f'type={self.type!r}, kind={self.kind!r})')
 
     def path_encoded_position(self) -> str:
-        return "%s:%d:%d" % (self.path, self.row, self.col)
+        return f"{self.path}:{self.row}:{self.col}"

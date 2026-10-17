@@ -21,12 +21,17 @@ uv add --dev sublime-text-stubs
 pip install --upgrade sublime-text-stubs
 ```
 
+The package requires Python 3.13 or newer to install,
+and your type checker has to target Python 3.13 or newer.
+Python 3.14 matches the plugin host.
+
 ## Versioning
 
 Versions follow the scheme `1.${st_build_version}.${patch}`:
 
 | Version     | Sublime Text build | Embedded Python |
 | ----------- | ------------------ | --------------- |
+| `1.4213.*`  | 4213 (stable)      | 3.14            |
 | `1.4200.*`  | 4200 (stable)      | 3.8             |
 
 The leading `1` is the schema version of this package itself,
@@ -37,11 +42,11 @@ This is deliberately not semantic versioning.
 Pin the build you target:
 
 ```toml
-sublime-text-stubs = "==1.4200.*"
+sublime-text-stubs = "==1.4213.*"
 ```
 
-Sublime Text 4 also still ships a legacy Python 3.3 runtime.
-It is scheduled for removal and is not targeted by this package.
+Sublime Text also ships a disabled, deprecated Python 3.3 plugin host.
+This package does not target it.
 
 ## Notes for plugin authors
 
@@ -61,13 +66,16 @@ It is scheduled for removal and is not targeted by this package.
   when the command is invoked without that argument.
 - **`TextChangeListener.buffer` is `sublime.Buffer`, never `None`.**
 - **`ValueLike` is what you pass in, `Value` is what you get back.**
-  Every parameter a plugin hands a value to is annotated `ValueLike`,
+  Parameters a plugin hands a value to are annotated `ValueLike`,
   which accepts arbitrary sequences and mappings,
-  so a `List[str]` variable can be passed directly
+  except where a specific shape is required:
+  `Window.set_project_data()` takes a mapping,
+  and `Settings.update()` takes a mapping or an iterable of key/value pairs.
+  A `list[str]` variable can be passed directly
   even though the invariant `list[Value]` would reject it:
 
   ```python
-  tags: List[str] = ["fix", "feature"]
+  tags: list[str] = ["fix", "feature"]
   settings.set("tags", tags)
   sublime.encode_value(tags)
   ```
@@ -88,17 +96,16 @@ It is scheduled for removal and is not targeted by this package.
   and that value type is what `list_items()`, `description()`,
   `preview()`, `validate()` and `confirm()` traffic in.
   You may parameterize on anything a `ValueLike` allows,
-  so `ListInputHandler[List[str]]` type-checks,
+  so `ListInputHandler[list[str]]` type-checks,
   while a bare annotation resolves to `Value`,
   which is what the runtime actually delivers.
   `TextInputHandler` is a `CommandInputHandler[str]`.
   A bare `CommandInputHandler`,
   as in the return types of `Command.input()` and `next_input()`,
   still accepts every kind of handler,
-  so `Optional[sublime_plugin.CommandInputHandler]` keeps working unchanged.
-  The real classes cannot be subscripted on the Python 3.8 plugin host,
-  so parameterize a base class through an `if TYPE_CHECKING:` alias
-  and quote subscripted annotations:
+  so `sublime_plugin.CommandInputHandler | None` keeps working unchanged.
+  The real classes cannot be subscripted at runtime,
+  so parameterize a base class through an `if TYPE_CHECKING:` alias:
 
   ```python
   if TYPE_CHECKING:

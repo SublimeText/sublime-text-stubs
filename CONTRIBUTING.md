@@ -14,7 +14,7 @@ this file only tells you where to look.
 | `stubs/`                 | The generated `.pyi` files, one `-stubs` package per module. **Never edited by hand.** |
 | `tools/generate_stubs.py`| The generator that derives `stubs/` from `references/`. |
 | `tools/stub_overrides.py`| Declarative corrections the generator cannot derive on its own. |
-| `references/python38/`   | The annotated `sublime.py`, `sublime_plugin.py` and `sublime_types.py` shipped with the targeted Sublime Text build. |
+| `references/python314/`  | The annotated `sublime.py`, `sublime_plugin.py` and `sublime_types.py` shipped with the targeted Sublime Text build. |
 | `tests/typing/`          | Sample consumer code, type-checked to validate the stubs. |
 | `.github/workflows/`     | `ci.yml` for the stubs, `tools.yml` for the generator, `release.yml` for PyPI. |
 
@@ -25,13 +25,14 @@ rather than transcribed by hand.
 
 ### Branches
 
-Each supported Sublime Text build line lives on its own branch,
-because the build lines target different Python versions
-and therefore need different stub syntax and type checker settings:
-
-- `main` -- ST build 4200, Python 3.8, tagged `v1.4200.x`
-- (planned) `main` moves on to ST build 4213, Python 3.14, tagged `v1.4213.x`,
-  and build 4200 continues on `st-4200`
+`main` targets ST build 4213 with Python 3.14
+and is tagged `v1.4213.x`.
+Build 4200 is released as `v1.4200.0`.
+An `st-4200` branch is created from that tag
+only when a follow-up release for that build is needed.
+Build lines live on separate branches
+because they target different Python versions
+and therefore need different stub syntax and type checker settings.
 
 Fixes that apply to more than one build line
 are cherry-picked between branches,
@@ -70,7 +71,7 @@ Each table's docstring says what it corrects;
 add the entry, rerun the generator, commit the regenerated `.pyi` alongside it.
 
 Record the reasoning for a non-obvious entry as a comment next to it,
-with a `references/python38/<file>:<line>` pointer
+with a `references/python314/<file>:<line>` pointer
 to the reference code that justifies it.
 If the correction changes what plugin authors have to write or can expect,
 add the consequence -- not the reasoning -- to the notes in `README.md`.
@@ -140,12 +141,20 @@ See `tools/pyproject.toml` for the settings and the reasons behind them.
 
 ## Onboarding a new Sublime Text build
 
-1. Copy the build's `sublime.py`, `sublime_plugin.py` and `sublime_types.py`
-   into `references/python<version>/`.
+1. Extract the build's sources as described in `references/README.md`.
+   If the build ships a different Python version,
+   `git mv` the reference directory to its new name first,
+   so that the history follows the files.
 2. Point `REFERENCE_DIR` and `ST_BUILD` in `tools/generate_stubs.py` at it.
 3. Run the generator and resolve everything it reports as unresolved,
    including any override it reports as stale.
-4. Run the four type checkers and commit the regenerated `.pyi` files.
+4. Repoint the `references/...:<line>` citations
+   in `tools/` and `pyproject.toml` to the new sources.
+5. Audit the overrides:
+   keep, reword or remove each one
+   depending on whether the new reference makes it redundant.
+6. Run all checks listed in `AGENTS.md`
+   and commit the regenerated `.pyi` files.
 
 ## Releasing
 
