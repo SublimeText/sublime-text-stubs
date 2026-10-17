@@ -53,9 +53,8 @@ packages = [
 include = ["stubs", "tests", "tools", "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "LICENSE"]
 
 # --- type checkers -----------------------------------------------------------
-# `pythonVersion` / `python_version` below is the Python of the Sublime Text plugin
-# host this branch targets, the Sublime Text embedded interpreter (Python 3.14), not
-# the interpreter used to run the checkers.
+# The Python versions below are that of the plugin host of Sublime Text build 4213
+# (Python 3.14), not that of the interpreter used to run the checkers.
 
 # Shared by pyright and basedpyright. basedpyright reads `[tool.pyright]` and honours
 # its own extra rules from it; a separate `[tool.basedpyright]` section is not an
@@ -205,7 +204,8 @@ order-by-type = false
     "A002",
     # Signatures are wrapped at `STUB_LINE_WIDTH`, but the docstrings are reference
     # prose kept verbatim and a handful of its lines are longer than any limit worth
-    # setting; references/python38/sublime_plugin.py:2151 is 188 characters.
+    # setting; the directive at references/python314/sublime_plugin.py:2157-2158 is
+    # emitted as a single 188-character line.
     "E501",
     # The typographic quote comes from the reference docstring.
     "RUF002",

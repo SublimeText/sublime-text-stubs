@@ -8,8 +8,23 @@ not semantic versioning; see the README.
 
 ## [Unreleased]
 
+### Added
+
+- `sublime.lib_path()`.
+- `sublime.FileTooLargeError`, a subclass of `FileNotFoundError`.
+- The `max_size` parameter of `sublime.load_resource()` and `sublime.load_binary_resource()`.
+- `sublime.Sheet.name()`.
+- `sublime.Sheet.set_name()`,
+  which replaces the separate methods on `TextSheet` and `HtmlSheet`
+  and so is now available on every sheet.
+
 ### Changed
 
+- The stubs are generated from Sublime Text build 4213.
+- `sublime.Window.project_data()` returns `dict[str, Value] | None`
+  instead of `Value`.
+- The `sublime.KIND_*` constants are declared as `Kind`
+  instead of leaving their type to inference from the value.
 - The stubs use native Python 3.14 typing syntax:
   `type` statements for the aliases
   and PEP 695 type parameters with PEP 696 defaults

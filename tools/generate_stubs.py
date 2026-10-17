@@ -13,10 +13,10 @@ them mechanically instead of being transcribed by hand.
 The ``.pyi`` files are generated artifacts and must not be edited: corrections go
 into this script or into ``stub_overrides.py``.
 
-Why not ``mypy stubgen --include-docstrings``? Measured against mypy 2.3.0 on this
-reference, its output carries 700 errors under plain ``strict`` pyright -- which is
-weaker than the ruleset ``pyproject.toml`` enforces -- and every one of them has to
-be repaired from the reference anyway:
+Why not ``mypy stubgen --include-docstrings``? Measured against mypy 2.3.0 on the
+reference of build 4200, its output carries 700 errors under plain ``strict``
+pyright -- which is weaker than the ruleset ``pyproject.toml`` enforces -- and every
+one of them has to be repaired from the reference anyway:
 
 - 137 attributes and constants come out as ``Incomplete``. Every backwards
   compatibility alias (``HOVER_TEXT = HoverZone.TEXT``) loses both its value and its
@@ -24,9 +24,10 @@ be repaired from the reference anyway:
 - All 114 attribute docstrings are dropped. The reference documents its enum members
   and instance attributes with bare string literals, which is the bulk of what these
   stubs exist to carry to the editor.
-- ``sublime_types`` is a total loss: eight ``X: TypeAlias`` declarations with no value
-  at all, which is what 109 of those errors are downstream of. The two `TypedDict`
-  definitions have no counterpart in the reference to begin with.
+- ``sublime_types`` is a total loss: its eight ``X: TypeAlias`` declarations (``type``
+  statements as of build 4213) come out with no value at all, which is what 109 of
+  those errors are downstream of. The two `TypedDict` definitions have no
+  counterpart in the reference to begin with.
 - The 83 docstring-only event handlers are absent; nothing mechanical finds a
   ``.. method::`` directive.
 - 160 private and plugin-host names are included (``_LogWriter``, ``ZipLoader``, the
@@ -61,8 +62,8 @@ from typing import cast, override
 import stub_overrides as ov
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REFERENCE_DIR = REPO_ROOT / "references" / "python38"
-ST_BUILD = "4200"
+REFERENCE_DIR = REPO_ROOT / "references" / "python314"
+ST_BUILD = "4213"
 
 INDENT = "    "
 
@@ -257,14 +258,12 @@ class Reference:
         self.bases: dict[tuple[str, str], list[str]] = {}
         self.methods: dict[tuple[str, str], set[str]] = {}
         self.functions: dict[str, set[str]] = {}  # module -> top level function names
-        self.aliases: dict[str, set[str]] = {}  # module -> annotated top level names
+        self.aliases: dict[str, set[str]] = {}  # module -> top level `type` alias names
 
         for module, tree in self.trees.items():
             names: set[str] = set()
             self.functions[module] = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
-            self.aliases[module] = {
-                n.target.id for n in tree.body if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
-            }
+            self.aliases[module] = {n.name.id for n in tree.body if isinstance(n, ast.TypeAlias)}
             for node in tree.body:
                 if not isinstance(node, ast.ClassDef):
                     continue
@@ -395,9 +394,8 @@ def modernize(annotation: str) -> str:
     except SyntaxError:
         return annotation
     if isinstance(tree, ast.Constant) and isinstance(tree.value, str):
-        # The reference quotes forward references, and every `sublime_types` alias,
-        # so that they stay lazily evaluated at runtime. A stub is never evaluated,
-        # so there the quotes only get in the way (`PYI020`, `UP037`).
+        # The reference quotes some forward references (`-> 'CompletionItem'`). A stub
+        # is never evaluated, so there the quotes only get in the way (`PYI020`, `UP037`).
         return modernize(tree.value)
     original = ast.unparse(tree)  # before the transformer mutates the tree in place
     # `NodeTransformer.visit` is typed as returning `Any`.
@@ -443,18 +441,7 @@ def self_assignment(node: ast.stmt) -> tuple[str, ast.expr | None, str | None] |
     """``(name, value, annotation)`` of a public ``self.x = ...``, or ``None`` for anything else.
 
     The annotation is taken verbatim; unlike for parameters (see `resolve_arg`), an
-    implicit ``= None`` default does NOT make the attribute Optional. The one case
-    where that matters is `TextChangeListener.buffer`, written as
-    ``self.buffer: sublime.Buffer = None``
-    (``references/python38/sublime_plugin.py:2249``). Both hand-written third-party
-    stub sets (sublimelsp/LSP, SublimeText/sublime_lib) spell it ``Buffer | None``,
-    but the plugin host only ever hands out attached instances: ``attach_buffer`` and
-    ``check_text_change_listeners`` both instantiate and attach in a single
-    expression, ``cls().attach(buf)`` (``references/python38/sublime_plugin.py:679``
-    and ``:701``), so no listener body can observe the None. Declaring it Optional
-    would force a narrowing check in every handler for a state users never see.
-    ``detach()`` does not reset it either, so the attribute keeps pointing at the
-    buffer it was last attached to.
+    implicit ``= None`` default does NOT make the attribute Optional.
     """
     if isinstance(node, ast.AnnAssign):
         target, value, annotation = node.target, node.value, ast.unparse(node.annotation)
@@ -588,8 +575,9 @@ class ModuleGenerator:
         if annotation is None and default is not None:
             annotation = self.infer_from_default(default)
         if annotation is not None and is_none(default) and not accepts_none(annotation):
-            # The reference writes `on_navigate: Callable[[str], None] = None`
-            # in a few places; under strict checking that has to be Optional.
+            # A `None` default under a non-optional annotation, as the `FontOptions`
+            # override of `choose_font_dialog`'s `default` produces, has to be
+            # Optional under strict checking.
             # This applies to parameters only -- annotated `self.x: T = None`
             # attributes keep their annotation verbatim, see
             # `emit_instance_attributes`.
@@ -931,15 +919,16 @@ class ModuleGenerator:
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
                 if allowlisted:
                     continue
-                if self.module == "sublime_types":
-                    current = "class" if self.aliases_to_class(node) else "assignment"
-                    self.separate(previous, current)
-                    self.emit_type_alias(node)
-                    previous = current
-                else:
-                    self.separate(previous, "assignment")
-                    _ = self.emit_assignment(node, "", None, module_level=True)
-                    previous = "assignment"
+                self.separate(previous, "assignment")
+                _ = self.emit_assignment(node, "", None, module_level=True)
+                previous = "assignment"
+            elif isinstance(node, ast.TypeAlias):
+                if allowlisted:
+                    continue
+                current = "class" if node.name.id in ov.TYPE_ALIAS_CLASSES else "assignment"
+                self.separate(previous, current)
+                self.emit_type_alias(node)
+                previous = current
 
         previous = self.emit_extra_type_aliases(previous)
         self.emit_extra_type_alias_classes(previous)
@@ -978,18 +967,8 @@ class ModuleGenerator:
             self.lines.append(block)
             previous = "class"
 
-    def aliases_to_class(self, node: ast.stmt) -> bool:
-        """Whether `node` is a module-level alias replaced by a `TYPE_ALIAS_CLASSES` entry."""
-        return (
-            isinstance(node, ast.AnnAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id in ov.TYPE_ALIAS_CLASSES
-        )
-
-    def emit_type_alias(self, node: ast.stmt) -> None:
-        if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
-            return
-        name = node.target.id
+    def emit_type_alias(self, node: ast.TypeAlias) -> None:
+        name = node.name.id
         class_override = self.override("TYPE_ALIAS_CLASSES", name)
         if class_override is not None:
             self.note(class_override)
@@ -999,8 +978,6 @@ class ModuleGenerator:
         if override is not None:
             value = modernize(override)
         else:
-            assert node.value is not None
-            # `modernize` unquotes the string the reference wraps every alias in.
             value = self.check_annotation(ast.unparse(node.value), self.key(name))
         self.note(value)
         self.lines.append(f"type {name} = {value}")

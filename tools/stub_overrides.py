@@ -93,7 +93,7 @@ SKIP_MEMBERS = [
 # would otherwise leave their type to inference.
 CONSTANTS = {
     # A popup flag predating `PopupFlags`, and the only one with no member of that
-    # enum to alias; references/python38/sublime.py:260. `Literal` keeps the value in
+    # enum to alias; references/python314/sublime.py:263. `Literal` keeps the value in
     # the type, which is what the enum members it sits among carry too.
     "sublime.HTML": "Literal[1]",
 }
@@ -106,21 +106,21 @@ RETURNS = {
     # `system`/`theme`/`color_scheme` keys the docstring already names.
     "sublime.ui_info": "UIInfo",
     # Bare `list[dict]` in the reference, whose docstring
-    # (references/python38/sublime.py:1314-1320) names both keys of every entry;
+    # (references/python314/sublime.py:1340-1346) names both keys of every entry;
     # see `MacroStep` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.get_macro": "list[MacroStep]",
     "sublime.Settings.to_dict": "dict[str, Value]",
     # Bare `dict[str, Value]` in the reference for `layout`, and unannotated for the
-    # deprecated `get_layout` (references/python38/sublime.py:1679-1695); neither
+    # deprecated `get_layout` (references/python314/sublime.py:1705-1721); neither
     # docstring names a key, see `WindowLayout` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.Window.layout": "WindowLayout",
     "sublime.Window.get_layout": "WindowLayout",
     # Bare `dict[str, Value]` in the reference, whose docstring
-    # (references/python38/sublime.py:3057-3080) names every key; see `ScopeStyle` in
+    # (references/python314/sublime.py:3086-3109) names every key; see `ScopeStyle` in
     # `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.View.style_for_scope": "ScopeStyle",
     # `dict[str, str]` in the reference, whose docstring
-    # (references/python38/sublime.py:2017-2038) names every key it may contain; see
+    # (references/python314/sublime.py:2043-2064) names every key it may contain; see
     # `WindowVariables` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.Window.extract_variables": "WindowVariables",
     # Unannotated in the reference.
@@ -136,16 +136,16 @@ RETURNS = {
     "sublime.Settings.setdefault": "Value",
     "sublime_plugin.BackInputHandler.name": "str",
     # The reference spells a six-arm union of `list`-only forms
-    # (references/python38/sublime_plugin.py:1306-1311), but `setup_` only checks for the
+    # (references/python314/sublime_plugin.py:1312-1317), but `setup_` only checks for the
     # `(items, index)` tuple and then iterates, dispatching per item
-    # (references/python38/sublime_plugin.py:1343-1372). So any `Iterable` works, and the
+    # (references/python314/sublime_plugin.py:1349-1378). So any `Iterable` works, and the
     # three item forms may be mixed in one -- hence the union over the *element* type.
     "sublime_plugin.ListInputHandler.list_items": (
         "Iterable[str | tuple[str, T] | sublime.ListInputItem[T]]"
         " | tuple[Iterable[str | tuple[str, T] | sublime.ListInputItem[T]], int]"
     ),
     "sublime_plugin.TextChangeListener.is_applicable": "bool",
-    # It compares `vel.__class__ == cls` (references/python38/sublime_plugin.py:668-673),
+    # It compares `vel.__class__ == cls` (references/python314/sublime_plugin.py:648-653),
     # so the instance found is exactly of the class asked for.
     "sublime_plugin.find_view_event_listener": "T | None",
 }
@@ -153,6 +153,10 @@ RETURNS = {
 # Parameter type overrides / annotations the generator cannot infer.
 PARAMS = {
     "sublime.load_binary_resource.name": "str",
+    # Unannotated with a `(1 << 24)` default, which the generator does not evaluate
+    # (references/python314/sublime.py:1203 and :1222).
+    "sublime.load_resource.max_size": "int",
+    "sublime.load_binary_resource.max_size": "int",
     "sublime.find_syntax_for_file.path": "str",
     # The callback's return value is discarded by the runtime, so `object` describes
     # it without resorting to `Any`.
@@ -189,7 +193,7 @@ PARAMS = {
     "sublime.Settings.get.default": "ValueLike",
     # Not an overshoot like the rest of the group: `Settings.update` is implemented in
     # Python and genuinely iterates any `Mapping`
-    # (references/python38/sublime.py:3862-3883).
+    # (references/python314/sublime.py:3890-3911).
     "sublime.Settings.update.other": "Settings | Mapping[str, ValueLike] | Iterable[tuple[str, ValueLike]]",
     "sublime.Settings.update.kwargs": "ValueLike",
     "sublime.CompletionItem.command_completion.args": "CommandArgsLike",
@@ -198,27 +202,27 @@ PARAMS = {
     "sublime.CompletionItem.command_completion.kind": "Kind",
     "sublime.QuickPanelItem.__init__.kind": "Kind",
     "sublime.ListInputItem.__init__.kind": "Kind",
-    # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
+    # `Any` in the reference (references/python314/sublime.py:4371); the class is generic
     # over it instead, so the constructor argument is what fixes the item's value type.
     "sublime.ListInputItem.__init__.value": "T",
     # Unannotated with a `details=""` default, so the generator infers `str` from
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
-    # tuples with "\x1f" (`references/python38/sublime.py:1838`). The attribute wins.
+    # tuples with "\x1f" (`references/python314/sublime.py:1864`). The attribute wins.
     "sublime.QuickPanelItem.__init__.details": "str | list[str] | tuple[str]",
     "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str]",
     "sublime_plugin.CommandInputHandler.next_input.args": "dict[str, Value]",
     "sublime_plugin.Command.input.args": "dict[str, Value]",
     # The reference spells all three `text: str`, but for a `ListInputHandler` the host
     # passes the *value* of the selected item, not its row text
-    # (references/python38/sublime_plugin.py:1220-1242). See `TYPE_PARAMS`.
+    # (references/python314/sublime_plugin.py:1226-1248). See `TYPE_PARAMS`.
     "sublime_plugin.CommandInputHandler.preview.text": "T",
     "sublime_plugin.CommandInputHandler.validate.text": "T",
     "sublime_plugin.CommandInputHandler.confirm.text": "T",
     # Unannotated in the reference; it is the same value the methods above receive.
     "sublime_plugin.ListInputHandler.description.value": "T",
-    # The reference spells both `operand: str` (references/python38/sublime_plugin.py:1852
-    # and :2131), but a `.sublime-keymap` context's `"operand"` may be a JSON string,
+    # The reference spells both `operand: str` (references/python314/sublime_plugin.py:1858
+    # and :2137), but a `.sublime-keymap` context's `"operand"` may be a JSON string,
     # number, or boolean -- e.g. `"operand": 1` for `num_selections`, `"operand": true`
     # for a boolean setting -- and the host hands it through unconverted. `Value`, not
     # `ValueLike`, because this is the host calling the plugin, the same outbound
@@ -232,25 +236,25 @@ PARAMS = {
     # The `.. method::` directives for these two spell `buffer: View`, but their
     # own prose says "buffer will be a Buffer object" and the dispatcher does
     # `buf = sublime.Buffer(buffer_id)` before invoking the callbacks
-    # (`references/python38/sublime_plugin.py:829` and `:838`).
+    # (`references/python314/sublime_plugin.py:807` and `:816`).
     "sublime_plugin.EventListener.on_associate_buffer.buffer": "sublime.Buffer",
     "sublime_plugin.EventListener.on_associate_buffer_async.buffer": "sublime.Buffer",
     # `layout` in the reference is `dict[str, Value]`
-    # (references/python38/sublime.py:1691), but a `WindowLayout` is not assignable
+    # (references/python314/sublime.py:1717), but a `WindowLayout` is not assignable
     # to that: without this override, `window.set_layout(window.layout())` stops
     # type-checking once `layout()` returns a `WindowLayout` instead.
     "sublime.Window.set_layout.layout": "WindowLayout",
     # `variables` in the reference is `dict[str, str]`
-    # (references/python38/sublime.py:1253), and sublime.py:2036 tells the user the
+    # (references/python314/sublime.py:1279), and sublime.py:2062 tells the user the
     # result of `extract_variables()` is "suitable for use with `expand_variables()`".
     # A `TypedDict` is assignable to neither `dict[str, str]` nor `Mapping[str, str]`,
     # only to `Mapping[str, object]` -- which would wrongly accept any mapping of
     # arbitrary values -- so the parameter has to name both types.
     "sublime.expand_variables.variables": "dict[str, str] | WindowVariables",
     # The reference spells these as `callback: Callable[[Value], None]` and
-    # `default: dict[str, Value]` (references/python38/sublime.py:925); see
+    # `default: dict[str, Value]` (references/python314/sublime.py:937); see
     # `FontOptions` in `EXTRA_TYPE_ALIAS_CLASSES`. The `| None` on the callback
-    # argument is from the docstring (sublime.py:933-934): it "will be called with
+    # argument is from the docstring (sublime.py:945-946): it "will be called with
     # ``None`` if the dialog is cancelled". `default` needs no `| None` here -- the
     # generator already emits `FontOptions | None = ...` from the reference's
     # `= None` default.
@@ -262,10 +266,21 @@ PARAMS = {
 ATTRIBUTES = {
     "sublime.View.settings_object": "Settings | None",
     "sublime.CompletionList.target": "int | None",
-    # Annotated `Any` in the reference (references/python38/sublime.py:4330), whose own
+    # Annotated `Any` in the reference (references/python314/sublime.py:4377), whose own
     # docstring one line below calls it "A `Value` passed to the command"; see
     # `TYPE_PARAMS`.
     "sublime.ListInputItem.value": "T",
+    # The reference initializes it as `self.buffer: sublime.Buffer | None = None`
+    # (references/python314/sublime_plugin.py:2259). Both hand-written third-party stub
+    # sets (sublimelsp/LSP, SublimeText/sublime_lib) spell it `Buffer | None` too, but
+    # the plugin host only ever hands out attached instances: `attach_buffer` and
+    # `check_text_change_listeners` both instantiate and attach in a single expression,
+    # `cls().attach(buf)` (references/python314/sublime_plugin.py:659 and :679), so no
+    # listener body can observe the `None`. Declaring it Optional would force a
+    # narrowing check in every handler for a state users never see. `detach()` does not
+    # reset it either (references/python314/sublime_plugin.py:2261-2281), so the
+    # attribute keeps pointing at the buffer it was last attached to.
+    "sublime_plugin.TextChangeListener.buffer": "sublime.Buffer",
 }
 
 # PEP 695 type parameter lists, keyed by `module.Class` or `module.function`. The
@@ -275,7 +290,7 @@ ATTRIBUTES = {
 TYPE_PARAMS: dict[str, str] = {
     # Bounded by `ValueLike` because the item's value is what gets delivered to the
     # command: "A `Value` passed to the command if the row is selected"
-    # (references/python38/sublime.py:4330-4331). The bound is `ValueLike` rather than
+    # (references/python314/sublime.py:4377-4378). The bound is `ValueLike` rather than
     # `Value` because it constrains what an author may parameterize on, and that is an
     # inbound position: `Value`'s containers are invariant, so it would reject
     # `ListInputItem[list[str]]`. See `EXTRA_TYPE_ALIASES` below.
@@ -295,11 +310,12 @@ TYPE_PARAMS: dict[str, str] = {
     "sublime.ListInputItem": "T: ValueLike = Value",
     # `CommandInputHandler` only ever *consumes* a value -- the host passes the selected
     # item's value to `preview_`, `validate_` and `confirm_`
-    # (references/python38/sublime_plugin.py:1220-1242) -- so its inferred variance is
+    # (references/python314/sublime_plugin.py:1226-1248) -- so its inferred variance is
     # contravariant. Under contravariance `CommandInputHandler[Never]` is the *top* of
     # the handler lattice: every `CommandInputHandler[X]` is assignable to it. That is
     # what lets `next_input` and `Command.input` keep the reference's own bare
-    # `Optional[CommandInputHandler]` return annotation, which the `Never` default
+    # `CommandInputHandler | None` return annotation
+    # (references/python314/sublime_plugin.py:1214, :1523), which the `Never` default
     # resolves to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
     # (a `CommandInputHandler[str]`) -- with no `Any` and no `RETURNS` override.
     "sublime_plugin.CommandInputHandler": "T: ValueLike = Never",
@@ -359,7 +375,7 @@ TYPE_ALIASES = {
 #    keep failing -- which is the whole problem this alias exists to solve.
 #    `Settings.update` is the one place where any `Mapping` really is accepted: it
 #    is implemented in Python and iterates the mapping itself
-#    (references/python38/sublime.py:3862-3883).
+#    (references/python314/sublime.py:3890-3911).
 # 2. Whatever is passed in is delivered back as a plain `list` or `dict`, so a
 #    handler parameterized on a custom sequence type type-checks and then receives
 #    a `list`. That needs two type parameters to express and is documented instead.
@@ -367,8 +383,8 @@ TYPE_ALIASES = {
 # `Sequence` matches the runtime closely: sequences are duck-typed through
 # `__getitem__`, so a hand-rolled `collections.abc.Sequence` is accepted, and so is
 # `bytes`, which arrives back as a `list[int]`. `Region` has `__iter__`, `__len__`
-# and `__contains__` but no `__getitem__` (references/python38/sublime.py:2091-2130,
-# the run of dunders in a `class Region` that starts at :2061), so it fails
+# and `__contains__` but no `__getitem__` (references/python314/sublime.py:2119-2158,
+# the run of dunders in a `class Region` that starts at :2089), so it fails
 # `PySequence_Check` at runtime and is not a nominal `Sequence` for the checkers
 # either.
 #
@@ -444,7 +460,7 @@ class Event(TypedDict, total=False):
 # reference and cannot be flagged stale. `generate_stubs.py` appends them, in
 # order, after the reference-derived aliases in `sublime_types`.
 #
-# `sublime.ui_info` (references/python38/sublime.py:1170) returns a bare `dict`
+# `sublime.ui_info` (references/python314/sublime.py:1182) returns a bare `dict`
 # documented only as "top-level keys `system`, `theme` and `color_scheme`"; the
 # official API reference and the community docs go no further than that sentence.
 # The shapes below are reverse engineered from a live `sublime.ui_info()` call
@@ -526,11 +542,11 @@ class UIInfo(TypedDict, total=False):
     system: UIInfoSystem
     theme: UIInfoTheme
     color_scheme: UIInfoColorScheme''',
-    # `View.style_for_scope` (references/python38/sublime.py:3056) returns a bare
+    # `View.style_for_scope` (references/python314/sublime.py:3085) returns a bare
     # `dict[str, Value]`, but its docstring lists every key it can carry, in the order
     # below. `NotRequired` marks exactly the keys it flags "(only if set)".
     #
-    # Two of those keys are documented with the wrong type: sublime.py:3074-3076 says
+    # Two of those keys are documented with the wrong type: sublime.py:3103-3105 says
     # `"source_line": str` and `"source_file": int`, but a live
     # `view.style_for_scope(...)` call returns `'source_line': -1` and
     # `'source_file': 'Packages/Theme - Nil/Tubnil_mod.tmTheme'`. The runtime wins, as
@@ -564,7 +580,7 @@ class ScopeStyle(TypedDict):
     source_line: int
     source_column: int
     source_file: str''',
-    # `get_macro` (references/python38/sublime.py:1314-1320) returns a bare
+    # `get_macro` (references/python314/sublime.py:1340-1346) returns a bare
     # `list[dict]`, but its docstring says each entry "will contain the keys
     # ``"command"`` and ``"args"``", so both fields are required. `CommandArgs` is
     # `dict[str, Value] | None`, so a command with no arguments is already covered
@@ -580,7 +596,7 @@ class MacroStep(TypedDict):
     """
     command: str
     args: CommandArgs''',
-    # `Window.layout` (references/python38/sublime.py:1679-1695) documents no keys at
+    # `Window.layout` (references/python314/sublime.py:1705-1721) documents no keys at
     # all, only "Get/Set the group layout of the window". The shape below comes from a
     # live `window.layout()` call, which returned
     # `{'cells': [[0, 0, 1, 1]], 'cols': [0.0, 1.0], 'rows': [0.0, 1.0]}`. All three
@@ -603,11 +619,11 @@ class WindowLayout(TypedDict):
     Each entry is a ``[col_start, row_start, col_end, row_end]`` index quadruple
     into `cols` and `rows`, describing one group's rectangle.
     """''',
-    # `Window.extract_variables` (references/python38/sublime.py:2017-2038) returns
+    # `Window.extract_variables` (references/python314/sublime.py:2043-2064) returns
     # `dict[str, str]` and introduces its key list with "May contain:", so not one of
     # them is guaranteed and the class is uniformly `total=False` rather than marking
     # every field `NotRequired`. The key order below is the docstring's
-    # (references/python38/sublime.py:2022-2034).
+    # (references/python314/sublime.py:2048-2060).
     "WindowVariables": '''\
 class WindowVariables(TypedDict, total=False):
     """
@@ -630,13 +646,13 @@ class WindowVariables(TypedDict, total=False):
     project_name: str
     project_base_name: str
     project_extension: str''',
-    # `choose_font_dialog` (references/python38/sublime.py:925-947) documents no
+    # `choose_font_dialog` (references/python314/sublime.py:937-959) documents no
     # types at all, only the example `{ "font_face": "monospace" }` at
-    # sublime.py:932. A live `choose_font_dialog(print)` call passed
+    # sublime.py:944. A live `choose_font_dialog(print)` call passed
     # `{'font_face': 'Sans', 'font_size': 10}` to the callback, which is where
     # `font_size: int` comes from. `total=False` because the same type describes
     # both directions and the input side reads both keys through `.get`
-    # (sublime.py:941-943: `default.get("font_face")` and
+    # (sublime.py:953-955: `default.get("font_face")` and
     # `default.get("font_size")`).
     "FontOptions": '''\
 class FontOptions(TypedDict, total=False):
@@ -683,7 +699,7 @@ COMMAND_RUN_NOTE = """\
 # `Command.is_enabled`, `is_visible`, `is_checked` and `description` receive command
 # arguments the same dynamic way as `run`: the host-facing `is_enabled_` and friends call
 # `self.is_enabled(**self.filter_args(args))` and fall back to a no-argument call on
-# `TypeError` (reference `sublime_plugin.py` lines 1414-1493). Unlike `run` they do have a
+# `TypeError` (reference `sublime_plugin.py` lines 1412-1491). Unlike `run` they do have a
 # meaningful default implementation, so they are kept -- and emitted exactly as the
 # reference declares them, without parameters. sublimelsp/LSP's hand-written stub instead
 # adds `**kwargs: dict[str, Any]` to all four; we deliberately do not, because
