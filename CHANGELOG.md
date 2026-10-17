@@ -48,6 +48,15 @@ their changes are listed under the release that follows them.
   and mypy itself has to run on Python 3.13 or newer.
   Accordingly, `requires-python` is now `>=3.13`.
 
+## 4200.1 (2026-10-17)
+
+### Changed
+
+- Versions follow `${st_build_version}.${patch}`
+  instead of `1.${st_build_version}.${patch}`.
+  This release carries the same stubs as `1.4200.1`.
+  Pin `==4200.*` instead of `==1.4200.*`.
+
 ## 1.4200.1 (2026-10-17)
 
 ### Changed
