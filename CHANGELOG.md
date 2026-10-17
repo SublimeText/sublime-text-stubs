@@ -3,8 +3,9 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versions follow `1.${st_build_version}.${patch}`,
+Versions follow `${st_build_version}.${patch}`,
 not semantic versioning; see the README.
+Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 Releases of all build lines are listed here,
 ordered by their release date, newest first.
 From build 4213 on,
@@ -25,6 +26,9 @@ their changes are listed under the release that follows them.
 
 ### Changed
 
+- Versions follow `${st_build_version}.${patch}`
+  instead of `1.${st_build_version}.${patch}`.
+  Pin `==4213.*` instead of `==1.4213.*`.
 - The stubs are generated from Sublime Text build 4213.
 - `sublime.Window.project_data()` returns `dict[str, Value] | None`
   instead of `Value`.

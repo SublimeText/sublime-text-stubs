@@ -26,10 +26,9 @@ rather than transcribed by hand.
 ### Branches
 
 `main` targets ST build 4213 with Python 3.14
-and is tagged `v1.4213.x`.
-Build 4200 is released as `v1.4200.0`.
-An `st-4200` branch is created from that tag
-only when a follow-up release for that build is needed.
+and is tagged `v4213.x`.
+Build 4200 continues on the `st-4200` branch
+and is tagged `v4200.x`.
 Build lines live on separate branches
 because they target different Python versions
 and therefore need different stub syntax and type checker settings.
@@ -158,7 +157,7 @@ See `tools/pyproject.toml` for the settings and the reasons behind them.
 
 ## Releasing
 
-Tag `v1.${st_build_version}.${patch}` on the branch for that build line.
+Tag `v${st_build_version}.${patch}` on the branch for that build line.
 hatch-vcs derives the distribution version from the tag,
 and the `Release` workflow publishes to PyPI via trusted publishing.
 Before tagging,
