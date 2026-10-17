@@ -30,7 +30,8 @@ because the build lines target different Python versions
 and therefore need different stub syntax and type checker settings:
 
 - `main` -- ST build 4200, Python 3.8, tagged `v1.4200.x`
-- (planned) `st-4206` -- ST build 4206, Python 3.14, tagged `v1.4206.x`
+- (planned) `main` moves on to ST build 4213, Python 3.14, tagged `v1.4213.x`,
+  and build 4200 continues on `st-4200`
 
 Fixes that apply to more than one build line
 are cherry-picked between branches,

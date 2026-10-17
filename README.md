@@ -28,7 +28,6 @@ Versions follow the scheme `1.${st_build_version}.${patch}`:
 | Version     | Sublime Text build | Embedded Python |
 | ----------- | ------------------ | --------------- |
 | `1.4200.*`  | 4200 (stable)      | 3.8             |
-| `1.4206.*`  | 4206 (dev)         | 3.14            |
 
 The leading `1` is the schema version of this package itself,
 the middle segment is the Sublime Text build the stubs describe,
