@@ -167,6 +167,9 @@ under a `## <version> (<YYYY-MM-DD>)` heading
 dated with the release day.
 Releases are ordered by date, newest first,
 regardless of their build line.
+Pre-releases get no section of their own,
+so their changes stay under `[Unreleased]`
+until the final release.
 
 `main` holds the changelog of every build line.
 After releasing from another branch,

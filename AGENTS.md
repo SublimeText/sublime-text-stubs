@@ -40,7 +40,8 @@ A ruff finding under `stubs/` is fixed in the generator, never in the `.pyi`.
   Consequences only; the reasoning behind a quirk stays in the code.
 - `CONTRIBUTING.md` -- for contributors: structure, generating, validating, adjusting overrides,
   onboarding a new ST build, releasing.
-- `CHANGELOG.md` -- user-visible changes, grouped under `[Unreleased]` until a tag.
+- `CHANGELOG.md` -- user-visible changes, grouped under `[Unreleased]` until a final release tag;
+  pre-releases get no section.
   Releases of all build lines are collected on `main`, dated and ordered by date, newest first.
 - Technical decisions live in **inline comments** next to the code they govern
   (`pyproject.toml` for checker settings, `tools/*.py` for generator behaviour)

@@ -7,6 +7,9 @@ Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 Releases of all build lines are listed here,
 ordered by their release date, newest first.
+From build 4213 on,
+pre-releases have no section of their own;
+their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
