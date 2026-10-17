@@ -5,6 +5,8 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
+Releases of all build lines are listed here,
+ordered by their release date, newest first.
 
 ## [Unreleased]
 

@@ -161,4 +161,15 @@ See `tools/pyproject.toml` for the settings and the reasons behind them.
 Tag `v1.${st_build_version}.${patch}` on the branch for that build line.
 hatch-vcs derives the distribution version from the tag,
 and the `Release` workflow publishes to PyPI via trusted publishing.
-Add the changes to `CHANGELOG.md` before tagging.
+Before tagging,
+move the changes in `CHANGELOG.md` from `[Unreleased]`
+under a `## <version> (<YYYY-MM-DD>)` heading
+dated with the release day.
+Releases are ordered by date, newest first,
+regardless of their build line.
+
+`main` holds the changelog of every build line.
+After releasing from another branch,
+add its release section to the changelog on `main`
+at the position of its date
+and remove the released entries from `[Unreleased]` there.
