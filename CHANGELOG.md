@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow `1.${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 
+## [Unreleased]
+
+### Changed
+
+- The stubs use native Python 3.14 typing syntax:
+  `type` statements for the aliases
+  and PEP 695 type parameters with PEP 696 defaults
+  on `ListInputItem`, `CommandInputHandler`, `ListInputHandler`
+  and `find_view_event_listener()`.
+  They no longer import `typing_extensions`.
+- Type checkers have to target Python 3.13 or newer to read the stubs,
+  and mypy itself has to run on Python 3.13 or newer.
+- `requires-python` is now `>=3.13`.
+
 ## 1.4200.0
 
 ### Changed

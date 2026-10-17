@@ -2,22 +2,14 @@
 # Source: references/python38/sublime_plugin.py (Sublime Text build 4200).
 
 from collections.abc import Iterable
-from typing import Generic
+from typing import Never, override
 
 import sublime
 from sublime_types import Event as Event
 from sublime_types import Value as Value
 from sublime_types import ValueLike as ValueLike
-from typing_extensions import Never, override, TypeVar
 
-_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
-_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)
-_T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)
-
-def find_view_event_listener(
-    view: sublime.View,
-    cls: type[_T_ViewEventListener],
-) -> _T_ViewEventListener | None:
+def find_view_event_listener[T: ViewEventListener](view: sublime.View, cls: type[T]) -> T | None:
     """
     Return the instance of the ``ViewEventListener`` subclass ``cls`` that is
     attached to ``view``, or ``None`` if there is none. The class has to match
@@ -27,7 +19,7 @@ def find_view_event_listener(
     builds and is used by plugins, but it may change or disappear without notice.
     """
 
-class CommandInputHandler(Generic[_T_Value_contra]):
+class CommandInputHandler[T: ValueLike = Never]:
     def name(self) -> str:
         """
         The command argument name this input handler is editing. Defaults to
@@ -51,14 +43,14 @@ class CommandInputHandler(Generic[_T_Value_contra]):
         .. since:: 4081
         """
 
-    def preview(self, text: _T_Value_contra) -> str | sublime.Html:
+    def preview(self, text: T) -> str | sublime.Html:
         """
         Called whenever the user changes the text in the entry box. The returned
         value (either plain text or HTML) will be shown in the preview area of
         the *Command Palette*.
         """
 
-    def validate(self, text: _T_Value_contra, event: Event | None = ...) -> bool:
+    def validate(self, text: T, event: Event | None = ...) -> bool:
         """
         Called whenever the user presses enter in the text entry box.
         Return :py:`False` to disallow the current value.
@@ -72,7 +64,7 @@ class CommandInputHandler(Generic[_T_Value_contra]):
         backspace or escape.
         """
 
-    def confirm(self, text: _T_Value_contra, event: Event | None = ...) -> None:
+    def confirm(self, text: T, event: Event | None = ...) -> None:
         """
         Called when the input is accepted, after the user has pressed enter and
         the text has been validated.
@@ -117,7 +109,7 @@ class TextInputHandler(CommandInputHandler[str]):
         entered.
         """
 
-class ListInputHandler(CommandInputHandler[_T_Value]):
+class ListInputHandler[T: ValueLike = Value](CommandInputHandler[T]):
     """
     ListInputHandlers can be used to accept a choice input from a list items in
     the *Command Palette*. Return a subclass of this from `Command.input()`.
@@ -127,7 +119,7 @@ class ListInputHandler(CommandInputHandler[_T_Value]):
     command to a :path:`Default.sublime-commands` file.*
     """
 
-    def list_items(self) -> Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]] | tuple[Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]], int]:
+    def list_items(self) -> Iterable[str | tuple[str, T] | sublime.ListInputItem[T]] | tuple[Iterable[str | tuple[str, T] | sublime.ListInputItem[T]], int]:
         """
         This method should return the items to show in the list.
 
@@ -145,7 +137,7 @@ class ListInputHandler(CommandInputHandler[_T_Value]):
             A `sublime.ListInputItem` object
         """
 
-    def description(self, value: _T_Value, text: str) -> str:
+    def description(self, value: T, text: str) -> str:
         """
         The text to show in the *Command Palette* when this input handler is not
         at the top of the input handler stack. Defaults to the text of the list

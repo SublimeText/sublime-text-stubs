@@ -116,21 +116,17 @@ SHADOWABLE_BUILTINS = {
 }
 
 # Names still worth importing from `typing`: they have no builtin equivalent.
-TYPING_NAMES = ["Any", "Generic", "Literal", "TypedDict"]
+# The order is the emitted one, so it has to be isort's: case-insensitive, since the
+# `order-by-type = false` in the root pyproject.toml leaves ruff's default
+# `case-sensitive = false` in charge.
+TYPING_NAMES = ["Any", "Literal", "Never", "NotRequired", "override", "TypedDict"]
 
 # The modern home of the abstract collection types; `typing.Callable` and friends
 # are deprecated aliases of these.
 COLLECTIONS_ABC_NAMES = ["Callable", "Iterable", "Iterator", "Mapping", "Sequence"]
 
-# `Never` and `TypeVar` come from here rather than from `typing`: `typing.Never` only
-# exists from 3.11 on, and only `typing_extensions.TypeVar` carries the PEP 696
-# `default=` argument on the Python versions the checkers target.
-# The order is the emitted one, so it has to be isort's: case-insensitive, since the
-# `order-by-type = false` in the root pyproject.toml leaves ruff's default
-# `case-sensitive = false` in charge.
-TYPING_EXTENSIONS_NAMES = [
-    "deprecated", "Never", "NotRequired", "override", "TypeAlias", "TypeVar",
-]
+# PEP 702 put `deprecated` into `warnings` rather than `typing`.
+WARNINGS_NAMES = ["deprecated"]
 
 # PEP 585: the `typing` aliases superseded by the builtin generics.
 BUILTIN_GENERICS = {
@@ -153,7 +149,7 @@ VALUE_TABLES: dict[str, dict[str, str]] = {
     "ATTRIBUTES": ov.ATTRIBUTES,
     "TYPE_ALIASES": ov.TYPE_ALIASES,
     "TYPE_ALIAS_CLASSES": ov.TYPE_ALIAS_CLASSES,
-    "TYPE_VARS": ov.TYPE_VARS,
+    "TYPE_PARAMS": ov.TYPE_PARAMS,
     "CLASS_BASES": ov.CLASS_BASES,
     "EVENT_HANDLER_RETURNS": ov.EVENT_HANDLER_RETURNS,
     "DOCSTRINGS": ov.DOCSTRINGS,
@@ -648,7 +644,7 @@ class ModuleGenerator:
 
         self.emit_def(
             indent,
-            fn.name,
+            fn.name + self.render_type_params(qualname),
             self.render_signature(fn, qualname, in_class),
             self.render_return(fn, qualname),
             render_docstring(
@@ -688,6 +684,14 @@ class ModuleGenerator:
         else:
             self.lines[-1] += " ..."
         self.blank()
+
+    def render_type_params(self, qualname: str) -> str:
+        """The PEP 695 type parameter list a `TYPE_PARAMS` entry gives `qualname`, if any."""
+        type_params = self.override("TYPE_PARAMS", qualname)
+        if type_params is None:
+            return ""
+        self.note(type_params)
+        return f"[{type_params}]"
 
     def emit_deprecation(self, fn: ast.FunctionDef, indent: str, qualname: str) -> None:
         """Turn the docstring's ``:deprecated:`` marker into a `@deprecated` decorator."""
@@ -796,16 +800,16 @@ class ModuleGenerator:
 
     def emit_class(self, cls: ast.ClassDef, indent: str) -> None:
         # A `CLASS_BASES` entry replaces the reference's bases wholesale, which is how a
-        # class is made generic. The `@override` and inheritance bookkeeping below keeps
-        # following `self.ref.bases`: the reference's own bases are what say which
-        # methods the class inherits, whatever the stub declares.
+        # class derives from a parameterized base. The `@override` and inheritance
+        # bookkeeping below keeps following `self.ref.bases`: the reference's own bases
+        # are what say which methods the class inherits, whatever the stub declares.
         base_override = self.override("CLASS_BASES", self.key(cls.name))
         if base_override is not None:
             bases = [base_override]
         else:
             bases = [ast.unparse(b) for b in cls.bases]
             bases += [f"{kw.arg}={ast.unparse(kw.value)}" for kw in cls.keywords]
-        header = f"{indent}class {cls.name}"
+        header = f"{indent}class {cls.name}{self.render_type_params(self.key(cls.name))}"
         header += f"({', '.join(bases)}):" if bases else ":"
         self.note(" ".join(bases))
         self.lines.append(header)
@@ -904,7 +908,7 @@ class ModuleGenerator:
         # `sublime_plugin` is emitted from an allowlist rather than by dropping
         # private names: most of the module is plugin host machinery.
         allowlisted = self.module == "sublime_plugin"
-        previous = self.emit_type_vars()
+        previous = ""
         for node in self.tree.body:
             if isinstance(node, ast.ClassDef):
                 if allowlisted and not self.listed("SUBLIME_PLUGIN_PUBLIC_API", node.name):
@@ -942,19 +946,6 @@ class ModuleGenerator:
 
         body = "\n".join(self.lines).rstrip() + "\n"
         return self.render_header() + body
-
-    def emit_type_vars(self) -> str:
-        """Emit the module's TypeVar declarations; the `separate` kind they leave behind.
-
-        TypeVars have no counterpart in the reference, so they come from the override
-        table, and they lead the module body, ahead of every declaration using them.
-        """
-        block = self.override("TYPE_VARS", self.module)
-        if block is None:
-            return ""
-        self.note(block)
-        self.lines.append(block)
-        return "type_vars"
 
     def emit_extra_type_aliases(self, previous: str) -> str:
         """Append the `sublime_types` aliases with no reference-side counterpart.
@@ -1012,8 +1003,7 @@ class ModuleGenerator:
             # `modernize` unquotes the string the reference wraps every alias in.
             value = self.check_annotation(ast.unparse(node.value), self.key(name))
         self.note(value)
-        self.note("TypeAlias")
-        self.lines.append(f"{name}: TypeAlias = {value}")
+        self.lines.append(f"type {name} = {value}")
 
     def render_header(self) -> str:
         lines = [
@@ -1031,6 +1021,9 @@ class ModuleGenerator:
         typing_used = [n for n in TYPING_NAMES if n in self.referenced]
         if typing_used:
             stdlib.append(f"from typing import {', '.join(typing_used)}")
+        warnings_used = [n for n in WARNINGS_NAMES if n in self.referenced]
+        if warnings_used:
+            stdlib.append(f"from warnings import {', '.join(warnings_used)}")
 
         third_party = self.plain_imports(THIRD_PARTY_MODULE_IMPORTS)
         if self.module == "sublime_types":
@@ -1039,9 +1032,6 @@ class ModuleGenerator:
         # One name per line: that is how isort spells `X as X` re-exports, and the
         # single line they used to share ran well past the stub line width.
         third_party.extend(f"from sublime_types import {n} as {n}" for n in sorted(reexports or []))
-        extensions_used = [n for n in TYPING_EXTENSIONS_NAMES if n in self.referenced]
-        if extensions_used:
-            third_party.append(f"from typing_extensions import {', '.join(extensions_used)}")
 
         for section in (stdlib, third_party):
             if section:

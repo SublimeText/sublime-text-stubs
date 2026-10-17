@@ -7,7 +7,9 @@ name = "sublime-text-stubs"
 dynamic = ["version"]
 description = "Typing stubs for the Sublime Text plugin API (sublime, sublime_plugin)"
 readme = "README.md"
-requires-python = ">=3.8"
+# mypy parses a `.pyi` with the `ast` module of the interpreter it runs on, and the
+# PEP 696 defaults in the stubs' type parameter lists need Python 3.13 to parse.
+requires-python = ">=3.13"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "FichteFoll" }]
@@ -51,9 +53,9 @@ packages = [
 include = ["stubs", "tests", "tools", "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "LICENSE"]
 
 # --- type checkers -----------------------------------------------------------
-# `pythonVersion` / `python_version` below is the Sublime Text embedded interpreter
-# this branch targets (ST build 4200 ships Python 3.8), not the interpreter used to
-# run the checkers.
+# `pythonVersion` / `python_version` below is the Python of the Sublime Text plugin
+# host this branch targets, the Sublime Text embedded interpreter (Python 3.14), not
+# the interpreter used to run the checkers.
 
 # Shared by pyright and basedpyright. basedpyright reads `[tool.pyright]` and honours
 # its own extra rules from it; a separate `[tool.basedpyright]` section is not an
@@ -75,7 +77,7 @@ extraPaths = ["stubs"]
 # the Sublime Text one configured below. It is checked separately, as its own project:
 # see ./tools/pyproject.toml and the `Tools` workflow.
 exclude = ["references", "tools", "**/__pycache__", ".venv"]
-pythonVersion = "3.8"
+pythonVersion = "3.14"
 typeCheckingMode = "strict"
 # These stubs are stub-only by nature: the modules they describe exist only inside
 # Sublime Text, so `import sublime` can never resolve to a source file.
@@ -111,12 +113,7 @@ reportAny = "error"  # basedpyright only
 reportExplicitAny = "error"  # basedpyright only
 
 [tool.mypy]
-# mypy >=2 refuses to target anything below 3.10, so the ST 4200 (Python 3.8) target
-# cannot be expressed here. pyright/basedpyright/ty still enforce 3.8, which is what
-# keeps the sample consumer code under `tests/typing/` to what a plugin author on
-# build 4200 can actually write. The stubs themselves are exempt: a `.pyi` is never
-# executed, so it may use PEP 604 / PEP 585 syntax regardless of the target.
-python_version = "3.10"
+python_version = "3.14"
 strict = true
 mypy_path = "stubs"
 files = ["stubs", "tests"]
@@ -138,7 +135,7 @@ include = ["stubs", "tests"]
 exclude = ["references", "tools"]
 
 [tool.ty.environment]
-python-version = "3.8"
+python-version = "3.14"
 extra-paths = ["stubs"]
 
 # --- ruff --------------------------------------------------------------------
@@ -153,7 +150,7 @@ include = ["stubs/**/*.pyi", "tests/**/*.py"]
 # while walking down from here, linting the generator twice under two rule sets.
 extend-exclude = ["references", "tools"]
 line-length = 120
-target-version = "py38"
+target-version = "py314"
 
 [tool.ruff.lint]
 # The families `tools/` selects, plus `PYI`. `PTH`, `DTZ`, `G` and friends cannot
@@ -214,10 +211,6 @@ order-by-type = false
     "RUF002",
 ]
 "tests/**/*.py" = [
-    # The samples deliberately stay on the Python 3.8 syntax a plugin author on this
-    # build can write, which is why they spell `List[X]` and `Optional[X]`. Adding
-    # `from __future__ import annotations`, as the rule asks, would defeat that.
-    "FA100",
     # `tests/typing/` is not a package: nothing imports or executes these files.
     "INP001",
 ]

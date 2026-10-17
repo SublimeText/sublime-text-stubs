@@ -141,13 +141,13 @@ RETURNS = {
     # (references/python38/sublime_plugin.py:1343-1372). So any `Iterable` works, and the
     # three item forms may be mixed in one -- hence the union over the *element* type.
     "sublime_plugin.ListInputHandler.list_items": (
-        "Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]]"
-        " | tuple[Iterable[str | tuple[str, _T_Value] | sublime.ListInputItem[_T_Value]], int]"
+        "Iterable[str | tuple[str, T] | sublime.ListInputItem[T]]"
+        " | tuple[Iterable[str | tuple[str, T] | sublime.ListInputItem[T]], int]"
     ),
     "sublime_plugin.TextChangeListener.is_applicable": "bool",
     # It compares `vel.__class__ == cls` (references/python38/sublime_plugin.py:668-673),
     # so the instance found is exactly of the class asked for.
-    "sublime_plugin.find_view_event_listener": "_T_ViewEventListener | None",
+    "sublime_plugin.find_view_event_listener": "T | None",
 }
 
 # Parameter type overrides / annotations the generator cannot infer.
@@ -200,7 +200,7 @@ PARAMS = {
     "sublime.ListInputItem.__init__.kind": "Kind",
     # `Any` in the reference (references/python38/sublime.py:4327); the class is generic
     # over it instead, so the constructor argument is what fixes the item's value type.
-    "sublime.ListInputItem.__init__.value": "_T_Value",
+    "sublime.ListInputItem.__init__.value": "T",
     # Unannotated with a `details=""` default, so the generator infers `str` from
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
@@ -211,12 +211,12 @@ PARAMS = {
     "sublime_plugin.Command.input.args": "dict[str, Value]",
     # The reference spells all three `text: str`, but for a `ListInputHandler` the host
     # passes the *value* of the selected item, not its row text
-    # (references/python38/sublime_plugin.py:1220-1242). See `TYPE_VARS`.
-    "sublime_plugin.CommandInputHandler.preview.text": "_T_Value_contra",
-    "sublime_plugin.CommandInputHandler.validate.text": "_T_Value_contra",
-    "sublime_plugin.CommandInputHandler.confirm.text": "_T_Value_contra",
+    # (references/python38/sublime_plugin.py:1220-1242). See `TYPE_PARAMS`.
+    "sublime_plugin.CommandInputHandler.preview.text": "T",
+    "sublime_plugin.CommandInputHandler.validate.text": "T",
+    "sublime_plugin.CommandInputHandler.confirm.text": "T",
     # Unannotated in the reference; it is the same value the methods above receive.
-    "sublime_plugin.ListInputHandler.description.value": "_T_Value",
+    "sublime_plugin.ListInputHandler.description.value": "T",
     # The reference spells both `operand: str` (references/python38/sublime_plugin.py:1852
     # and :2131), but a `.sublime-keymap` context's `"operand"` may be a JSON string,
     # number, or boolean -- e.g. `"operand": 1` for `num_selections`, `"operand": true`
@@ -226,7 +226,7 @@ PARAMS = {
     "sublime_plugin.EventListener.on_query_context.operand": "Value",
     "sublime_plugin.ViewEventListener.on_query_context.operand": "Value",
     "sublime_plugin.find_view_event_listener.view": "sublime.View",
-    "sublime_plugin.find_view_event_listener.cls": "type[_T_ViewEventListener]",
+    "sublime_plugin.find_view_event_listener.cls": "type[T]",
     "sublime_plugin.WindowCommand.__init__.window": "sublime.Window",
     "sublime_plugin.TextCommand.__init__.view": "sublime.View",
     # The `.. method::` directives for these two spell `buffer: View`, but their
@@ -264,80 +264,67 @@ ATTRIBUTES = {
     "sublime.CompletionList.target": "int | None",
     # Annotated `Any` in the reference (references/python38/sublime.py:4330), whose own
     # docstring one line below calls it "A `Value` passed to the command"; see
-    # `TYPE_VARS`.
-    "sublime.ListInputItem.value": "_T_Value",
+    # `TYPE_PARAMS`.
+    "sublime.ListInputItem.value": "T",
 }
 
-# Module level `TypeVar` declarations, keyed by module name. The reference has no
-# counterpart to key them to, so the value is the complete declaration block, emitted
-# at the top of the module body (after the imports, before the first declaration). A
-# module declaring more than one TypeVar spells them as one multi-line block.
-TYPE_VARS: dict[str, str] = {
+# PEP 695 type parameter lists, keyed by `module.Class` or `module.function`. The
+# reference has no counterpart to take them from, so the value is emitted verbatim
+# between the brackets after the declared name. PEP 695 infers each parameter's
+# variance from how the class uses it.
+TYPE_PARAMS: dict[str, str] = {
     # Bounded by `ValueLike` because the item's value is what gets delivered to the
     # command: "A `Value` passed to the command if the row is selected"
     # (references/python38/sublime.py:4330-4331). The bound is `ValueLike` rather than
     # `Value` because it constrains what an author may parameterize on, and that is an
     # inbound position: `Value`'s containers are invariant, so it would reject
-    # `ListInputItem[List[str]]`. See `EXTRA_TYPE_ALIASES` below.
+    # `ListInputItem[list[str]]`. See `EXTRA_TYPE_ALIASES` below.
     #
-    # The `default=` deliberately stays `Value`, which is not the bound. The default is
+    # The default deliberately stays `Value`, which is not the bound. The default is
     # what a bare, unparameterized use resolves to, and a bare use describes what the
     # host actually delivers -- always a real `list` or `dict` -- so it stays the narrow
     # type. The asymmetry is intentional, not an oversight.
     #
-    # Defaulted at all because the runtime class carries no `__class_getitem__` on the
-    # Python 3.8 host and therefore cannot be subscripted, so every bare use has to keep
-    # working; `default=Value` (rather than `Any`) makes a bare `ListInputItem` an item
-    # of an unknown `Value`, which has to be narrowed, instead of one that silently
-    # accepts anything.
+    # Defaulted at all because the runtime class is not generic and therefore cannot be
+    # subscripted, so every bare use has to keep working; a `Value` default (rather
+    # than `Any`) makes a bare `ListInputItem` an item of an unknown `Value`, which has
+    # to be narrowed, instead of one that silently accepts anything.
     #
-    # Keep this justification out of the emitted block: `note()` scans the block for
+    # Keep this justification out of the emitted text: `note()` scans it for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
-    "sublime": '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)',
-    # `_T_Value` is the same declaration as `sublime`'s above, for the same reasons:
-    # `ListInputHandler` both produces its value (`list_items`) and consumes it
-    # (`description`), so its parameter is invariant, is bounded by `ValueLike` and
-    # defaults to `Value`.
-    #
+    "sublime.ListInputItem": "T: ValueLike = Value",
     # `CommandInputHandler` only ever *consumes* a value -- the host passes the selected
     # item's value to `preview_`, `validate_` and `confirm_`
-    # (references/python38/sublime_plugin.py:1220-1242) -- so it is contravariant.
-    # Under contravariance `CommandInputHandler[Never]` is the *top* of the handler
-    # lattice: every `CommandInputHandler[X]` is assignable to it. That is what lets
-    # `next_input` and `Command.input` keep the reference's own bare
-    # `Optional[CommandInputHandler]` return annotation, which `default=Never` resolves
-    # to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
+    # (references/python38/sublime_plugin.py:1220-1242) -- so its inferred variance is
+    # contravariant. Under contravariance `CommandInputHandler[Never]` is the *top* of
+    # the handler lattice: every `CommandInputHandler[X]` is assignable to it. That is
+    # what lets `next_input` and `Command.input` keep the reference's own bare
+    # `Optional[CommandInputHandler]` return annotation, which the `Never` default
+    # resolves to `CommandInputHandler[Never]`, and still accept a `TextInputHandler`
     # (a `CommandInputHandler[str]`) -- with no `Any` and no `RETURNS` override.
-    #
-    # `_T_ViewEventListener` lets `find_view_event_listener` return the class it is
-    # given. The bound is a forward reference, which a stub permits.
-    #
-    # Keep this justification out of the emitted block: `note()` scans the block for
-    # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
-    "sublime_plugin": (
-        '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)\n'
-        '_T_Value_contra = TypeVar("_T_Value_contra", bound=ValueLike, default=Never, contravariant=True)\n'
-        '_T_ViewEventListener = TypeVar("_T_ViewEventListener", bound=ViewEventListener)'
-    ),
+    "sublime_plugin.CommandInputHandler": "T: ValueLike = Never",
+    # The same parameter as `sublime.ListInputItem`'s above, for the same reasons:
+    # `ListInputHandler` both produces its value (`list_items`) and consumes it
+    # (`description`), so its inferred variance is invariant, it is bounded by
+    # `ValueLike` and defaults to `Value`.
+    "sublime_plugin.ListInputHandler": "T: ValueLike = Value",
+    # Lets `find_view_event_listener` return the class it is given. The bound is a
+    # forward reference, which a stub permits.
+    "sublime_plugin.find_view_event_listener": "T: ViewEventListener",
 }
 
 # Replacements for a class's rendered base list, keyed by `module.Class`. The value is
 # used verbatim in place of everything the reference declares between the parentheses,
-# which is how a reference class is made generic (`Generic[_T]`) or is given an already
-# parameterized base (`CommandInputHandler[str]`). The `@override` and inheritance
-# bookkeeping keeps following the reference's own bases.
+# which is how a reference class is given an already parameterized base
+# (`CommandInputHandler[str]`). The `@override` and inheritance bookkeeping keeps
+# following the reference's own bases.
 CLASS_BASES: dict[str, str] = {
-    # The reference class has no bases; `Generic[_T_Value]` is what makes its `value`
-    # generic. See `TYPE_VARS` above.
-    "sublime.ListInputItem": "Generic[_T_Value]",
-    # The reference class has no bases; the value it consumes is what parameterizes it.
-    "sublime_plugin.CommandInputHandler": "Generic[_T_Value_contra]",
     # Both derive from a bare `CommandInputHandler` in the reference. A text input hands
     # the command the entered string, so its value type is fixed; a list input's is the
     # selected item's value. `BackInputHandler` deliberately keeps the reference's bare
     # base: it consumes nothing, and bare resolves to `CommandInputHandler[Never]`.
     "sublime_plugin.TextInputHandler": "CommandInputHandler[str]",
-    "sublime_plugin.ListInputHandler": "CommandInputHandler[_T_Value]",
+    "sublime_plugin.ListInputHandler": "CommandInputHandler[T]",
 }
 
 # `sublime_types` aliases the generator cannot take verbatim.
@@ -356,7 +343,7 @@ TYPE_ALIASES = {
 # complete emitted block, so an entry can carry a leading comment.
 #
 # `Value` spells its containers `list[Value]` and `dict[str, Value]`, and both are
-# invariant, so a plugin author holding a `List[str]` cannot pass it anywhere a
+# invariant, so a plugin author holding a `list[str]` cannot pass it anywhere a
 # `Value` is expected -- not to `Settings.set`, not to `encode_value`, and not as a
 # type argument to the generic input handlers. `ValueLike` is the covariant
 # companion, spelled with `Sequence` and `Mapping`, and is used for every parameter
@@ -368,7 +355,7 @@ TYPE_ALIASES = {
 # 1. `Mapping` overshoots the runtime, which gates mappings on
 #    `isinstance(x, dict)`: a `collections.abc.Mapping` that is not a `dict` is
 #    rejected. Spelling it `dict[str, ValueLike]` would be accurate but useless,
-#    since `dict` is invariant in its value parameter and `Dict[str, str]` would
+#    since `dict` is invariant in its value parameter and `dict[str, str]` would
 #    keep failing -- which is the whole problem this alias exists to solve.
 #    `Settings.update` is the one place where any `Mapping` really is accepted: it
 #    is implemented in Python and iterates the mapping itself
@@ -393,7 +380,7 @@ TYPE_ALIASES = {
 # importing one unguarded raises `ImportError` on the plugin host.
 EXTRA_TYPE_ALIASES = {
     "ValueLike": (
-        "ValueLike: TypeAlias ="
+        "type ValueLike ="
         " bool | str | int | float | Sequence[ValueLike] | Mapping[str, ValueLike] | None\n"
         '"""\n'
         "What the value layer accepts on the way *in*, where `Value` describes what it\n"
@@ -406,7 +393,7 @@ EXTRA_TYPE_ALIASES = {
         '"""'
     ),
     "CommandArgsLike": (
-        "CommandArgsLike: TypeAlias = Mapping[str, ValueLike] | None\n"
+        "type CommandArgsLike = Mapping[str, ValueLike] | None\n"
         '"""\n'
         "What a command's arguments may be spelled as on the way *in*, where\n"
         "`CommandArgs` describes what the plugin host hands back.\n"
@@ -419,7 +406,7 @@ EXTRA_TYPE_ALIASES = {
 }
 
 # `sublime_types` aliases the generator replaces with a class declaration instead of a
-# plain `X: TypeAlias = ...` line. The reference spells `Event` as a bare `dict`; the
+# plain `type X = ...` line. The reference spells `Event` as a bare `dict`; the
 # "Event Objects" section of the API docs documents its `x`/`y`/`modifier_keys` keys,
 # which narrow cleanly to a `TypedDict`. `Event` itself is a real name upstream (bound
 # to plain `dict`, so importing it unconditionally still works at runtime), but

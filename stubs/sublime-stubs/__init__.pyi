@@ -4,7 +4,8 @@
 import builtins
 import enum
 from collections.abc import Callable, Iterable, Iterator, Mapping
-from typing import Generic, Literal
+from typing import Literal, override
+from warnings import deprecated
 
 from sublime_types import CommandArgs as CommandArgs
 from sublime_types import CommandArgsLike as CommandArgsLike
@@ -21,9 +22,6 @@ from sublime_types import ValueLike as ValueLike
 from sublime_types import Vector as Vector
 from sublime_types import WindowLayout as WindowLayout
 from sublime_types import WindowVariables as WindowVariables
-from typing_extensions import deprecated, override, TypeVar
-
-_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
 
 class HoverZone(enum.IntEnum):
     """
@@ -3231,7 +3229,7 @@ class QuickPanelItem:
     ) -> None:
         ...
 
-class ListInputItem(Generic[_T_Value]):
+class ListInputItem[T: ValueLike = Value]:
     """
     Represents a row shown via `ListInputHandler`.
 
@@ -3239,7 +3237,7 @@ class ListInputItem(Generic[_T_Value]):
     """
     text: str
     """ Text to match against the user's input. """
-    value: _T_Value
+    value: T
     """ A `Value` passed to the command if the row is selected. """
     details: str | list[str] | tuple[str]
     """ A `minihtml` string or list of strings displayed below the trigger. """
@@ -3251,7 +3249,7 @@ class ListInputItem(Generic[_T_Value]):
     def __init__(
         self,
         text: str,
-        value: _T_Value,
+        value: T,
         details: str | list[str] | tuple[str] = ...,
         annotation: str = ...,
         kind: Kind = ...,
