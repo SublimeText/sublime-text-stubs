@@ -7,6 +7,15 @@ Versions follow `${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 
+## 4200.1
+
+### Changed
+
+- Versions follow `${st_build_version}.${patch}`
+  instead of `1.${st_build_version}.${patch}`.
+  This release carries the same stubs as `1.4200.1`.
+  Pin `==4200.*` instead of `==1.4200.*`.
+
 ## 1.4200.1
 
 ### Changed
