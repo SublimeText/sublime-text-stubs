@@ -8,6 +8,7 @@ PEP 561 typing stubs for the Sublime Text plugin API
 - `stubs/` -- **generated** `.pyi` files. Never edit them; edit the generator instead.
 - `tools/generate_stubs.py` -- derives `stubs/` from `references/`.
 - `tools/stub_overrides.py` -- declarative per-member corrections.
+- `tools/update_reference.py` -- extracts a build's reference sources and bumps `ST_BUILD`.
 - `references/python314/` -- the reference sources shipped with ST build 4213; read-only input.
 - `tests/typing/` -- sample consumer code, the only validation of the stubs.
 - `tools/` is a **separate uv project** with its own lockfile, virtualenv and Python target,
@@ -33,6 +34,15 @@ Run all of these before considering a change complete.
 The four root checkers and both ruff runs must stay silent;
 the generator must report no unresolved and no stale entries.
 A ruff finding under `stubs/` is fixed in the generator, never in the `.pyi`.
+
+Only when onboarding a new ST build,
+not as a check,
+extract its sources and bump `ST_BUILD`;
+this changes the working tree:
+
+```sh
+uv run --directory tools python update_reference.py   # extract the latest ST build's sources
+```
 
 ## Where things are documented
 

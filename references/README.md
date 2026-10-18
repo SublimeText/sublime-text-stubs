@@ -3,18 +3,18 @@ The `python314/` folder was extracted from ST build 4213
 It is distributed with permission of Sublime HQ Pty Ltd
 under the terms in [LICENSE](LICENSE).
 
-To extract the sources of another build,
-set `BUILD` to its number and run, from the repository root:
+To extract the sources of the latest build,
+or of a specific one, run from the repository root:
 
 ```sh
-BUILD=4213
-TARBALL="${TMPDIR:-/tmp}/sublime_text_build_${BUILD}_x64.tar.xz"
-curl -fL -o "$TARBALL" "https://download.sublimetext.com/sublime_text_build_${BUILD}_x64.tar.xz"
-tar -xJf "$TARBALL" --strip-components=3 -C references/python314 \
-    sublime_text/Lib/python314/sublime.py \
-    sublime_text/Lib/python314/sublime_plugin.py \
-    sublime_text/Lib/python314/sublime_types.py
+uv run --directory tools python update_reference.py              # the latest build, if newer
+uv run --directory tools python update_reference.py --build <N>  # build <N>
 ```
+
+Besides the sources,
+the script also bumps `ST_BUILD` in `tools/generate_stubs.py`
+and the build number at the top of this file,
+and it refuses a build whose plugin host is not `python314`.
 
 `python314` names the Python version of the plugin host,
 so it only changes when a build ships a new one.

@@ -140,11 +140,13 @@ See `tools/pyproject.toml` for the settings and the reasons behind them.
 
 ## Onboarding a new Sublime Text build
 
-1. Extract the build's sources as described in `references/README.md`.
-   If the build ships a different Python version,
-   `git mv` the reference directory to its new name first,
-   so that the history follows the files.
-2. Point `REFERENCE_DIR` and `ST_BUILD` in `tools/generate_stubs.py` at it.
+1. Only if the build ships a different Python version:
+   `git mv` the reference directory to its new name,
+   so that the history follows the files,
+   and point `REFERENCE_DIR` in `tools/generate_stubs.py` at it.
+   The extraction script refuses such a build until then.
+2. Run the extraction script as described in `references/README.md`;
+   it extracts the build's sources and sets `ST_BUILD`.
 3. Run the generator and resolve everything it reports as unresolved,
    including any override it reports as stale.
 4. Repoint the `references/...:<line>` citations
