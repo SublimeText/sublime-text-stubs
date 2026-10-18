@@ -16,7 +16,7 @@ this file only tells you where to look.
 | `tools/stub_overrides.py`| Declarative corrections the generator cannot derive on its own. |
 | `references/python314/`  | The annotated `sublime.py`, `sublime_plugin.py` and `sublime_types.py` shipped with the targeted Sublime Text build. |
 | `tests/typing/`          | Sample consumer code, type-checked to validate the stubs. |
-| `.github/workflows/`     | `ci.yml` for the stubs, `tools.yml` for the generator, `release.yml` for PyPI. |
+| `.github/workflows/`     | `ci.yml` for the stubs, `tools.yml` for the generator, `release.yml` for PyPI, `update-reference.yml` for new Sublime Text builds. |
 
 The reference sources already carry the full signatures
 and the reStructuredText docstrings the official docs are built from,
@@ -139,6 +139,15 @@ Both have their own [`Tools`](.github/workflows/tools.yml) workflow.
 See `tools/pyproject.toml` for the settings and the reasons behind them.
 
 ## Onboarding a new Sublime Text build
+
+A weekly [`Update reference`](.github/workflows/update-reference.yml) workflow
+checks for a build newer than `ST_BUILD`
+and opens a pull request from a branch `update/st-build-<build>`
+with step 2 done and step 3 attempted,
+so the onboarding continues from that pull request.
+A build that ships a different Python version makes the run fail
+until step 1 is done on `main`;
+the next run then picks the build up.
 
 1. Only if the build ships a different Python version:
    `git mv` the reference directory to its new name,

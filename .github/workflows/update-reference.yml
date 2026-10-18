@@ -1,0 +1,243 @@
+name: Update reference
+
+# Opens a pull request against `main` when Sublime Text publishes a build newer than
+# `ST_BUILD` in `tools/generate_stubs.py`, carrying that build's reference sources,
+# the `ST_BUILD` bump and, if the generator succeeds, the regenerated stubs.
+#
+# Opening the pull request with `GITHUB_TOKEN` requires the repository setting
+# "Settings > Actions > General > Allow GitHub Actions to create and approve pull
+# requests". In an organisation it may first have to be allowed there.
+#
+# GitHub disables scheduled workflows after 60 days without repository activity:
+# https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow
+# Re-enable it on the Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: "0 6 * * 6" # Saturdays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Build to extract instead of the latest one
+        type: string
+        required: false
+
+concurrency:
+  group: update-reference
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # Explicitly naming bash adds `-o pipefail` to the default `bash -e`.
+    shell: bash
+
+jobs:
+  update:
+    name: Propose the latest Sublime Text build
+    runs-on: ubuntu-latest
+    # The script's socket timeout applies per read, so a trickling download would
+    # otherwise only be stopped by the default job timeout of 6 hours.
+    timeout-minutes: 20
+    permissions:
+      contents: write # push the update branch
+      pull-requests: write # open the pull request
+      actions: write # dispatch `CI` and `Tools` on the update branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+
+      # `--locked` keeps uv from rewriting a lockfile, which would dirty the tree
+      # and pass for an update in the "Check for changes" step.
+      - run: |
+          uv sync --locked --group dev
+          uv sync --locked --directory tools
+
+      # The script queries both the stable and the dev update check endpoints, since
+      # they report different builds, and takes the higher one. It exits non-zero,
+      # failing the job, on any error, including a build whose plugin host is not the
+      # one `REFERENCE_DIR` points at; it leaves the tree clean when there is nothing
+      # newer than `ST_BUILD`.
+      - name: Extract the reference sources
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          args=()
+          if [ -n "$BUILD" ]; then
+            args=(--build "$BUILD")
+          fi
+          uv run --locked --directory tools python update_reference.py "${args[@]}"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "main is up to date."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Deduplication is keyed on the pull request, not on the branch: a branch
+      # without a pull request is left behind by a run whose `gh pr create` failed,
+      # and skipping it would never propose the build again. Such a run only gets the
+      # missing pull request. `--state all` lets a closed pull request suppress its
+      # build for good, so a rejected build is not proposed again every week.
+      # Pull requests from forks are ignored, so a fork branch of the same name
+      # cannot suppress a build.
+      - name: Determine the update branch
+        id: target
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          build=$(sed -n 's/^ST_BUILD = "\([0-9]*\)"$/\1/p' tools/generate_stubs.py)
+          if [ -z "$build" ]; then
+            echo "Could not read ST_BUILD from tools/generate_stubs.py."
+            exit 1
+          fi
+          branch="update/st-build-$build"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+          prs=$(gh pr list --head "$branch" --state all --json isCrossRepository \
+            --jq '[.[] | select(.isCrossRepository | not)] | length')
+          if [ "$prs" -ne 0 ]; then
+            echo "A pull request for ST build $build exists already."
+            echo "open_pr=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "open_pr=true" >> "$GITHUB_OUTPUT"
+
+          # Exit status 2 means no such branch; anything else non-zero is an error.
+          status=0
+          git ls-remote --exit-code --heads origin "$branch" > /dev/null || status=$?
+          case "$status" in
+            0)
+              echo "$branch exists without a pull request; opening only the pull request."
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+              ;;
+            2) echo "pushed=false" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+
+      # A failing generator does not fail the job: the pull request is opened anyway,
+      # with the new references and the `ST_BUILD` bump but without regenerated stubs,
+      # and its body shows the generator output, since resolving that output is the
+      # next onboarding step. The log lives outside the repository so that
+      # `git add` never picks it up.
+      - name: Generate the stubs
+        id: generate
+        if: steps.target.outputs.open_pr == 'true' && steps.target.outputs.pushed == 'false'
+        run: |
+          status=0
+          uv run --locked python tools/generate_stubs.py > "$RUNNER_TEMP/generate.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/generate.log"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      # The commit message body doubles as the generator summary of the pull request
+      # body, so that a later run can rebuild the latter from the pushed branch alone.
+      # GitHub rejects pull request bodies over 65536 characters, and the rebuilt body
+      # would be rejected again on every later run, so the output is truncated.
+      - name: Commit and push the update branch
+        if: steps.target.outputs.open_pr == 'true' && steps.target.outputs.pushed == 'false'
+        env:
+          BUILD: ${{ steps.target.outputs.build }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+          GENERATE_STATUS: ${{ steps.generate.outputs.status }}
+          LOG_LIMIT: 50000
+        run: |
+          summary="$RUNNER_TEMP/summary.md"
+          log="$RUNNER_TEMP/generate.log"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$GENERATE_STATUS" -eq 0 ]; then
+            echo 'The stubs were regenerated.' > "$summary"
+          else
+            size=$(wc -c < "$log")
+            {
+              echo "Generating the stubs failed with exit status $GENERATE_STATUS,"
+              echo "so \`stubs/\` is not regenerated. Generator output, also in the [run log]($run_url):"
+              echo
+              echo '~~~'
+              if [ "$size" -le "$LOG_LIMIT" ]; then
+                cat "$log"
+              else
+                head -c "$LOG_LIMIT" "$log"
+                echo
+                echo "[truncated, $size bytes in total]"
+              fi
+              echo '~~~'
+            } > "$summary"
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git add -A references stubs tools
+          {
+            echo "Update the references to ST build $BUILD"
+            echo
+            cat "$summary"
+          } > "$RUNNER_TEMP/commit-message.txt"
+          git commit --file "$RUNNER_TEMP/commit-message.txt"
+          git push origin "$BRANCH"
+
+      - name: Recover the generator summary from the update branch
+        if: steps.target.outputs.open_pr == 'true' && steps.target.outputs.pushed == 'true'
+        env:
+          BRANCH: ${{ steps.target.outputs.branch }}
+        run: |
+          git fetch origin "$BRANCH"
+          git log -1 --format=%b FETCH_HEAD > "$RUNNER_TEMP/summary.md"
+
+      - name: Open the pull request
+        if: steps.target.outputs.open_pr == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD: ${{ steps.target.outputs.build }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+        run: |
+          body="$RUNNER_TEMP/pr-body.md"
+          guide="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/CONTRIBUTING.md#onboarding-a-new-sublime-text-build"
+          {
+            echo "Extracts the reference sources of Sublime Text build $BUILD and sets \`ST_BUILD\` to it."
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "Remaining work, see [Onboarding a new Sublime Text build]($guide):"
+            echo
+            cat <<'EOF'
+          - [ ] Resolve everything the generator reports, if anything.
+          - [ ] Repoint the `references/...:<line>` citations in `tools/` and `pyproject.toml`.
+          - [ ] Audit the overrides.
+          - [ ] Regenerate and commit the stubs, if generation failed above.
+          - [ ] Update the build mentions in `README.md`, `CONTRIBUTING.md`, `AGENTS.md` and the root `pyproject.toml` comment.
+          - [ ] Add a `CHANGELOG.md` entry.
+          - [ ] Run all checks listed in `AGENTS.md`.
+          EOF
+          } > "$body"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Update the references to ST build $BUILD" --body-file "$body"
+
+      # Events caused by `GITHUB_TOKEN`, such as the push and the pull request above,
+      # start no workflow runs, except `workflow_dispatch` and `repository_dispatch`:
+      # https://docs.github.com/en/actions/concepts/security/github_token
+      # Dispatching the checks avoids a personal access token.
+      - name: Run the checks on the update branch
+        if: steps.target.outputs.open_pr == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+        run: |
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run tools.yml --ref "$BRANCH"
