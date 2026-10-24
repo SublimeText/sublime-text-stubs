@@ -63,7 +63,7 @@ import stub_overrides as ov
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REFERENCE_DIR = REPO_ROOT / "references" / "python314"
-ST_BUILD = "4213"
+ST_BUILD = "4215"
 
 INDENT = "    "
 
