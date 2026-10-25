@@ -169,6 +169,11 @@ the next run then picks the build up.
 Tag `v${st_build_version}.${patch}` on the branch for that build line.
 hatch-vcs derives the distribution version from the tag,
 and the `Release` workflow publishes to PyPI via trusted publishing.
+It then creates a draft GitHub release
+with the distribution files attached
+and the version's changelog section as notes,
+or the `[Unreleased]` section for a pre-release.
+Review and publish the draft by hand.
 Before tagging,
 move the changes in `CHANGELOG.md` from `[Unreleased]`
 under a `## <version> (<YYYY-MM-DD>)` heading
