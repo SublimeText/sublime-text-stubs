@@ -25,13 +25,11 @@ rather than transcribed by hand.
 
 ### Branches
 
-`main` targets ST build 4213 with Python 3.14
-and is tagged `v4213.x`.
-Build 4200 continues on the `st-4200` branch
-and is tagged `v4200.x`.
-Build lines live on separate branches
-because they target different Python versions
-and therefore need different stub syntax and type checker settings.
+`main` targets the latest ST build with Python 3.14.
+Support for older builds is continued on branches (`st-<build>`),
+in case the stubs require fixes,
+because they use different source files
+and may target different Python versions.
 
 Fixes that apply to more than one build line
 are cherry-picked between branches,

@@ -37,8 +37,10 @@ Versions follow the scheme `${st_build_version}.${patch}`:
 The first segment is the Sublime Text build the stubs describe,
 and the second is the patch level within that build.
 This is deliberately not semantic versioning.
-Releases up to `1.4200.1` and the pre-release `1.4213.0b1`
-were numbered `1.${st_build_version}.${patch}`.
+
+Note that, at the time of writing,
+the later build 4214 (dev) and 4215 (stable)
+provide the same API as 4213.
 
 Pin the build you target:
 
@@ -46,7 +48,8 @@ Pin the build you target:
 sublime-text-stubs = "==4213.*"
 ```
 
-Sublime Text also ships a disabled, deprecated Python 3.3 plugin host.
+Sublime Text builds 4213 and later
+also ship a disabled, deprecated Python 3.3 plugin host.
 This package does not target it.
 
 ## Notes for plugin authors
