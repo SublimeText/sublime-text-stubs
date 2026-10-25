@@ -16,6 +16,12 @@ their changes are listed under the release that follows them.
 
 ## 4213.0 (2026-10-25)
 
+### Breaking
+
+- Type checkers have to target Python 3.13 or newer to read the stubs,
+  and mypy itself has to run on Python 3.13 or newer.
+  Accordingly, `requires-python` is now `>=3.13`.
+
 ### Added
 
 - `sublime.lib_path()`.
@@ -46,9 +52,6 @@ their changes are listed under the release that follows them.
   on `ListInputItem`, `CommandInputHandler`, `ListInputHandler`
   and `find_view_event_listener()`.
   They no longer import `typing_extensions`.
-- Type checkers have to target Python 3.13 or newer to read the stubs,
-  and mypy itself has to run on Python 3.13 or newer.
-  Accordingly, `requires-python` is now `>=3.13`.
 
 ## 4200.1 (2026-10-17)
 
