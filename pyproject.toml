@@ -54,8 +54,8 @@ packages = [
 include = ["stubs", "tests", "tools", "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "LICENSE"]
 
 # --- type checkers -----------------------------------------------------------
-# The Python versions below are that of the plugin host of Sublime Text build 4213
-# (Python 3.14), not that of the interpreter used to run the checkers.
+# The Python versions below are that of the plugin host of Sublime Text (Python 3.14),
+# not that of the interpreter used to run the checkers.
 
 # Shared by pyright and basedpyright. basedpyright reads `[tool.pyright]` and honours
 # its own extra rules from it; a separate `[tool.basedpyright]` section is not an
