@@ -14,6 +14,8 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+## 4213.0 (2026-10-25)
+
 ### Added
 
 - `sublime.lib_path()`.
