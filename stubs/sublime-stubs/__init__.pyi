@@ -2723,7 +2723,7 @@ class View:
         self,
         index: int,
         modifying_only: bool = ...,
-    ) -> tuple[str | None, CommandArgs, int]:
+    ) -> tuple[str, CommandArgs, int]:
         """
         Get info on previous run commands stored in the undo/redo stack.
 
@@ -2734,8 +2734,9 @@ class View:
             Whether only commands that modify the text buffer are considered.
         :returns:
             The command name, command arguments and repeat count for the history
-            entry. If the undo/redo history doesn't extend far enough, then
-            ``(None, None, 0)`` will be returned.
+            entry. The arguments are ``None`` if the command was run without any.
+            If the undo/redo history doesn't extend far enough, then
+            ``("", None, 0)`` will be returned.
         """
 
     def overwrite_status(self) -> bool:

@@ -75,6 +75,24 @@ DOCSTRINGS = {
         "This function is not part of the documented API. It has been stable for many\n"
         "builds and is used by plugins, but it may change or disappear without notice."
     ),
+    # The reference's docstring (references/python314/sublime.py:3626-3629) says
+    # `(None, None, 0)` is returned when the history doesn't extend far enough, but the
+    # API returns `("", None, 0)`, so the name is always a `str`: checked on build 4215
+    # for indexes past both ends of the undo and redo stacks, including on an empty view.
+    "sublime.View.command_history": (
+        "Get info on previous run commands stored in the undo/redo stack.\n"
+        "\n"
+        ":param index:\n"
+        "    The offset into the undo/redo stack. Positive values for index\n"
+        "    indicate to look in the redo stack for commands.\n"
+        ":param modifying_only:\n"
+        "    Whether only commands that modify the text buffer are considered.\n"
+        ":returns:\n"
+        "    The command name, command arguments and repeat count for the history\n"
+        "    entry. The arguments are ``None`` if the command was run without any.\n"
+        "    If the undo/redo history doesn't extend far enough, then\n"
+        "    ``(\"\", None, 0)`` will be returned."
+    ),
 }
 
 # Internal members that are neither underscore-prefixed nor underscore-suffixed,
@@ -130,11 +148,6 @@ RETURNS = {
     "sublime.View.set_scratch": "None",
     "sublime.View.show_popup_menu": "None",
     "sublime.View.export_to_html": "str",
-    # `tuple[str, CommandArgs, int]` in the reference (references/python314/sublime.py:3617),
-    # but its own docstring says `(None, None, 0)` is returned when the undo/redo history
-    # doesn't extend far enough (references/python314/sublime.py:3626-3629). `CommandArgs`
-    # already includes `None`, so only the command name needs widening.
-    "sublime.View.command_history": "tuple[str | None, CommandArgs, int]",
     # The reference spells a six-arm union of `list`-only forms
     # (references/python314/sublime_plugin.py:1312-1317), but `setup_` only checks for the
     # `(items, index)` tuple and then iterates, dispatching per item
