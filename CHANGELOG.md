@@ -14,6 +14,11 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+### Fixed
+
+- `View.command_history()` returns `str | None` as the command name,
+  since it returns `(None, None, 0)` when the undo/redo history doesn't extend far enough.
+
 ## 4213.0 (2026-10-25)
 
 ### Breaking

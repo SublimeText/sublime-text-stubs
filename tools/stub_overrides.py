@@ -130,6 +130,11 @@ RETURNS = {
     "sublime.View.set_scratch": "None",
     "sublime.View.show_popup_menu": "None",
     "sublime.View.export_to_html": "str",
+    # `tuple[str, CommandArgs, int]` in the reference (references/python314/sublime.py:3617),
+    # but its own docstring says `(None, None, 0)` is returned when the undo/redo history
+    # doesn't extend far enough (references/python314/sublime.py:3626-3629). `CommandArgs`
+    # already includes `None`, so only the command name needs widening.
+    "sublime.View.command_history": "tuple[str | None, CommandArgs, int]",
     # The reference spells a six-arm union of `list`-only forms
     # (references/python314/sublime_plugin.py:1312-1317), but `setup_` only checks for the
     # `(items, index)` tuple and then iterates, dispatching per item

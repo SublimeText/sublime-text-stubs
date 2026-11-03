@@ -288,6 +288,16 @@ def too_large_is_not_found(error: sublime.FileTooLargeError) -> FileNotFoundErro
     return error
 
 
+def last_command(view: sublime.View) -> str:
+    # The name is `None` when the undo history doesn't extend far enough.
+    name, args, _count = view.command_history(0)
+    _ = assert_type(name, str | None)
+    _ = assert_type(args, sublime.CommandArgs)
+    if name is None:
+        return ""
+    return name
+
+
 def rename_sheet(sheet: sublime.Sheet) -> str | None:
     # Both live on `Sheet` itself, so no narrowing to `TextSheet` or `HtmlSheet`.
     sheet.set_name("Scratch")

@@ -2723,7 +2723,7 @@ class View:
         self,
         index: int,
         modifying_only: bool = ...,
-    ) -> tuple[str, CommandArgs, int]:
+    ) -> tuple[str | None, CommandArgs, int]:
         """
         Get info on previous run commands stored in the undo/redo stack.
 
