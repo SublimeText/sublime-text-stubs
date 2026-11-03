@@ -14,6 +14,12 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+### Fixed
+
+- `QuickPanelItem()` and `ListInputItem()` accept a `details` tuple of any length,
+  not only a tuple of exactly one string.
+  Their `details` attributes are typed the same way.
+
 ## 4213.0 (2026-10-25)
 
 ### Breaking
