@@ -14,6 +14,10 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+### Fixed
+
+- `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
+
 ## 4213.0 (2026-10-25)
 
 ### Breaking

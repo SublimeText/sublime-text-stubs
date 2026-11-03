@@ -288,6 +288,13 @@ def too_large_is_not_found(error: sublime.FileTooLargeError) -> FileNotFoundErro
     return error
 
 
+def update_html_sheet(window: sublime.Window) -> None:
+    # `new_html_sheet()` always creates an `HtmlSheet`, so no narrowing is needed.
+    sheet = window.new_html_sheet("Preview", "<p>Loading</p>")
+    _ = assert_type(sheet, sublime.HtmlSheet)
+    sheet.set_contents("<p>Done</p>")
+
+
 def rename_sheet(sheet: sublime.Sheet) -> str | None:
     # Both live on `Sheet` itself, so no narrowing to `TextSheet` or `HtmlSheet`.
     sheet.set_name("Scratch")
