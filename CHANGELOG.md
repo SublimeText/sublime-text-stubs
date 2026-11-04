@@ -7,6 +7,13 @@ Versions follow `${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 
+## [Unreleased]
+
+### Changed
+
+- `sublime.expand_variables()` is generic and returns the type of its `value` argument
+  instead of `Value`.
+
 ## 4200.1
 
 ### Changed

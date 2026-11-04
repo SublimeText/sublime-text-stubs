@@ -148,6 +148,10 @@ RETURNS = {
     # It compares `vel.__class__ == cls` (references/python38/sublime_plugin.py:668-673),
     # so the instance found is exactly of the class asked for.
     "sublime_plugin.find_view_event_listener": "_T_ViewEventListener | None",
+    # `Value` in the reference (references/python38/sublime.py:1253), but the docstring
+    # says the structure of `value` is "recursively expanded", so the result has the shape
+    # of the argument, which a `Value` return would force every caller to narrow or cast.
+    "sublime.expand_variables": "_T_ValueLike",
 }
 
 # Parameter type overrides / annotations the generator cannot infer.
@@ -178,7 +182,7 @@ PARAMS = {
     # plugin author would otherwise have to satisfy exactly. See `EXTRA_TYPE_ALIASES`
     # for the rationale.
     "sublime.encode_value.value": "ValueLike",
-    "sublime.expand_variables.value": "ValueLike",
+    "sublime.expand_variables.value": "_T_ValueLike",
     "sublime.run_command.args": "CommandArgsLike",
     "sublime.format_command.args": "CommandArgsLike",
     "sublime.html_format_command.args": "CommandArgsLike",
@@ -301,9 +305,15 @@ TYPE_VARS: dict[str, str] = {
     # of an unknown `Value`, which has to be narrowed, instead of one that silently
     # accepts anything.
     #
+    # `_T_ValueLike` lets `expand_variables` return the shape it is given. Bounded by
+    # `ValueLike` so that it still accepts everything it accepted as a plain parameter.
+    #
     # Keep this justification out of the emitted block: `note()` scans the block for
     # identifiers, so prose words like `Any` would add a spurious import to the `.pyi`.
-    "sublime": '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)',
+    "sublime": (
+        '_T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)\n'
+        '_T_ValueLike = TypeVar("_T_ValueLike", bound=ValueLike)'
+    ),
     # `_T_Value` is the same declaration as `sublime`'s above, for the same reasons:
     # `ListInputHandler` both produces its value (`list_items`) and consumes it
     # (`description`), so its parameter is invariant, is bounded by `ValueLike` and

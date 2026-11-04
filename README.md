@@ -81,6 +81,8 @@ It is scheduled for removal and is not targeted by this package.
   comes back as a plain `list` or `dict`,
   not as the type that was passed;
   `bytes` in particular is accepted and arrives back as `list[int]`.
+  `expand_variables()` returns the type of its argument,
+  so pass it a `list` or `dict` rather than another sequence or mapping.
 
   `sublime.Region` is rejected by both the checkers and the runtime.
 

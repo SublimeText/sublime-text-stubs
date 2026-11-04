@@ -24,6 +24,7 @@ from sublime_types import WindowVariables as WindowVariables
 from typing_extensions import deprecated, override, TypeVar
 
 _T_Value = TypeVar("_T_Value", bound=ValueLike, default=Value)
+_T_ValueLike = TypeVar("_T_ValueLike", bound=ValueLike)
 
 class HoverZone(enum.IntEnum):
     """
@@ -971,7 +972,10 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: ValueLike, variables: dict[str, str] | WindowVariables) -> Value:
+def expand_variables(
+    value: _T_ValueLike,
+    variables: dict[str, str] | WindowVariables,
+) -> _T_ValueLike:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the

@@ -230,13 +230,20 @@ def widen_first_column(window: sublime.Window) -> None:
     window.set_layout(layout)
 
 
-def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
+def expand_in_project(window: sublime.Window, template: str) -> str:
     # `extract_variables()` is documented as input to `expand_variables()`.
     variables = window.extract_variables()
     name = variables.get("project_name")
     if name is None:
         return template
     return sublime.expand_variables(template, variables)
+
+
+def expand_keeps_shape(template: str, command: List[str], config: Dict[str, str]) -> None:
+    variables = {"name": "Foo"}
+    _ = assert_type(sublime.expand_variables(template, variables), str)
+    _ = assert_type(sublime.expand_variables(command, variables), List[str])
+    _ = assert_type(sublime.expand_variables(config, variables), Dict[str, str])
 
 
 def widen_value_like_inputs(
