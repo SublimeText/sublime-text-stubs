@@ -244,13 +244,20 @@ def widen_first_column(window: sublime.Window) -> None:
     window.set_layout(layout)
 
 
-def expand_in_project(window: sublime.Window, template: str) -> sublime.Value:
+def expand_in_project(window: sublime.Window, template: str) -> str:
     # `extract_variables()` is documented as input to `expand_variables()`.
     variables = window.extract_variables()
     name = variables.get("project_name")
     if name is None:
         return template
     return sublime.expand_variables(template, variables)
+
+
+def expand_keeps_shape(template: str, command: list[str], config: dict[str, str]) -> None:
+    variables = {"name": "Foo"}
+    _ = assert_type(sublime.expand_variables(template, variables), str)
+    _ = assert_type(sublime.expand_variables(command, variables), list[str])
+    _ = assert_type(sublime.expand_variables(config, variables), dict[str, str])
 
 
 def widen_value_like_inputs(
@@ -295,6 +302,13 @@ def read_bounded_resource(name: str) -> tuple[str, bytes] | None:
 def too_large_is_not_found(error: sublime.FileTooLargeError) -> FileNotFoundError:
     # So code that already catches `FileNotFoundError` keeps handling it.
     return error
+
+
+def update_html_sheet(window: sublime.Window) -> None:
+    # `new_html_sheet()` always creates an `HtmlSheet`, so no narrowing is needed.
+    sheet = window.new_html_sheet("Preview", "<p>Loading</p>")
+    _ = assert_type(sheet, sublime.HtmlSheet)
+    sheet.set_contents("<p>Done</p>")
 
 
 def rename_sheet(sheet: sublime.Sheet) -> str | None:

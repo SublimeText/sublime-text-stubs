@@ -14,8 +14,16 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+### Changed
+
+- `sublime.expand_variables()` is generic and returns the type of its `value` argument
+  instead of `Value`.
+
 ### Fixed
 
+- `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
+- The docstring of `View.command_history()` says that `("", None, 0)` is returned
+  when the undo/redo history doesn't extend far enough, instead of `(None, None, 0)`.
 - `QuickPanelItem()` and `ListInputItem()` accept a `details` tuple of any length,
   not only a tuple of exactly one string.
   Their `details` attributes are typed the same way.

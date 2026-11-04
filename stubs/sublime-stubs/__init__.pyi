@@ -993,7 +993,7 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: ValueLike, variables: dict[str, str] | WindowVariables) -> Value:
+def expand_variables[T: ValueLike](value: T, variables: dict[str, str] | WindowVariables) -> T:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the
@@ -1095,7 +1095,7 @@ class Window:
         contents: str,
         flags: NewFileFlags = ...,
         group: int = ...,
-    ) -> Sheet:
+    ) -> HtmlSheet:
         """
         Construct a sheet with HTML contents rendered using `minihtml`.
 
@@ -2734,8 +2734,9 @@ class View:
             Whether only commands that modify the text buffer are considered.
         :returns:
             The command name, command arguments and repeat count for the history
-            entry. If the undo/redo history doesn't extend far enough, then
-            ``(None, None, 0)`` will be returned.
+            entry. The arguments are ``None`` if the command was run without any.
+            If the undo/redo history doesn't extend far enough, then
+            ``("", None, 0)`` will be returned.
         """
 
     def overwrite_status(self) -> bool:
