@@ -3220,7 +3220,7 @@ class QuickPanelItem:
     """
     trigger: str
     """ Text to match against user's input. """
-    details: str | list[str] | tuple[str]
+    details: str | list[str] | tuple[str, ...]
     """ A `minihtml` string or list of strings displayed below the trigger. """
     annotation: str
     """ Hint to draw to the right-hand side of the row. """
@@ -3230,7 +3230,7 @@ class QuickPanelItem:
     def __init__(
         self,
         trigger: str,
-        details: str | list[str] | tuple[str] = ...,
+        details: str | list[str] | tuple[str, ...] = ...,
         annotation: str = ...,
         kind: Kind = ...,
     ) -> None:
@@ -3246,7 +3246,7 @@ class ListInputItem(Generic[_T_Value]):
     """ Text to match against the user's input. """
     value: _T_Value
     """ A `Value` passed to the command if the row is selected. """
-    details: str | list[str] | tuple[str]
+    details: str | list[str] | tuple[str, ...]
     """ A `minihtml` string or list of strings displayed below the trigger. """
     annotation: str
     """ Hint to draw to the right-hand side of the row. """
@@ -3257,7 +3257,7 @@ class ListInputItem(Generic[_T_Value]):
         self,
         text: str,
         value: _T_Value,
-        details: str | list[str] | tuple[str] = ...,
+        details: str | list[str] | tuple[str, ...] = ...,
         annotation: str = ...,
         kind: Kind = ...,
     ) -> None:

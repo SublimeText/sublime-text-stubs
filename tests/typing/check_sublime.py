@@ -4,7 +4,7 @@ Not executed. Its only purpose is to give the type checkers something concrete t
 verify the stubs against, since `sublime` cannot be imported outside Sublime Text.
 """
 
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import sublime
 from sublime_types import Value as ValueFromTypesModule
@@ -138,6 +138,15 @@ def quick_panel(window: sublime.Window) -> None:
         for folder in window.folders()
     ]
     window.show_quick_panel(items, lambda _index: None, placeholder="Pick a folder")
+
+
+def multi_line_details(path: str) -> List[sublime.QuickPanelItem]:
+    # A tuple of any length is accepted, not only a tuple of exactly one string.
+    details = (path, "second line")
+    _ = sublime.ListInputItem("label", path, details=details)
+    item = sublime.QuickPanelItem(path, details=details)
+    _ = assert_type(item.details, Union[str, List[str], Tuple[str, ...]])
+    return [item]
 
 
 def list_input_item_value() -> int:

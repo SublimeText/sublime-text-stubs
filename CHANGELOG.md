@@ -19,6 +19,9 @@ Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 - `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
 - The docstring of `View.command_history()` says that `("", None, 0)` is returned
   when the undo/redo history doesn't extend far enough, instead of `(None, None, 0)`.
+- `QuickPanelItem()` and `ListInputItem()` accept a `details` tuple of any length,
+  not only a tuple of exactly one string.
+  Their `details` attributes are typed the same way.
 
 ## 4200.1
 

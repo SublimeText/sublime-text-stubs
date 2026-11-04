@@ -242,9 +242,12 @@ PARAMS = {
     # Unannotated with a `details=""` default, so the generator infers `str` from
     # the default -- but the attribute assigned three lines below says
     # `self.details: str | list[str] | tuple[str]`, and the runtime joins lists and
-    # tuples with "\x1f" (`references/python38/sublime.py:1838`). The attribute wins.
-    "sublime.QuickPanelItem.__init__.details": "str | list[str] | tuple[str]",
-    "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str]",
+    # tuples with "\x1f" (`references/python38/sublime.py:1838`). The attribute wins,
+    # except that its `tuple[str]` is a tuple of exactly one string, so a tuple with
+    # more lines would be rejected. The docstrings (sublime.py:4303-4305 and
+    # :4333-4335) call it a "list of strings", so any number of strings is meant.
+    "sublime.QuickPanelItem.__init__.details": "str | list[str] | tuple[str, ...]",
+    "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str, ...]",
     "sublime_plugin.CommandInputHandler.next_input.args": "dict[str, Value]",
     "sublime_plugin.Command.input.args": "dict[str, Value]",
     # The reference spells all three `text: str`, but for a `ListInputHandler` the host
@@ -304,6 +307,10 @@ ATTRIBUTES = {
     # docstring one line below calls it "A `Value` passed to the command"; see
     # `TYPE_VARS`.
     "sublime.ListInputItem.value": "_T_Value",
+    # `str | list[str] | tuple[str]` in the reference (references/python38/sublime.py:4302
+    # and :4332); it holds the `details` passed to `__init__`, see `PARAMS`.
+    "sublime.QuickPanelItem.details": "str | list[str] | tuple[str, ...]",
+    "sublime.ListInputItem.details": "str | list[str] | tuple[str, ...]",
 }
 
 # Module level `TypeVar` declarations, keyed by module name. The reference has no
