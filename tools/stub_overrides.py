@@ -123,6 +123,12 @@ RETURNS = {
     # (references/python38/sublime.py:2017-2038) names every key it may contain; see
     # `WindowVariables` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.Window.extract_variables": "WindowVariables",
+    # `Sheet` in the reference (references/python38/sublime.py:1403), but it returns
+    # `make_sheet()` of the id `window_new_html_sheet` hands back, and `make_sheet()`
+    # dispatches on the id's low bits (references/python38/sublime.py:2408-2416), which
+    # mark an HTML sheet. So the result is always an `HtmlSheet`, and callers can use
+    # `HtmlSheet.set_contents()` without narrowing.
+    "sublime.Window.new_html_sheet": "HtmlSheet",
     # Unannotated in the reference.
     "sublime.Window.__eq__": "bool",
     "sublime.Window.get_output_panel": "View",

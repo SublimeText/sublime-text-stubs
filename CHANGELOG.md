@@ -14,6 +14,10 @@ Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 - `sublime.expand_variables()` is generic and returns the type of its `value` argument
   instead of `Value`.
 
+### Fixed
+
+- `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
+
 ## 4200.1
 
 ### Changed

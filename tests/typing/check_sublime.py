@@ -272,6 +272,13 @@ def widen_command_args_inputs(window: sublime.Window, tags: List[str]) -> None:
     window.run_command("x", {"tags": tags})
 
 
+def update_html_sheet(window: sublime.Window) -> None:
+    # `new_html_sheet()` always creates an `HtmlSheet`, so no narrowing is needed.
+    sheet = window.new_html_sheet("Preview", "<p>Loading</p>")
+    _ = assert_type(sheet, sublime.HtmlSheet)
+    sheet.set_contents("<p>Done</p>")
+
+
 def pick_font(on_chosen: Callable[[str], None]) -> None:
     def chosen(options: Optional["FontOptions"]) -> None:
         # The callback receives `None` if the dialog was cancelled.
