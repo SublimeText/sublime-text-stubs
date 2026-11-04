@@ -140,6 +140,12 @@ RETURNS = {
     # (references/python314/sublime.py:2043-2064) names every key it may contain; see
     # `WindowVariables` in `EXTRA_TYPE_ALIAS_CLASSES`.
     "sublime.Window.extract_variables": "WindowVariables",
+    # `Sheet` in the reference (references/python314/sublime.py:1429), but it returns
+    # `make_sheet()` of the id `window_new_html_sheet` hands back, and `make_sheet()`
+    # dispatches on the id's low bits (references/python314/sublime.py:2435-2443), which
+    # mark an HTML sheet. So the result is always an `HtmlSheet`, and callers can use
+    # `HtmlSheet.set_contents()` without narrowing.
+    "sublime.Window.new_html_sheet": "HtmlSheet",
     # Unannotated in the reference.
     "sublime.Window.__eq__": "bool",
     "sublime.Window.show_input_panel": "View",
@@ -161,6 +167,10 @@ RETURNS = {
     # (references/python314/sublime_plugin.py:648-653), so the instance found is exactly
     # of the class asked for.
     "sublime_plugin.find_view_event_listener": "T | None",
+    # `Value` in the reference (references/python314/sublime.py:1279), but the docstring
+    # says the structure of `value` is "recursively expanded", so the result has the shape
+    # of the argument, which a `Value` return would force every caller to narrow or cast.
+    "sublime.expand_variables": "T",
 }
 
 # Parameter type overrides / annotations the generator cannot infer.
@@ -187,7 +197,7 @@ PARAMS = {
     # plugin author would otherwise have to satisfy exactly. See `EXTRA_TYPE_ALIASES`
     # for the rationale.
     "sublime.encode_value.value": "ValueLike",
-    "sublime.expand_variables.value": "ValueLike",
+    "sublime.expand_variables.value": "T",
     "sublime.run_command.args": "CommandArgsLike",
     "sublime.format_command.args": "CommandArgsLike",
     "sublime.html_format_command.args": "CommandArgsLike",
@@ -330,6 +340,9 @@ TYPE_PARAMS: dict[str, str] = {
     # Lets `find_view_event_listener` return the class it is given. The bound is a
     # forward reference, which a stub permits.
     "sublime_plugin.find_view_event_listener": "T: ViewEventListener",
+    # Lets `expand_variables` return the shape it is given. Bounded by `ValueLike` so
+    # that it still accepts everything it accepted as a plain parameter.
+    "sublime.expand_variables": "T: ValueLike",
 }
 
 # Replacements for a class's rendered base list, keyed by `module.Class`. The value is

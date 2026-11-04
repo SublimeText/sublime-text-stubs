@@ -993,7 +993,7 @@ def decode_value(data: str) -> Value:
     :raises ValueError: If the string is not valid JSON.
     """
 
-def expand_variables(value: ValueLike, variables: dict[str, str] | WindowVariables) -> Value:
+def expand_variables[T: ValueLike](value: T, variables: dict[str, str] | WindowVariables) -> T:
     """
     Expands any variables in ``value`` using the variables defined in the
     dictionary ``variables``. value may also be a list or dict, in which case the
@@ -1095,7 +1095,7 @@ class Window:
         contents: str,
         flags: NewFileFlags = ...,
         group: int = ...,
-    ) -> Sheet:
+    ) -> HtmlSheet:
         """
         Construct a sheet with HTML contents rendered using `minihtml`.
 
