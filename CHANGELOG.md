@@ -17,6 +17,8 @@ Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 ### Fixed
 
 - `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
+- The docstring of `View.command_history()` says that `("", None, 0)` is returned
+  when the undo/redo history doesn't extend far enough, instead of `(None, None, 0)`.
 
 ## 4200.1
 
