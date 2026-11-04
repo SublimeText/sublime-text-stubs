@@ -14,6 +14,11 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+### Changed
+
+- `sublime.expand_variables()` is generic and returns the type of its `value` argument
+  instead of `Value`.
+
 ### Fixed
 
 - `Window.new_html_sheet()` returns `HtmlSheet` instead of `Sheet`.
