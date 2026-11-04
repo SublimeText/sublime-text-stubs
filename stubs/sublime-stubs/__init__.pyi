@@ -1095,7 +1095,7 @@ class Window:
         contents: str,
         flags: NewFileFlags = ...,
         group: int = ...,
-    ) -> Sheet:
+    ) -> HtmlSheet:
         """
         Construct a sheet with HTML contents rendered using `minihtml`.
 
