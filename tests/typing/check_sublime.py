@@ -140,6 +140,15 @@ def quick_panel(window: sublime.Window) -> None:
     window.show_quick_panel(items, lambda _index: None, placeholder="Pick a folder")
 
 
+def multi_line_details(path: str) -> list[sublime.QuickPanelItem]:
+    # A tuple of any length is accepted, not only a tuple of exactly one string.
+    details = (path, "second line")
+    _ = sublime.ListInputItem("label", path, details=details)
+    item = sublime.QuickPanelItem(path, details=details)
+    _ = assert_type(item.details, str | list[str] | tuple[str, ...])
+    return [item]
+
+
 def list_input_item_value() -> int:
     # `assert_type` rather than an annotated assignment: `Any` satisfies the latter,
     # so it would not catch a regression to the pre-generic stubs.

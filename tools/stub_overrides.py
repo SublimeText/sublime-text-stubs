@@ -227,6 +227,12 @@ PARAMS = {
     # (sublime.py:4122-4126), which duck-types sequences; see `ValueLike`.
     "sublime.CompletionList.__init__.completions": "Sequence[CompletionValue]",
     "sublime.CompletionList.set_completions.completions": "Sequence[CompletionValue]",
+    # `str | list[str] | tuple[str]` in the reference (references/python314/sublime.py:4338
+    # and :4372), but `tuple[str]` is a tuple of exactly one string, so a tuple with more
+    # lines is rejected. The docstrings (sublime.py:4344-4346 and :4380-4382) call it a
+    # "list of strings", so any number of strings is meant.
+    "sublime.QuickPanelItem.__init__.details": "str | list[str] | tuple[str, ...]",
+    "sublime.ListInputItem.__init__.details": "str | list[str] | tuple[str, ...]",
     # `Any` in the reference (references/python314/sublime.py:4371); the class is generic
     # over it instead, so the constructor argument is what fixes the item's value type.
     "sublime.ListInputItem.__init__.value": "T",
@@ -283,6 +289,9 @@ ATTRIBUTES = {
     # docstring one line below calls it "A `Value` passed to the command"; see
     # `TYPE_PARAMS`.
     "sublime.ListInputItem.value": "T",
+    # Holds the `details` passed to `__init__`; see `PARAMS`.
+    "sublime.QuickPanelItem.details": "str | list[str] | tuple[str, ...]",
+    "sublime.ListInputItem.details": "str | list[str] | tuple[str, ...]",
     # The reference initializes it as `self.buffer: sublime.Buffer | None = None`
     # (references/python314/sublime_plugin.py:2259). Both hand-written third-party stub
     # sets (sublimelsp/LSP, SublimeText/sublime_lib) spell it `Buffer | None` too, but
