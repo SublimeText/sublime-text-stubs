@@ -14,6 +14,8 @@ their changes are listed under the release that follows them.
 
 ## [Unreleased]
 
+## 4213.1 (2026-11-05)
+
 ### Changed
 
 - `sublime.expand_variables()` is generic and returns the type of its `value` argument
