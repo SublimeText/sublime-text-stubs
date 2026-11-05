@@ -7,7 +7,7 @@ Versions follow `${st_build_version}.${patch}`,
 not semantic versioning; see the README.
 Releases up to `1.4200.1` were numbered `1.${st_build_version}.${patch}`.
 
-## [Unreleased]
+## 4200.2 (2026-11-05)
 
 ### Changed
 
