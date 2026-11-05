@@ -213,6 +213,9 @@ jobs:
             echo
             cat "$RUNNER_TEMP/summary.md"
             echo
+            echo "If the reference sources did not change beyond the build number, close this pull request instead:"
+            echo "a closed pull request keeps build $BUILD from being proposed again, while later builds still are."
+            echo
             echo "Remaining work, see [Onboarding a new Sublime Text build]($guide):"
             echo
             cat <<'EOF'
