@@ -43,6 +43,8 @@ jobs:
     name: Build distribution
     needs: check-ci
     runs-on: ubuntu-latest
+    outputs:
+      release-title: ${{ steps.notes.outputs.title }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -59,14 +61,25 @@ jobs:
 
       # Runs before publishing so that a missing changelog section stops the release early.
       - name: Extract the release notes from the changelog
+        id: notes
         run: |
           version="${GITHUB_REF_NAME#v}"
           case "$version" in
             # Pre-releases get no section of their own; their changes stay under [Unreleased].
-            *[a-z]*) heading='## [Unreleased]' ;;
+            *[a-z]*)
+              heading='## [Unreleased]'
+              date=$(date -u +%F)
+              ;;
             # The trailing " (" keeps e.g. 4200.1 from matching 1.4200.1.
-            *) heading="## $version (" ;;
+            # The heading's date is authoritative: the tag may be pushed on a different UTC day.
+            *)
+              heading="## $version ("
+              date=$(awk -v heading="$heading" '
+                index($0, heading) == 1 { print substr($0, length(heading) + 1, 10); exit }
+              ' CHANGELOG.md)
+              ;;
           esac
+          echo "title=$version ($date)" >> "$GITHUB_OUTPUT"
           awk -v heading="$heading" '
             index($0, "## ") == 1 { if (found) exit; found = index($0, heading) == 1; next }
             found
@@ -104,7 +117,7 @@ jobs:
 
   github-release:
     name: Create draft GitHub release
-    needs: publish
+    needs: [build, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -121,6 +134,7 @@ jobs:
       - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ needs.build.outputs.release-title }}
         run: |
           flags=()
           case "${GITHUB_REF_NAME#v}" in
@@ -128,5 +142,5 @@ jobs:
           esac
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --draft \
-            --title "$GITHUB_REF_NAME" --notes-file release-notes.md \
+            --title "$TITLE" --notes-file release-notes.md \
             "${flags[@]}"
