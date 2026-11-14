@@ -99,25 +99,32 @@ This package does not target it.
 
   A `TypedDict` is only a `ValueLike` when it is declared with `closed=True`
   ([PEP 728](https://peps.python.org/pep-0728/)),
+  and so is every `TypedDict` among its field types,
   because an open one may carry further keys of any type.
-  This applies to the type parameter of the input handlers as well.
+  This applies to the values of command `args`
+  and to the type parameter of the input handlers as well.
   `typing.TypedDict` accepts `closed` only from Python 3.15 on,
   so import `TypedDict` from `typing_extensions` instead.
-  Define the class inside the `if TYPE_CHECKING:` block
-  unless `typing_extensions` is available at runtime;
+  Declare `typing_extensions` in your package's `dependencies.json`
+  to define the class at runtime,
+  or define it inside the `if TYPE_CHECKING:` block;
   its values are plain `dict` literals either way:
 
   ```python
   if TYPE_CHECKING:
       from typing_extensions import TypedDict
 
+      class Position(TypedDict, closed=True):
+          line: int
+          character: int
+
       class Entry(TypedDict, closed=True):
           name: str
-          tags: list[str]
+          position: Position
 
 
-  def store_entry(settings: sublime.Settings, entry: Entry) -> None:
-      settings.set("entry", entry)
+  def store_entry(view: sublime.View, entry: Entry) -> None:
+      view.run_command("store_entry", {"entry": entry})
   ```
 
   pyright, basedpyright and ty accept this.
